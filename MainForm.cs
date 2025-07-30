@@ -16,9 +16,9 @@ namespace Bulk_Editor
             InitializeComponent();
         }
 
-        private void btnSelectFolder_Click(object sender, EventArgs e)
+        private void BtnSelectFolder_Click(object sender, EventArgs e)
         {
-            using (FolderBrowserDialog folderDialog = new FolderBrowserDialog())
+            using (var folderDialog = new FolderBrowserDialog())
             {
                 folderDialog.Description = "Select a folder to display its files";
                 folderDialog.ShowNewFolderButton = false;
@@ -69,7 +69,7 @@ namespace Bulk_Editor
             while (size >= 1024 && order < sizes.Length - 1)
             {
                 order++;
-                size = size / 1024;
+                size /= 1024;
             }
 
             return $"{size:0.##} {sizes[order]}";

@@ -42,7 +42,7 @@ namespace Bulk_Editor
             this.btnSelectFolder.TabIndex = 0;
             this.btnSelectFolder.Text = "Select Folder";
             this.btnSelectFolder.UseVisualStyleBackColor = true;
-            this.btnSelectFolder.Click += new System.EventHandler(this.btnSelectFolder_Click);
+            this.btnSelectFolder.Click += new System.EventHandler(this.BtnSelectFolder_Click);
             //
             // txtFolderPath
             //
