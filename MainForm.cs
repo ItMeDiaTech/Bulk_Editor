@@ -304,7 +304,7 @@ namespace Bulk_Editor
                 string fileName = selectedItem.Split('(')[0].Trim();
 
                 // Try to find the changelog file for this item
-                string changelogPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "BulkEditor_Changelog.txt");
+                string changelogPath = FindLatestChangelog();
 
                 if (File.Exists(changelogPath))
                 {
@@ -491,13 +491,13 @@ namespace Bulk_Editor
 
             bool isFolder = Directory.Exists(txtFolderPath.Text);
             string path = txtFolderPath.Text;
+            string basePath = isFolder ? path : Path.GetDirectoryName(path);
 
             try
             {
-                // Create a changelog file in Downloads folder with unique naming
-                string downloadsPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\Downloads";
+                // Create a changelog file in the same folder as the processed files with unique naming
                 string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                string changelogPath = Path.Combine(downloadsPath, $"BulkEditor_Changelog_{timestamp}.txt");
+                string changelogPath = Path.Combine(basePath, $"BulkEditor_Changelog_{timestamp}.txt");
 
                 using (var writer = new StreamWriter(changelogPath, append: false))
                 {
@@ -523,7 +523,7 @@ namespace Bulk_Editor
                     }
                 }
 
-                MessageBox.Show($"Processing complete. Changelog saved to Downloads folder.", "Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show($"Processing complete. Changelog saved to:\n{changelogPath}", "Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
                 // Show the changelog for the first file in the list
                 if (lstFiles.Items.Count > 0)
@@ -954,41 +954,86 @@ namespace Bulk_Editor
             return $"{size:0.##} {sizes[order]}";
         }
 
+        private string FindLatestChangelog()
+        {
+            // First, check if we have a selected folder or file
+            if (!string.IsNullOrEmpty(txtFolderPath.Text))
+            {
+                bool isFolder = Directory.Exists(txtFolderPath.Text);
+                string basePath = isFolder ? txtFolderPath.Text : Path.GetDirectoryName(txtFolderPath.Text);
+
+                // Look for changelog files in the same folder as the processed files
+                string[] changelogFiles = Directory.GetFiles(basePath, "BulkEditor_Changelog_*.txt");
+
+                if (changelogFiles.Length > 0)
+                {
+                    // Get the most recent changelog file
+                    Array.Sort(changelogFiles);
+                    return changelogFiles[changelogFiles.Length - 1];
+                }
+            }
+
+            // If not found in the processed folder, check the desktop (for backward compatibility)
+            string desktopChangelogPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "BulkEditor_Changelog.txt");
+            if (File.Exists(desktopChangelogPath))
+            {
+                return desktopChangelogPath;
+            }
+
+            return string.Empty;
+        }
+
         private void BtnExportChangelog_Click(object sender, EventArgs e)
         {
             try
             {
-                // Check if we have a changelog file on the desktop
-                string desktopChangelogPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "BulkEditor_Changelog.txt");
+                string changelogPath = string.Empty;
 
-                if (!File.Exists(desktopChangelogPath))
+                // First, check if we have a selected folder or file
+                if (!string.IsNullOrEmpty(txtFolderPath.Text))
                 {
-                    // Check if we have a changelog file in the Downloads folder
-                    string downloadsPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\Downloads";
-                    string[] changelogFiles = Directory.GetFiles(downloadsPath, "BulkEditor_Changelog_*.txt");
+                    bool isFolder = Directory.Exists(txtFolderPath.Text);
+                    string basePath = isFolder ? txtFolderPath.Text : Path.GetDirectoryName(txtFolderPath.Text);
 
-                    if (changelogFiles.Length == 0)
+                    // Look for changelog files in the same folder as the processed files
+                    string[] changelogFiles = Directory.GetFiles(basePath, "BulkEditor_Changelog_*.txt");
+
+                    if (changelogFiles.Length > 0)
                     {
-                        MessageBox.Show("No changelog file found. Please run the tools first.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        return;
+                        // Get the most recent changelog file
+                        Array.Sort(changelogFiles);
+                        changelogPath = changelogFiles[changelogFiles.Length - 1];
                     }
-
-                    // Get the most recent changelog file
-                    Array.Sort(changelogFiles);
-                    desktopChangelogPath = changelogFiles[changelogFiles.Length - 1];
                 }
 
-                // Create a save file dialog
+                // If not found in the processed folder, check the desktop (for backward compatibility)
+                if (string.IsNullOrEmpty(changelogPath))
+                {
+                    string desktopChangelogPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "BulkEditor_Changelog.txt");
+                    if (File.Exists(desktopChangelogPath))
+                    {
+                        changelogPath = desktopChangelogPath;
+                    }
+                }
+
+                if (string.IsNullOrEmpty(changelogPath))
+                {
+                    MessageBox.Show("No changelog file found. Please run the tools first.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                // Create a save file dialog with initial directory set to the folder containing the changelog
                 using (var saveFileDialog = new SaveFileDialog())
                 {
                     saveFileDialog.Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*";
                     saveFileDialog.Title = "Export Changelog";
                     saveFileDialog.FileName = $"BulkEditor_Changelog_Export_{DateTime.Now:yyyyMMdd_HHmmss}.txt";
+                    saveFileDialog.InitialDirectory = Path.GetDirectoryName(changelogPath);
 
                     if (saveFileDialog.ShowDialog() == DialogResult.OK)
                     {
                         // Copy the changelog file to the selected location
-                        File.Copy(desktopChangelogPath, saveFileDialog.FileName, true);
+                        File.Copy(changelogPath, saveFileDialog.FileName, true);
 
                         MessageBox.Show($"Changelog exported successfully to:\n{saveFileDialog.FileName}", "Export Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
