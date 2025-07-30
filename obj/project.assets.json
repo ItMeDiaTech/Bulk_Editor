@@ -14,11 +14,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\DiaTech\\Pictures\\DiaTech\\Programs\\Bulk_Editor\\Bulk_Editor.csproj",
+      "projectUniqueName": "c:\\Users\\DiaTech\\Pictures\\DiaTech\\Programs\\Bulk_Editor\\Bulk_Editor.csproj",
       "projectName": "Bulk_Editor",
-      "projectPath": "C:\\Users\\DiaTech\\Pictures\\DiaTech\\Programs\\Bulk_Editor\\Bulk_Editor.csproj",
+      "projectPath": "c:\\Users\\DiaTech\\Pictures\\DiaTech\\Programs\\Bulk_Editor\\Bulk_Editor.csproj",
       "packagesPath": "C:\\Users\\DiaTech\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\DiaTech\\Pictures\\DiaTech\\Programs\\Bulk_Editor\\obj\\",
+      "outputPath": "c:\\Users\\DiaTech\\Pictures\\DiaTech\\Programs\\Bulk_Editor\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

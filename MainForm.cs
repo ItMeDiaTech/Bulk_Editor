@@ -310,6 +310,13 @@ namespace Bulk_Editor
                 {
                     DisplayChangelogForFile(changelogPath, fileName);
                 }
+                else
+                {
+                    // Show empty changelog panel with message
+                    lblChangelogTitle.Text = $"Changelog - {fileName}";
+                    txtChangelog.Text = "No changelog file found. Please run the tools first.";
+                    pnlChangelog.Visible = true;
+                }
             }
         }
 
@@ -440,7 +447,7 @@ namespace Bulk_Editor
         {
             using (var folderDialog = new FolderBrowserDialog())
             {
-                folderDialog.Description = "Select a folder to display its files";
+                folderDialog.Description = "Select a folder containing .docx files to process";
                 folderDialog.ShowNewFolderButton = false;
 
                 if (folderDialog.ShowDialog() == DialogResult.OK)
@@ -456,8 +463,8 @@ namespace Bulk_Editor
         {
             using (var fileDialog = new OpenFileDialog())
             {
-                fileDialog.Title = "Select a file to process";
-                fileDialog.Filter = "All files (*.*)|*.*";
+                fileDialog.Title = "Select a .docx file to process";
+                fileDialog.Filter = "Word documents (*.docx)|*.docx";
                 fileDialog.Multiselect = false;
 
                 if (fileDialog.ShowDialog() == DialogResult.OK)
@@ -472,12 +479,12 @@ namespace Bulk_Editor
         private void ShowFileList()
         {
             lstFiles.Visible = true;
-            pnlChangelog.Visible = false;
+            pnlChangelog.Visible = true;
         }
 
         private void ShowChangelog()
         {
-            lstFiles.Visible = false;
+            lstFiles.Visible = true;
             pnlChangelog.Visible = true;
         }
 
@@ -918,7 +925,8 @@ namespace Bulk_Editor
 
                 if (Directory.Exists(folderPath))
                 {
-                    string[] files = Directory.GetFiles(folderPath);
+                    // Only load .docx files
+                    string[] files = Directory.GetFiles(folderPath, "*.docx");
 
                     foreach (string file in files)
                     {
@@ -926,7 +934,7 @@ namespace Bulk_Editor
                         lstFiles.Items.Add($"{fileInfo.Name} ({FormatFileSize(fileInfo.Length)})");
                     }
 
-                    lblStatus.Text = $"Loaded {files.Length} files from {folderPath}";
+                    lblStatus.Text = $"Loaded {files.Length} .docx files from {folderPath}";
                 }
                 else
                 {

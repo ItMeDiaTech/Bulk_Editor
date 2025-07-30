@@ -1,0 +1,5 @@
+c:\Users\DiaTech\Pictures\DiaTech\Programs\Bulk_Editor\Publish\Bulk_Editor.exe
+c:\Users\DiaTech\Pictures\DiaTech\Programs\Bulk_Editor\Publish\Bulk_Editor.dll
+c:\Users\DiaTech\Pictures\DiaTech\Programs\Bulk_Editor\Publish\Bulk_Editor.deps.json
+c:\Users\DiaTech\Pictures\DiaTech\Programs\Bulk_Editor\Publish\Bulk_Editor.runtimeconfig.json
+c:\Users\DiaTech\Pictures\DiaTech\Programs\Bulk_Editor\Publish\Bulk_Editor.pdb

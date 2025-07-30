@@ -80,7 +80,7 @@ namespace Bulk_Editor
             this.lstFiles.ItemHeight = 16;
             this.lstFiles.Location = new System.Drawing.Point(12, 85);
             this.lstFiles.Name = "lstFiles";
-            this.lstFiles.Size = new System.Drawing.Size(666, 216);
+            this.lstFiles.Size = new System.Drawing.Size(320, 216);
             this.lstFiles.TabIndex = 2;
             //
             // lblStatus
@@ -179,7 +179,8 @@ namespace Bulk_Editor
             this.btnExportChangelog.Name = "btnExportChangelog";
             this.btnExportChangelog.Size = new System.Drawing.Size(120, 35);
             this.btnExportChangelog.TabIndex = 8;
-            this.btnExportChangelog.Text = "Export Changelog";
+            this.btnExportChangelog.Text = "Export";
+            this.btnExportChangelog.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.btnExportChangelog.UseVisualStyleBackColor = false;
             this.btnExportChangelog.Click += new System.EventHandler(this.BtnExportChangelog_Click);
             //
@@ -202,11 +203,11 @@ namespace Bulk_Editor
             //
             this.pnlChangelog.Controls.Add(this.txtChangelog);
             this.pnlChangelog.Controls.Add(this.lblChangelogTitle);
-            this.pnlChangelog.Location = new System.Drawing.Point(12, 85);
+            this.pnlChangelog.Location = new System.Drawing.Point(338, 85);
             this.pnlChangelog.Name = "pnlChangelog";
-            this.pnlChangelog.Size = new System.Drawing.Size(666, 216);
+            this.pnlChangelog.Size = new System.Drawing.Size(340, 216);
             this.pnlChangelog.TabIndex = 7;
-            this.pnlChangelog.Visible = false;
+            this.pnlChangelog.Visible = true;
             //
             // lblChangelogTitle
             //
@@ -227,7 +228,7 @@ namespace Bulk_Editor
             this.txtChangelog.Name = "txtChangelog";
             this.txtChangelog.ReadOnly = true;
             this.txtChangelog.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.txtChangelog.Size = new System.Drawing.Size(646, 171);
+            this.txtChangelog.Size = new System.Drawing.Size(320, 171);
             this.txtChangelog.TabIndex = 1;
             //
             // MainForm
