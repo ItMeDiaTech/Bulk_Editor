@@ -37,6 +37,7 @@ namespace Bulk_Editor
             this.chkAppendContentID = new System.Windows.Forms.CheckBox();
             this.chkFixInternalHyperlink = new System.Windows.Forms.CheckBox();
             this.chkFixTitles = new System.Windows.Forms.CheckBox();
+            this.chkFixDoubleSpaces = new System.Windows.Forms.CheckBox();
             this.btnRunTools = new System.Windows.Forms.Button();
             this.btnExportChangelog = new System.Windows.Forms.Button();
             this.btnSelectFile = new System.Windows.Forms.Button();
@@ -78,9 +79,9 @@ namespace Bulk_Editor
             this.lstFiles.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lstFiles.FormattingEnabled = true;
             this.lstFiles.ItemHeight = 16;
-            this.lstFiles.Location = new System.Drawing.Point(12, 85);
+            this.lstFiles.Location = new System.Drawing.Point(12, 105);
             this.lstFiles.Name = "lstFiles";
-            this.lstFiles.Size = new System.Drawing.Size(320, 216);
+            this.lstFiles.Size = new System.Drawing.Size(450, 280);
             this.lstFiles.TabIndex = 2;
             //
             // lblStatus
@@ -95,14 +96,15 @@ namespace Bulk_Editor
             //
             // grpTools
             //
+            this.grpTools.Controls.Add(this.chkFixDoubleSpaces);
             this.grpTools.Controls.Add(this.chkFixTitles);
             this.grpTools.Controls.Add(this.chkFixInternalHyperlink);
             this.grpTools.Controls.Add(this.chkAppendContentID);
             this.grpTools.Controls.Add(this.chkFixSourceHyperlinks);
             this.grpTools.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.grpTools.Location = new System.Drawing.Point(12, 307);
+            this.grpTools.Location = new System.Drawing.Point(12, 391);
             this.grpTools.Name = "grpTools";
-            this.grpTools.Size = new System.Drawing.Size(540, 120);
+            this.grpTools.Size = new System.Drawing.Size(1030, 145);
             this.grpTools.TabIndex = 4;
             this.grpTools.TabStop = false;
             this.grpTools.Text = "Tools";
@@ -153,6 +155,17 @@ namespace Bulk_Editor
             this.chkFixTitles.Text = "  Fix Titles";
             this.chkFixTitles.UseVisualStyleBackColor = true;
             //
+            // chkFixDoubleSpaces
+            //
+            this.chkFixDoubleSpaces.AutoSize = true;
+            this.chkFixDoubleSpaces.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.chkFixDoubleSpaces.Location = new System.Drawing.Point(270, 55);
+            this.chkFixDoubleSpaces.Name = "chkFixDoubleSpaces";
+            this.chkFixDoubleSpaces.Size = new System.Drawing.Size(150, 19);
+            this.chkFixDoubleSpaces.TabIndex = 4;
+            this.chkFixDoubleSpaces.Text = "Fix Double Spaces";
+            this.chkFixDoubleSpaces.UseVisualStyleBackColor = true;
+            //
             // btnRunTools
             //
             this.btnRunTools.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(46)))), ((int)(((byte)(204)))), ((int)(((byte)(113)))));
@@ -160,7 +173,7 @@ namespace Bulk_Editor
             this.btnRunTools.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnRunTools.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnRunTools.ForeColor = System.Drawing.Color.White;
-            this.btnRunTools.Location = new System.Drawing.Point(558, 337);
+            this.btnRunTools.Location = new System.Drawing.Point(922, 421);
             this.btnRunTools.Name = "btnRunTools";
             this.btnRunTools.Size = new System.Drawing.Size(120, 35);
             this.btnRunTools.TabIndex = 5;
@@ -175,7 +188,7 @@ namespace Bulk_Editor
             this.btnExportChangelog.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnExportChangelog.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnExportChangelog.ForeColor = System.Drawing.Color.White;
-            this.btnExportChangelog.Location = new System.Drawing.Point(558, 378);
+            this.btnExportChangelog.Location = new System.Drawing.Point(922, 462);
             this.btnExportChangelog.Name = "btnExportChangelog";
             this.btnExportChangelog.Size = new System.Drawing.Size(120, 35);
             this.btnExportChangelog.TabIndex = 8;
@@ -203,9 +216,9 @@ namespace Bulk_Editor
             //
             this.pnlChangelog.Controls.Add(this.txtChangelog);
             this.pnlChangelog.Controls.Add(this.lblChangelogTitle);
-            this.pnlChangelog.Location = new System.Drawing.Point(338, 85);
+            this.pnlChangelog.Location = new System.Drawing.Point(468, 105);
             this.pnlChangelog.Name = "pnlChangelog";
-            this.pnlChangelog.Size = new System.Drawing.Size(340, 216);
+            this.pnlChangelog.Size = new System.Drawing.Size(574, 280);
             this.pnlChangelog.TabIndex = 7;
             this.pnlChangelog.Visible = true;
             //
@@ -228,7 +241,7 @@ namespace Bulk_Editor
             this.txtChangelog.Name = "txtChangelog";
             this.txtChangelog.ReadOnly = true;
             this.txtChangelog.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.txtChangelog.Size = new System.Drawing.Size(320, 171);
+            this.txtChangelog.Size = new System.Drawing.Size(554, 235);
             this.txtChangelog.TabIndex = 1;
             //
             // MainForm
@@ -236,7 +249,7 @@ namespace Bulk_Editor
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.White;
-            this.ClientSize = new System.Drawing.Size(690, 435);
+            this.ClientSize = new System.Drawing.Size(1060, 540);
             this.Controls.Add(this.pnlChangelog);
             this.Controls.Add(this.btnSelectFile);
             this.Controls.Add(this.btnExportChangelog);
@@ -278,5 +291,6 @@ namespace Bulk_Editor
         private System.Windows.Forms.Panel pnlChangelog;
         private System.Windows.Forms.Label lblChangelogTitle;
         private System.Windows.Forms.TextBox txtChangelog;
+        private System.Windows.Forms.CheckBox chkFixDoubleSpaces;
     }
 }

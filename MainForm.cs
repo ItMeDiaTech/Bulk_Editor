@@ -601,6 +601,11 @@ namespace Bulk_Editor
                     fileContent = FixTitles(fileContent, hyperlinks, processor, changes);
                 }
 
+                if (chkFixDoubleSpaces.Checked)
+                {
+                    fileContent = FixDoubleSpaces(fileContent, changes);
+                }
+
                 // Save changes if any were made
                 if (changes.Count > 0 && fileContent != originalContent)
                 {
@@ -912,6 +917,30 @@ namespace Bulk_Editor
             if (fixedCount > 0)
             {
                 changes.Add($"Fixed {fixedCount} titles");
+            }
+
+            return content;
+        }
+
+        private string FixDoubleSpaces(string content, List<string> changes)
+        {
+            // Implementation for fixing double spaces
+            int fixedCount = 0;
+            string originalContent = content;
+
+            // Replace multiple spaces with a single space
+            // Using regex to handle any number of consecutive spaces
+            string pattern = @"[ ]{2,}";
+            string replacement = " ";
+            content = Regex.Replace(content, pattern, replacement);
+
+            // Count how many replacements were made
+            if (content != originalContent)
+            {
+                // Count occurrences of the pattern to get an approximate count
+                MatchCollection matches = Regex.Matches(originalContent, pattern);
+                fixedCount = matches.Count;
+                changes.Add($"Fixed {fixedCount} instances of multiple spaces");
             }
 
             return content;
