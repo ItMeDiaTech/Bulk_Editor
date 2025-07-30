@@ -244,7 +244,7 @@ namespace Bulk_Editor
                     var result = resultsDict[lookupId];
 
                     // Update the hyperlink address and sub-address based on API response
-                    string targetAddress = "https://thesource.cvshealth.com/nuxeo/thesource/";
+                    string targetAddress = "https://beginningofhyperlinkurladdress.com/";
                     string targetSubAddress = "!/view?docid=" + result.Document_ID;
 
                     bool urlChanged = (hyperlink.Address != targetAddress || hyperlink.SubAddress != targetSubAddress);
@@ -605,6 +605,13 @@ namespace Bulk_Editor
 
             try
             {
+                // Create backup folder if it doesn't exist
+                string backupPath = Path.Combine(basePath, "Backup");
+                if (!Directory.Exists(backupPath))
+                {
+                    Directory.CreateDirectory(backupPath);
+                }
+
                 // Create a changelog file in the same folder as the processed files with unique naming
                 string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
                 string changelogPath = Path.Combine(basePath, $"BulkEditor_Changelog_{timestamp}.txt");
@@ -666,6 +673,11 @@ namespace Bulk_Editor
         {
             try
             {
+                // Create backup of the file before processing
+                string backupPath = Path.Combine(Path.GetDirectoryName(filePath), "Backup", Path.GetFileName(filePath));
+                File.Copy(filePath, backupPath, true);
+                logWriter.WriteLine($"Backup created: {Path.GetFileName(backupPath)}");
+
                 string fileContent = File.ReadAllText(filePath);
                 string originalContent = fileContent;
                 List<string> changes = new List<string>();
