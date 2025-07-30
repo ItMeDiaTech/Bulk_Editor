@@ -6,7 +6,7 @@ The Bulk Editor application is a Windows Forms application designed to process W
 
 ## Features
 
-- Fix specific
+- Fix specific hyperlinks
 - Append Content ID to hyperlinks
 - Fix internal hyperlinks
 - Fix titles
