@@ -39,41 +39,57 @@ namespace Bulk_Editor
             this.chkFixTitles = new System.Windows.Forms.CheckBox();
             this.btnRunTools = new System.Windows.Forms.Button();
             this.btnSelectFile = new System.Windows.Forms.Button();
+            this.pnlChangelog = new System.Windows.Forms.Panel();
+            this.lblChangelogTitle = new System.Windows.Forms.Label();
+            this.txtChangelog = new System.Windows.Forms.TextBox();
             this.grpTools.SuspendLayout();
+            this.pnlChangelog.SuspendLayout();
             this.SuspendLayout();
             //
             // btnSelectFolder
             //
+            this.btnSelectFolder.BackColor = System.Drawing.SystemColors.Control;
+            this.btnSelectFolder.FlatAppearance.BorderSize = 0;
+            this.btnSelectFolder.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnSelectFolder.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnSelectFolder.ForeColor = System.Drawing.SystemColors.ControlText;
             this.btnSelectFolder.Location = new System.Drawing.Point(12, 12);
             this.btnSelectFolder.Name = "btnSelectFolder";
-            this.btnSelectFolder.Size = new System.Drawing.Size(120, 30);
+            this.btnSelectFolder.Size = new System.Drawing.Size(120, 35);
             this.btnSelectFolder.TabIndex = 0;
             this.btnSelectFolder.Text = "Select Folder";
-            this.btnSelectFolder.UseVisualStyleBackColor = true;
+            this.btnSelectFolder.UseVisualStyleBackColor = false;
             this.btnSelectFolder.Click += new System.EventHandler(this.BtnSelectFolder_Click);
             //
             // txtFolderPath
             //
+            this.txtFolderPath.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.txtFolderPath.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txtFolderPath.Location = new System.Drawing.Point(138, 15);
             this.txtFolderPath.Name = "txtFolderPath";
             this.txtFolderPath.ReadOnly = true;
-            this.txtFolderPath.Size = new System.Drawing.Size(540, 22);
+            this.txtFolderPath.Size = new System.Drawing.Size(540, 27);
             this.txtFolderPath.TabIndex = 1;
             //
             // lstFiles
             //
+            this.lstFiles.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.lstFiles.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lstFiles.FormattingEnabled = true;
-            this.lstFiles.Location = new System.Drawing.Point(12, 50);
+            this.lstFiles.ItemHeight = 16;
+            this.lstFiles.Location = new System.Drawing.Point(12, 85);
             this.lstFiles.Name = "lstFiles";
-            this.lstFiles.Size = new System.Drawing.Size(666, 251);
+            this.lstFiles.Size = new System.Drawing.Size(666, 216);
             this.lstFiles.TabIndex = 2;
             //
             // lblStatus
             //
             this.lblStatus.AutoSize = true;
+            this.lblStatus.Font = new System.Drawing.Font("Segoe UI", 8.25F, System.Drawing.FontStyle.Italic, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblStatus.ForeColor = System.Drawing.SystemColors.GrayText;
             this.lblStatus.Location = new System.Drawing.Point(12, 410);
             this.lblStatus.Name = "lblStatus";
-            this.lblStatus.Size = new System.Drawing.Size(0, 15);
+            this.lblStatus.Size = new System.Drawing.Size(0, 13);
             this.lblStatus.TabIndex = 3;
             //
             // grpTools
@@ -82,9 +98,10 @@ namespace Bulk_Editor
             this.grpTools.Controls.Add(this.chkFixInternalHyperlink);
             this.grpTools.Controls.Add(this.chkAppendContentID);
             this.grpTools.Controls.Add(this.chkFixSourceHyperlinks);
+            this.grpTools.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.grpTools.Location = new System.Drawing.Point(12, 307);
             this.grpTools.Name = "grpTools";
-            this.grpTools.Size = new System.Drawing.Size(540, 100);
+            this.grpTools.Size = new System.Drawing.Size(540, 120);
             this.grpTools.TabIndex = 4;
             this.grpTools.TabStop = false;
             this.grpTools.Text = "Tools";
@@ -92,7 +109,8 @@ namespace Bulk_Editor
             // chkFixSourceHyperlinks
             //
             this.chkFixSourceHyperlinks.AutoSize = true;
-            this.chkFixSourceHyperlinks.Location = new System.Drawing.Point(10, 20);
+            this.chkFixSourceHyperlinks.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.chkFixSourceHyperlinks.Location = new System.Drawing.Point(10, 25);
             this.chkFixSourceHyperlinks.Name = "chkFixSourceHyperlinks";
             this.chkFixSourceHyperlinks.Size = new System.Drawing.Size(150, 19);
             this.chkFixSourceHyperlinks.TabIndex = 0;
@@ -102,17 +120,20 @@ namespace Bulk_Editor
             // chkAppendContentID
             //
             this.chkAppendContentID.AutoSize = true;
-            this.chkAppendContentID.Location = new System.Drawing.Point(10, 45);
+            this.chkAppendContentID.Font = new System.Drawing.Font("Segoe UI", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.chkAppendContentID.ForeColor = System.Drawing.SystemColors.ControlDark;
+            this.chkAppendContentID.Location = new System.Drawing.Point(30, 55);
             this.chkAppendContentID.Name = "chkAppendContentID";
             this.chkAppendContentID.Size = new System.Drawing.Size(130, 19);
             this.chkAppendContentID.TabIndex = 1;
-            this.chkAppendContentID.Text = "Append Content ID";
+            this.chkAppendContentID.Text = "  Append Content ID";
             this.chkAppendContentID.UseVisualStyleBackColor = true;
             //
             // chkFixInternalHyperlink
             //
             this.chkFixInternalHyperlink.AutoSize = true;
-            this.chkFixInternalHyperlink.Location = new System.Drawing.Point(270, 20);
+            this.chkFixInternalHyperlink.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.chkFixInternalHyperlink.Location = new System.Drawing.Point(270, 25);
             this.chkFixInternalHyperlink.Name = "chkFixInternalHyperlink";
             this.chkFixInternalHyperlink.Size = new System.Drawing.Size(150, 19);
             this.chkFixInternalHyperlink.TabIndex = 2;
@@ -122,38 +143,84 @@ namespace Bulk_Editor
             // chkFixTitles
             //
             this.chkFixTitles.AutoSize = true;
-            this.chkFixTitles.Location = new System.Drawing.Point(270, 45);
+            this.chkFixTitles.Font = new System.Drawing.Font("Segoe UI", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.chkFixTitles.ForeColor = System.Drawing.SystemColors.ControlDark;
+            this.chkFixTitles.Location = new System.Drawing.Point(30, 80);
             this.chkFixTitles.Name = "chkFixTitles";
             this.chkFixTitles.Size = new System.Drawing.Size(90, 19);
             this.chkFixTitles.TabIndex = 3;
-            this.chkFixTitles.Text = "Fix Titles";
+            this.chkFixTitles.Text = "  Fix Titles";
             this.chkFixTitles.UseVisualStyleBackColor = true;
             //
             // btnRunTools
             //
+            this.btnRunTools.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(46)))), ((int)(((byte)(204)))), ((int)(((byte)(113)))));
+            this.btnRunTools.FlatAppearance.BorderSize = 0;
+            this.btnRunTools.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnRunTools.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnRunTools.ForeColor = System.Drawing.Color.White;
             this.btnRunTools.Location = new System.Drawing.Point(558, 337);
             this.btnRunTools.Name = "btnRunTools";
-            this.btnRunTools.Size = new System.Drawing.Size(120, 30);
+            this.btnRunTools.Size = new System.Drawing.Size(120, 35);
             this.btnRunTools.TabIndex = 5;
             this.btnRunTools.Text = "Run Tools";
-            this.btnRunTools.UseVisualStyleBackColor = true;
+            this.btnRunTools.UseVisualStyleBackColor = false;
             this.btnRunTools.Click += new System.EventHandler(this.BtnRunTools_Click);
             //
             // btnSelectFile
             //
+            this.btnSelectFile.BackColor = System.Drawing.SystemColors.Control;
+            this.btnSelectFile.FlatAppearance.BorderSize = 0;
+            this.btnSelectFile.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnSelectFile.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnSelectFile.ForeColor = System.Drawing.SystemColors.ControlText;
             this.btnSelectFile.Location = new System.Drawing.Point(12, 48);
             this.btnSelectFile.Name = "btnSelectFile";
-            this.btnSelectFile.Size = new System.Drawing.Size(120, 30);
+            this.btnSelectFile.Size = new System.Drawing.Size(120, 35);
             this.btnSelectFile.TabIndex = 6;
             this.btnSelectFile.Text = "Select File";
-            this.btnSelectFile.UseVisualStyleBackColor = true;
+            this.btnSelectFile.UseVisualStyleBackColor = false;
             this.btnSelectFile.Click += new System.EventHandler(this.BtnSelectFile_Click);
+            //
+            // pnlChangelog
+            //
+            this.pnlChangelog.Controls.Add(this.txtChangelog);
+            this.pnlChangelog.Controls.Add(this.lblChangelogTitle);
+            this.pnlChangelog.Location = new System.Drawing.Point(12, 85);
+            this.pnlChangelog.Name = "pnlChangelog";
+            this.pnlChangelog.Size = new System.Drawing.Size(666, 216);
+            this.pnlChangelog.TabIndex = 7;
+            this.pnlChangelog.Visible = false;
+            //
+            // lblChangelogTitle
+            //
+            this.lblChangelogTitle.AutoSize = true;
+            this.lblChangelogTitle.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblChangelogTitle.Location = new System.Drawing.Point(10, 10);
+            this.lblChangelogTitle.Name = "lblChangelogTitle";
+            this.lblChangelogTitle.Size = new System.Drawing.Size(150, 19);
+            this.lblChangelogTitle.TabIndex = 0;
+            this.lblChangelogTitle.Text = "Changelog";
+            //
+            // txtChangelog
+            //
+            this.txtChangelog.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.txtChangelog.Font = new System.Drawing.Font("Consolas", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txtChangelog.Location = new System.Drawing.Point(10, 35);
+            this.txtChangelog.Multiline = true;
+            this.txtChangelog.Name = "txtChangelog";
+            this.txtChangelog.ReadOnly = true;
+            this.txtChangelog.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.txtChangelog.Size = new System.Drawing.Size(646, 171);
+            this.txtChangelog.TabIndex = 1;
             //
             // MainForm
             //
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BackColor = System.Drawing.Color.White;
             this.ClientSize = new System.Drawing.Size(690, 435);
+            this.Controls.Add(this.pnlChangelog);
             this.Controls.Add(this.btnSelectFile);
             this.Controls.Add(this.btnRunTools);
             this.Controls.Add(this.grpTools);
@@ -161,6 +228,7 @@ namespace Bulk_Editor
             this.Controls.Add(this.lstFiles);
             this.Controls.Add(this.txtFolderPath);
             this.Controls.Add(this.btnSelectFolder);
+            this.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
             this.Name = "MainForm";
@@ -168,6 +236,8 @@ namespace Bulk_Editor
             this.Text = "Bulk Editor";
             this.grpTools.ResumeLayout(false);
             this.grpTools.PerformLayout();
+            this.pnlChangelog.ResumeLayout(false);
+            this.pnlChangelog.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -186,5 +256,8 @@ namespace Bulk_Editor
         private System.Windows.Forms.CheckBox chkFixTitles;
         private System.Windows.Forms.Button btnRunTools;
         private System.Windows.Forms.Button btnSelectFile;
+        private System.Windows.Forms.Panel pnlChangelog;
+        private System.Windows.Forms.Label lblChangelogTitle;
+        private System.Windows.Forms.TextBox txtChangelog;
     }
 }

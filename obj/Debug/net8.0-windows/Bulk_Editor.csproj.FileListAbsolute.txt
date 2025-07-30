@@ -12,3 +12,4 @@ c:\Users\DiaTech\Pictures\DiaTech\Programs\Bulk_Editor\obj\Debug\net8.0-windows\
 c:\Users\DiaTech\Pictures\DiaTech\Programs\Bulk_Editor\obj\Debug\net8.0-windows\Bulk_Editor.pdb
 c:\Users\DiaTech\Pictures\DiaTech\Programs\Bulk_Editor\obj\Debug\net8.0-windows\Bulk_Editor.genruntimeconfig.cache
 c:\Users\DiaTech\Pictures\DiaTech\Programs\Bulk_Editor\obj\Debug\net8.0-windows\ref\Bulk_Editor.dll
+c:\Users\DiaTech\Pictures\DiaTech\Programs\Bulk_Editor\obj\Debug\net8.0-windows\Bulk_Editor.sourcelink.json
