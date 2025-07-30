@@ -123,7 +123,7 @@ namespace Bulk_Editor
         {
             try
             {
-                // Create JSON payload
+                // Create JSON payload in the format expected by the API
                 var jsonPayload = new
                 {
                     Lookup_ID = lookupIds
@@ -135,6 +135,9 @@ namespace Bulk_Editor
                 using (var client = new System.Net.Http.HttpClient())
                 {
                     var content = new System.Net.Http.StringContent(jsonBody, System.Text.Encoding.UTF8, "application/json");
+
+                    // IMPORTANT: Replace the flowUrl with your actual Power Automate Flow URL
+                    // The URL should look like: https://prod-00.eastus.logic.azure.com:443/workflows/[GUID]/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=[SIGNATURE]
                     var response = client.PostAsync(flowUrl, content).Result;
 
                     if (response.IsSuccessStatusCode)
@@ -232,6 +235,10 @@ namespace Bulk_Editor
                     Status = hyperlink.Status
                 };
 
+                // Check if already marked as expired or not found (equivalent to Base_File.txt lines 222-224)
+                bool alreadyExpired = hyperlink.TextToDisplay.Contains(" - Expired");
+                bool alreadyNotFound = hyperlink.TextToDisplay.Contains(" - Not Found");
+
                 if (!string.IsNullOrEmpty(lookupId) && resultsDict.ContainsKey(lookupId))
                 {
                     var result = resultsDict[lookupId];
@@ -290,13 +297,57 @@ namespace Bulk_Editor
                     updatedHyperlink.Title = result.Title;
                     updatedHyperlink.ContentID = result.Content_ID;
 
-                    // Check for title changes
-                    if (!string.IsNullOrEmpty(result.Title) &&
-                        !updatedHyperlink.TextToDisplay.Contains(result.Title) &&
-                        !updatedHyperlink.TextToDisplay.Contains(" - Expired") &&
-                        !updatedHyperlink.TextToDisplay.Contains(" - Not Found"))
+                    // Content ID logic equivalent to Base_File.txt lines 264-286
+                    if (!alreadyExpired && !alreadyNotFound)
                     {
-                        changes.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Possible Title Change: Current: {hyperlink.TextToDisplay} | New: {result.Title} | Content ID: {result.Content_ID}");
+                        string last6 = result.Content_ID.Length >= 6 ? result.Content_ID.Substring(result.Content_ID.Length - 6) : result.Content_ID;
+                        string last5 = last6.Length >= 5 ? last6.Substring(last6.Length - 5) : last6;
+                        bool appended = false;
+
+                        // Check if we need to update the content ID (equivalent to Base_File.txt lines 264-266)
+                        if (hyperlink.TextToDisplay.EndsWith($" ({last5})") && !hyperlink.TextToDisplay.EndsWith($" ({last6})"))
+                        {
+                            updatedHyperlink.TextToDisplay = hyperlink.TextToDisplay.Substring(0, hyperlink.TextToDisplay.Length - $" ({last5})".Length) + $" ({last6})";
+                            appended = true;
+                        }
+                        // Check if content ID is not already present (equivalent to Base_File.txt line 274)
+                        else if (!hyperlink.TextToDisplay.Contains($" ({last6})"))
+                        {
+                            updatedHyperlink.TextToDisplay = hyperlink.TextToDisplay.Trim() + $" ({last6})";
+                            appended = true;
+                        }
+
+                        // Check for title changes (equivalent to Base_File.txt lines 282-286)
+                        if (!string.IsNullOrEmpty(result.Title))
+                        {
+                            string currentTitleWithoutContentId = hyperlink.TextToDisplay;
+                            if (currentTitleWithoutContentId.EndsWith($" ({last6})"))
+                            {
+                                currentTitleWithoutContentId = currentTitleWithoutContentId.Substring(0, currentTitleWithoutContentId.Length - $" ({last6})".Length);
+                            }
+                            else if (currentTitleWithoutContentId.EndsWith($" ({last5})"))
+                            {
+                                currentTitleWithoutContentId = currentTitleWithoutContentId.Substring(0, currentTitleWithoutContentId.Length - $" ({last5})".Length);
+                            }
+
+                            if (!currentTitleWithoutContentId.Equals(result.Title))
+                            {
+                                changes.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Possible Title Change\n" +
+                                    $"        Current Title: {currentTitleWithoutContentId}\n" +
+                                    $"        New Title:     {result.Title}\n" +
+                                    $"        Content ID:    {result.Content_ID}");
+                            }
+                        }
+
+                        // Log if URL was updated or content ID was appended
+                        if (urlChanged || appended)
+                        {
+                            string updateType = "";
+                            if (urlChanged) updateType = "URL Updated";
+                            if (appended) updateType += (string.IsNullOrEmpty(updateType) ? "" : ", ") + "Appended Content ID";
+
+                            changes.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | {updateType}, {result.Title}");
+                        }
                     }
                 }
                 else if (!string.IsNullOrEmpty(lookupId))
