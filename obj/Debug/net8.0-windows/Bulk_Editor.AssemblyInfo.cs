@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Bulk_Editor")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f4a8fc5848919e300b72c09f8692c2cdd0dc5d27")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+65ac7731f87c65dbb7174eefd211a29db5fc8bf0")]
 [assembly: System.Reflection.AssemblyProductAttribute("Bulk_Editor")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Bulk_Editor")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

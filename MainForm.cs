@@ -164,11 +164,24 @@ namespace Bulk_Editor
             public string Status { get; set; } = string.Empty;
         }
 
+        // Version checking functionality
+        public const string CurrentVersion = "2.1";
+        public bool NeedsUpdate { get; private set; } = false;
+        public string FlowVersion { get; private set; } = string.Empty;
+        public string UpdateNotes { get; private set; } = string.Empty;
+
         public ApiResponse ParseApiResponse(string jsonResponse)
         {
             try
             {
-                return System.Text.Json.JsonSerializer.Deserialize<ApiResponse>(jsonResponse) ?? new ApiResponse();
+                var response = System.Text.Json.JsonSerializer.Deserialize<ApiResponse>(jsonResponse) ?? new ApiResponse();
+
+                // Check for version updates
+                FlowVersion = response.Version;
+                UpdateNotes = response.Changes;
+                NeedsUpdate = !string.IsNullOrEmpty(FlowVersion) && FlowVersion != CurrentVersion;
+
+                return response;
             }
             catch (Exception ex)
             {
@@ -481,8 +494,11 @@ namespace Bulk_Editor
 
             try
             {
-                // Create a changelog file
-                string changelogPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "BulkEditor_Changelog.txt");
+                // Create a changelog file in Downloads folder with unique naming
+                string downloadsPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\Downloads";
+                string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                string changelogPath = Path.Combine(downloadsPath, $"BulkEditor_Changelog_{timestamp}.txt");
+
                 using (var writer = new StreamWriter(changelogPath, append: false))
                 {
                     writer.WriteLine($"Bulk Editor Processing Log - {DateTime.Now}");
@@ -507,8 +523,8 @@ namespace Bulk_Editor
                     }
                 }
 
-                MessageBox.Show($"Processing complete. Changelog saved to desktop.", "Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                
+                MessageBox.Show($"Processing complete. Changelog saved to Downloads folder.", "Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
                 // Show the changelog for the first file in the list
                 if (lstFiles.Items.Count > 0)
                 {
@@ -594,7 +610,7 @@ namespace Bulk_Editor
                 }
 
                 // Write detailed changelog information
-                WriteDetailedChangelog(logWriter, updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls);
+                WriteDetailedChangelog(logWriter, updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, processor);
 
                 logWriter.WriteLine();
             }
@@ -605,8 +621,19 @@ namespace Bulk_Editor
         }
 
         private void WriteDetailedChangelog(StreamWriter writer, Collection<string> updatedLinks, Collection<string> notFoundLinks,
-            Collection<string> expiredLinks, Collection<string> errorLinks, Collection<string> updatedUrls)
+            Collection<string> expiredLinks, Collection<string> errorLinks, Collection<string> updatedUrls, WordDocumentProcessor processor)
         {
+            // Add version information and update notification
+            writer.WriteLine($"  Bulk Editor Version: {WordDocumentProcessor.CurrentVersion}");
+
+            if (processor.NeedsUpdate)
+            {
+                writer.WriteLine($"  UPDATE AVAILABLE: Version {processor.FlowVersion} is now available");
+                writer.WriteLine($"  Update Notes: {processor.UpdateNotes}");
+                writer.WriteLine();
+            }
+
+            writer.WriteLine();
             writer.WriteLine($"  Updated Links ({updatedLinks.Count}):");
             foreach (var link in updatedLinks)
             {
@@ -647,7 +674,6 @@ namespace Bulk_Editor
             Collection<string> errorLinks, Collection<string> updatedUrls)
         {
             // Implementation based on Base_File.txt UpdateHyperlinksFromAPI function
-            // This is a simplified version that would need to be expanded with actual API calls
 
             // Remove invisible external hyperlinks
             var removedHyperlinks = processor.RemoveInvisibleExternalHyperlinks(hyperlinks);
@@ -677,35 +703,104 @@ namespace Bulk_Editor
             {
                 changes.Add($"Found {uniqueIds.Count} unique lookup IDs that would be updated via API");
 
-                // In a real implementation, this would make API calls to get updated URLs
-                // For now, we'll simulate some updates for demonstration
+                // Send to API (simulated)
+                string apiResponse = processor.SendToPowerAutomateFlow(uniqueIds.ToList(), "https://prod-00.eastus.logic.azure.com:443/workflows/...");
+                var response = processor.ParseApiResponse(apiResponse);
+
+                // Create a dictionary for faster lookup
+                var resultDict = new Dictionary<string, WordDocumentProcessor.ApiResult>();
+                foreach (var result in response.Results)
+                {
+                    if (!resultDict.ContainsKey(result.Document_ID))
+                        resultDict.Add(result.Document_ID, result);
+                    if (!resultDict.ContainsKey(result.Content_ID))
+                        resultDict.Add(result.Content_ID, result);
+                }
+
+                // Update hyperlinks based on API response
                 foreach (var hyperlink in hyperlinks)
                 {
                     string lookupId = processor.ExtractLookupID(hyperlink.Address, hyperlink.SubAddress);
                     if (!string.IsNullOrEmpty(lookupId))
                     {
-                        // Simulate an updated link
-                        updatedLinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Updated hyperlink: {hyperlink.TextToDisplay}");
-
-                        // Simulate some expired links
-                        if (lookupId.Contains("EXPIRED"))
+                        if (resultDict.TryGetValue(lookupId, out var result))
                         {
-                            expiredLinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Expired hyperlink: {hyperlink.TextToDisplay}");
+                            // Update hyperlink address and sub-address
+                            string targetAddress = "https://thesource.cvshealth.com/nuxeo/thesource/";
+                            string targetSub = "!/view?docid=" + result.Document_ID;
+
+                            bool changedURL = (hyperlink.Address != targetAddress) || (hyperlink.SubAddress != targetSub);
+                            if (changedURL)
+                            {
+                                hyperlink.Address = targetAddress;
+                                hyperlink.SubAddress = targetSub;
+                                updatedLinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | URL Updated, {result.Title}");
+                            }
+
+                            // Check for status and update display text
+                            bool alreadyExpired = hyperlink.TextToDisplay.Contains(" - Expired");
+                            bool alreadyNotFound = hyperlink.TextToDisplay.Contains(" - Not Found");
+
+                            if (!alreadyExpired && !alreadyNotFound)
+                            {
+                                // Append content ID if needed
+                                string last6 = result.Content_ID.Substring(Math.Max(0, result.Content_ID.Length - 6));
+                                string last5 = last6.Substring(Math.Max(0, last6.Length - 5));
+                                bool appended = false;
+
+                                // Check if we need to update the content ID
+                                if (hyperlink.TextToDisplay.EndsWith($" ({last5})") && !hyperlink.TextToDisplay.EndsWith($" ({last6})"))
+                                {
+                                    hyperlink.TextToDisplay = hyperlink.TextToDisplay.Substring(0, hyperlink.TextToDisplay.Length - $" ({last5})".Length) + $" ({last6})";
+                                    appended = true;
+                                }
+                                else if (!hyperlink.TextToDisplay.Contains($" ({last6})"))
+                                {
+                                    hyperlink.TextToDisplay = hyperlink.TextToDisplay.Trim() + $" ({last6})";
+                                    appended = true;
+                                }
+
+                                // Check for title changes
+                                string currentTitle = hyperlink.TextToDisplay;
+                                string expectedTitle = result.Title;
+                                if (!string.IsNullOrEmpty(expectedTitle) &&
+                                    currentTitle.Length > $" ({last6})".Length &&
+                                    !currentTitle.Substring(0, currentTitle.Length - $" ({last6})".Length).Equals(expectedTitle))
+                                {
+                                    updatedUrls.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Possible Title Change\n" +
+                                        $"        Current Title: {currentTitle.Substring(0, currentTitle.Length - $" ({last6})".Length)}\n" +
+                                        $"        New Title:     {expectedTitle}\n" +
+                                        $"        Content ID:    {result.Content_ID}");
+                                }
+
+                                if (appended || changedURL)
+                                {
+                                    string updateType = "";
+                                    if (changedURL) updateType = "URL Updated";
+                                    if (appended) updateType += (string.IsNullOrEmpty(updateType) ? "" : ", ") + "Appended Content ID";
+
+                                    updatedLinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | {updateType}, {result.Title}");
+                                }
+                            }
+
+                            // Handle expired status
+                            if (result.Status == "Expired" && !alreadyExpired)
+                            {
+                                hyperlink.TextToDisplay += " - Expired";
+                                expiredLinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Expired, {result.Title}\n        {result.Content_ID}");
+                            }
                         }
-
-                        // Simulate some not found links
-                        if (lookupId.Contains("NOTFOUND"))
+                        else
                         {
-                            notFoundLinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Not found hyperlink: {hyperlink.TextToDisplay}");
-                        }
+                            // Mark as not found if not already marked
+                            bool alreadyExpired = hyperlink.TextToDisplay.Contains(" - Expired");
+                            bool alreadyNotFound = hyperlink.TextToDisplay.Contains(" - Not Found");
 
-                        // Simulate some outdated titles
-                        if (hyperlink.TextToDisplay.Contains("Old Title"))
-                        {
-                            updatedUrls.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Possible Title Change\n" +
-                                $"        Current Title: {hyperlink.TextToDisplay}\n" +
-                                $"        New Title: {hyperlink.TextToDisplay.Replace("Old Title", "New Title")}\n" +
-                                $"        Content ID: {lookupId}");
+                            if (!alreadyNotFound && !alreadyExpired)
+                            {
+                                hyperlink.TextToDisplay += " - Not Found";
+                                notFoundLinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Not Found\n        {hyperlink.TextToDisplay}");
+                            }
                         }
                     }
                 }
@@ -858,5 +953,59 @@ namespace Bulk_Editor
 
             return $"{size:0.##} {sizes[order]}";
         }
+
+        private void BtnExportChangelog_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // Check if we have a changelog file on the desktop
+                string desktopChangelogPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "BulkEditor_Changelog.txt");
+
+                if (!File.Exists(desktopChangelogPath))
+                {
+                    // Check if we have a changelog file in the Downloads folder
+                    string downloadsPath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + "\\Downloads";
+                    string[] changelogFiles = Directory.GetFiles(downloadsPath, "BulkEditor_Changelog_*.txt");
+
+                    if (changelogFiles.Length == 0)
+                    {
+                        MessageBox.Show("No changelog file found. Please run the tools first.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        return;
+                    }
+
+                    // Get the most recent changelog file
+                    Array.Sort(changelogFiles);
+                    desktopChangelogPath = changelogFiles[changelogFiles.Length - 1];
+                }
+
+                // Create a save file dialog
+                using (var saveFileDialog = new SaveFileDialog())
+                {
+                    saveFileDialog.Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*";
+                    saveFileDialog.Title = "Export Changelog";
+                    saveFileDialog.FileName = $"BulkEditor_Changelog_Export_{DateTime.Now:yyyyMMdd_HHmmss}.txt";
+
+                    if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                    {
+                        // Copy the changelog file to the selected location
+                        File.Copy(desktopChangelogPath, saveFileDialog.FileName, true);
+
+                        MessageBox.Show($"Changelog exported successfully to:\n{saveFileDialog.FileName}", "Export Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                        // Open the exported file
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = saveFileDialog.FileName,
+                            UseShellExecute = true
+                        });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error exporting changelog: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
     }
 }
+

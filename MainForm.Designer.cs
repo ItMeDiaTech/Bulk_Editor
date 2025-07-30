@@ -38,6 +38,7 @@ namespace Bulk_Editor
             this.chkFixInternalHyperlink = new System.Windows.Forms.CheckBox();
             this.chkFixTitles = new System.Windows.Forms.CheckBox();
             this.btnRunTools = new System.Windows.Forms.Button();
+            this.btnExportChangelog = new System.Windows.Forms.Button();
             this.btnSelectFile = new System.Windows.Forms.Button();
             this.pnlChangelog = new System.Windows.Forms.Panel();
             this.lblChangelogTitle = new System.Windows.Forms.Label();
@@ -167,6 +168,21 @@ namespace Bulk_Editor
             this.btnRunTools.UseVisualStyleBackColor = false;
             this.btnRunTools.Click += new System.EventHandler(this.BtnRunTools_Click);
             //
+            // btnExportChangelog
+            //
+            this.btnExportChangelog.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(46)))), ((int)(((byte)(204)))), ((int)(((byte)(113)))));
+            this.btnExportChangelog.FlatAppearance.BorderSize = 0;
+            this.btnExportChangelog.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnExportChangelog.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnExportChangelog.ForeColor = System.Drawing.Color.White;
+            this.btnExportChangelog.Location = new System.Drawing.Point(558, 378);
+            this.btnExportChangelog.Name = "btnExportChangelog";
+            this.btnExportChangelog.Size = new System.Drawing.Size(120, 35);
+            this.btnExportChangelog.TabIndex = 8;
+            this.btnExportChangelog.Text = "Export Changelog";
+            this.btnExportChangelog.UseVisualStyleBackColor = false;
+            this.btnExportChangelog.Click += new System.EventHandler(this.BtnExportChangelog_Click);
+            //
             // btnSelectFile
             //
             this.btnSelectFile.BackColor = System.Drawing.SystemColors.Control;
@@ -222,6 +238,7 @@ namespace Bulk_Editor
             this.ClientSize = new System.Drawing.Size(690, 435);
             this.Controls.Add(this.pnlChangelog);
             this.Controls.Add(this.btnSelectFile);
+            this.Controls.Add(this.btnExportChangelog);
             this.Controls.Add(this.btnRunTools);
             this.Controls.Add(this.grpTools);
             this.Controls.Add(this.lblStatus);
@@ -255,6 +272,7 @@ namespace Bulk_Editor
         private System.Windows.Forms.CheckBox chkFixInternalHyperlink;
         private System.Windows.Forms.CheckBox chkFixTitles;
         private System.Windows.Forms.Button btnRunTools;
+        private System.Windows.Forms.Button btnExportChangelog;
         private System.Windows.Forms.Button btnSelectFile;
         private System.Windows.Forms.Panel pnlChangelog;
         private System.Windows.Forms.Label lblChangelogTitle;
