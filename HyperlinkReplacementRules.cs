@@ -52,5 +52,21 @@ namespace Bulk_Editor
             // Return empty rules if file doesn't exist or there was an error
             return new();
         }
+
+        /// <summary>
+        /// Trims whitespace from all properties of all rules
+        /// </summary>
+        public void TrimRules()
+        {
+            foreach (var rule in Rules)
+            {
+                if (rule.OldTitle != null)
+                    rule.OldTitle = rule.OldTitle.Trim();
+                if (rule.NewTitle != null)
+                    rule.NewTitle = rule.NewTitle.Trim();
+                if (rule.NewFullContentID != null)
+                    rule.NewFullContentID = rule.NewFullContentID.Trim();
+            }
+        }
     }
 }

@@ -39,16 +39,20 @@ namespace Bulk_Editor
             //
             // dataGridViewRules
             //
-            this.dataGridViewRules.AllowUserToAddRows = true;
+            this.dataGridViewRules.AllowUserToAddRows = false;
             this.dataGridViewRules.AllowUserToDeleteRows = true;
+            this.dataGridViewRules.AllowUserToResizeColumns = false;
+            this.dataGridViewRules.AllowUserToResizeRows = true;
             this.dataGridViewRules.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
             | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.dataGridViewRules.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
             this.dataGridViewRules.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dataGridViewRules.EditMode = System.Windows.Forms.DataGridViewEditMode.EditOnEnter;
             this.dataGridViewRules.Location = new System.Drawing.Point(12, 35);
             this.dataGridViewRules.Name = "dataGridViewRules";
             this.dataGridViewRules.RowHeadersWidth = 51;
-            this.dataGridViewRules.Size = new System.Drawing.Size(776, 350);
+            this.dataGridViewRules.Size = new System.Drawing.Size(976, 350);
             this.dataGridViewRules.TabIndex = 0;
             //
             // btnAddRow
@@ -119,7 +123,7 @@ namespace Bulk_Editor
             //
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(800, 433);
+            this.ClientSize = new System.Drawing.Size(1000, 433);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.btnCancel);
             this.Controls.Add(this.btnOK);
@@ -129,6 +133,7 @@ namespace Bulk_Editor
             this.Name = "ReplaceHyperlinkConfigForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Replace Hyperlink Configuration";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.ReplaceHyperlinkConfigForm_FormClosing);
             ((System.ComponentModel.ISupportInitialize)(this.dataGridViewRules)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();

@@ -5,7 +5,13 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Version>1.0.1</Version>
+    <Nullable>disable</Nullable>
+    <Version>2.1.0</Version>
+    <AssemblyTitle>Bulk Editor</AssemblyTitle>
+    <AssemblyDescription>Document Hyperlink Processor</AssemblyDescription>
+    <AssemblyCompany>DiaTech</AssemblyCompany>
+    <AssemblyProduct>Bulk Editor</AssemblyProduct>
+    <Copyright>Copyright © 2024 DiaTech</Copyright>
   </PropertyGroup>
 
 </Project>

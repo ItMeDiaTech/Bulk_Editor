@@ -2,390 +2,18 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows.Forms;
+using Bulk_Editor.Models;
+using Bulk_Editor.Services;
 
 namespace Bulk_Editor
 {
-    // Helper classes for Word document processing
-    public class HyperlinkData
-    {
-        public string Address { get; set; } = string.Empty;
-        public string SubAddress { get; set; } = string.Empty;
-        public string TextToDisplay { get; set; } = string.Empty;
-        public int PageNumber { get; set; }
-        public int LineNumber { get; set; }
-        public string OriginalText { get; set; } = string.Empty;
-        public string Title { get; set; } = string.Empty;
-        public string ContentID { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
-    }
-
-    public partial class WordDocumentProcessor
-    {
-        [GeneratedRegex(@"<a[^>]*href=""([^""]*)""[^>]*>([^<]*)</a>", RegexOptions.IgnoreCase)]
-        private static partial Regex HyperlinkPatternRegex();
-
-        [GeneratedRegex(@"(TSRC-[^-]+-[0-9]{6}|CMS-[^-]+-[0-9]{6})", RegexOptions.IgnoreCase)]
-        private static partial Regex IdPatternRegex();
-
-        [GeneratedRegex(@"docid=([^&]*)", RegexOptions.IgnoreCase)]
-        private static partial Regex DocIdPatternRegex();
-
-        public static List<HyperlinkData> ExtractHyperlinks(string filePath)
-        {
-            // Simplified implementation - in a real scenario, this would use
-            // Microsoft.Office.Interop.Word or DocumentFormat.OpenXml
-            var hyperlinks = new List<HyperlinkData>();
-
-            try
-            {
-                // For now, we'll simulate hyperlink extraction
-                // In a complete implementation, this would parse the actual .docx file
-                string content = File.ReadAllText(filePath);
-
-                // Simple regex to find hyperlinks in the text content
-                var matches = HyperlinkPatternRegex().Matches(content);
-
-                int index = 0;
-                foreach (Match match in matches)
-                {
-                    var hyperlink = new HyperlinkData
-                    {
-                        Address = match.Groups[1].Value,
-                        TextToDisplay = match.Groups[2].Value,
-                        PageNumber = 1, // Placeholder
-                        LineNumber = index + 1 // Placeholder
-                    };
-
-                    // Extract sub-address if present
-                    if (hyperlink.Address.Contains('#'))
-                    {
-                        var parts = hyperlink.Address.Split('#');
-                        hyperlink.Address = parts[0];
-                        hyperlink.SubAddress = parts.Length > 1 ? parts[1] : string.Empty;
-                    }
-
-                    hyperlinks.Add(hyperlink);
-                    index++;
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error processing document: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-
-            return hyperlinks;
-        }
-
-        public static List<HyperlinkData> RemoveInvisibleExternalHyperlinks(List<HyperlinkData> hyperlinks)
-        {
-            var removedHyperlinks = new List<HyperlinkData>();
-
-            // Remove hyperlinks with empty display text but non-empty address
-            for (int i = hyperlinks.Count - 1; i >= 0; i--)
-            {
-                var hyperlink = hyperlinks[i];
-                if (string.IsNullOrWhiteSpace(hyperlink.TextToDisplay) && !string.IsNullOrWhiteSpace(hyperlink.Address))
-                {
-                    removedHyperlinks.Add(hyperlink);
-                    hyperlinks.RemoveAt(i);
-                }
-            }
-
-            return removedHyperlinks;
-        }
-
-        public static string ExtractLookupID(string address, string subAddress)
-        {
-            string fullAddress = address + (!string.IsNullOrEmpty(subAddress) ? "#" + subAddress : "");
-
-            // Pattern to match TSRC-XXXX-XXXXXX or CMS-XXXX-XXXXXX
-            var match = IdPatternRegex().Match(fullAddress);
-
-            if (match.Success)
-            {
-                return match.Value.ToUpper();
-            }
-
-            // Alternative pattern for docid parameter
-            match = DocIdPatternRegex().Match(fullAddress);
-
-            if (match.Success)
-            {
-                return match.Groups[1].Value.Trim();
-            }
-
-            return string.Empty;
-        }
-
-        public async Task<string> SendToPowerAutomateFlow(List<string> lookupIds, string flowUrl)
-        {
-            try
-            {
-                // Create JSON payload in the format expected by the API
-                var jsonPayload = new
-                {
-                    Lookup_ID = lookupIds
-                };
-
-                string jsonBody = JsonSerializer.Serialize(jsonPayload);
-
-                // Create HTTP request
-                using var client = new HttpClient();
-                var content = new StringContent(jsonBody, System.Text.Encoding.UTF8, "application/json");
-
-                // IMPORTANT: Replace the flowUrl with your actual Power Automate Flow URL
-                // The URL should look like: https://prod-00.eastus.logic.azure.com:443/workflows/[GUID]/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=[SIGNATURE]
-                var response = await client.PostAsync(flowUrl, content);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    return await response.Content.ReadAsStringAsync();
-                }
-                else
-                {
-                    return $"Error: {response.StatusCode} - {response.ReasonPhrase}";
-                }
-            }
-            catch (Exception ex)
-            {
-                return $"Exception: {ex.Message}";
-            }
-        }
-
-        public class ApiResponse
-        {
-            public string Version { get; set; } = string.Empty;
-            public string Changes { get; set; } = string.Empty;
-            public List<ApiResult> Results { get; set; } = [];
-        }
-
-        public class ApiResult
-        {
-            public string Document_ID { get; set; } = string.Empty;
-            public string Content_ID { get; set; } = string.Empty;
-            public string Title { get; set; } = string.Empty;
-            public string Status { get; set; } = string.Empty;
-        }
-
-        // Version checking functionality
-        public const string CurrentVersion = "2.1";
-        public bool NeedsUpdate { get; private set; } = false;
-        public string FlowVersion { get; private set; } = string.Empty;
-        public string UpdateNotes { get; private set; } = string.Empty;
-
-        public ApiResponse ParseApiResponse(string jsonResponse)
-        {
-            try
-            {
-                var response = JsonSerializer.Deserialize<ApiResponse>(jsonResponse) ?? new();
-
-                // Check for version updates
-                FlowVersion = response.Version;
-                UpdateNotes = response.Changes;
-                NeedsUpdate = !string.IsNullOrEmpty(FlowVersion) && FlowVersion != CurrentVersion;
-
-                return response;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Error parsing API response: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return new();
-            }
-        }
-
-        public static List<HyperlinkData> UpdateHyperlinksFromApiResponse(List<HyperlinkData> hyperlinks, ApiResponse apiResponse, List<string> changes)
-        {
-            var updatedHyperlinks = new List<HyperlinkData>();
-            var resultsDict = new Dictionary<string, ApiResult>();
-
-            // Create a dictionary for faster lookup
-            foreach (var result in apiResponse.Results)
-            {
-                if (!string.IsNullOrEmpty(result.Document_ID))
-                {
-                    resultsDict[result.Document_ID] = result;
-                }
-                if (!string.IsNullOrEmpty(result.Content_ID))
-                {
-                    resultsDict[result.Content_ID] = result;
-                }
-            }
-
-            int updatedCount = 0;
-            int expiredCount = 0;
-            int notFoundCount = 0;
-
-            foreach (var hyperlink in hyperlinks)
-            {
-                string lookupId = ExtractLookupID(hyperlink.Address, hyperlink.SubAddress);
-                var updatedHyperlink = new HyperlinkData
-                {
-                    Address = hyperlink.Address,
-                    SubAddress = hyperlink.SubAddress,
-                    TextToDisplay = hyperlink.TextToDisplay,
-                    PageNumber = hyperlink.PageNumber,
-                    LineNumber = hyperlink.LineNumber,
-                    OriginalText = hyperlink.TextToDisplay,
-                    Title = hyperlink.Title,
-                    ContentID = hyperlink.ContentID,
-                    Status = hyperlink.Status
-                };
-
-                // Check if already marked as expired or not found (equivalent to Base_File.txt lines 222-224)
-                bool alreadyExpired = hyperlink.TextToDisplay.Contains(" - Expired");
-                bool alreadyNotFound = hyperlink.TextToDisplay.Contains(" - Not Found");
-
-                if (!string.IsNullOrEmpty(lookupId) && resultsDict.TryGetValue(lookupId, out var result))
-                {
-
-                    // Update the hyperlink address and sub-address based on API response
-                    string targetAddress = "https://beginningofhyperlinkurladdress.com/";
-                    string targetSubAddress = "!/view?docid=" + result.Document_ID;
-
-                    bool urlChanged = hyperlink.Address != targetAddress || hyperlink.SubAddress != targetSubAddress;
-
-                    if (urlChanged)
-                    {
-                        updatedHyperlink.Address = targetAddress;
-                        updatedHyperlink.SubAddress = targetSubAddress;
-                        updatedCount++;
-                        changes.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | URL Updated: {hyperlink.TextToDisplay} -> {result.Title}");
-                    }
-
-                    // Update status based on API response
-                    if (result.Status.Equals("expired", StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (!hyperlink.TextToDisplay.Contains(" - Expired"))
-                        {
-                            updatedHyperlink.TextToDisplay += " - Expired";
-                            updatedHyperlink.Status = "expired";
-                        }
-                        expiredCount++;
-                        changes.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Expired: {result.Title}");
-                    }
-                    else if (result.Status.Equals("notfound", StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (!hyperlink.TextToDisplay.Contains(" - Not Found"))
-                        {
-                            updatedHyperlink.TextToDisplay += " - Not Found";
-                            updatedHyperlink.Status = "notfound";
-                        }
-                        notFoundCount++;
-                        changes.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Not Found: {hyperlink.TextToDisplay}");
-                    }
-                    else
-                    {
-                        // Remove any existing status markers
-                        string cleanText = hyperlink.TextToDisplay
-                            .Replace(" - Expired", "")
-                            .Replace(" - Not Found", "")
-                            .Trim();
-
-                        if (cleanText != hyperlink.TextToDisplay)
-                        {
-                            updatedHyperlink.TextToDisplay = cleanText;
-                            updatedHyperlink.Status = "active";
-                        }
-                    }
-
-                    // Update title and content ID
-                    updatedHyperlink.Title = result.Title;
-                    updatedHyperlink.ContentID = result.Content_ID;
-
-                    // Content ID logic equivalent to Base_File.txt lines 264-286
-                    if (!alreadyExpired && !alreadyNotFound)
-                    {
-                        string last6 = result.Content_ID.Length >= 6 ? result.Content_ID.Substring(result.Content_ID.Length - 6) : result.Content_ID;
-                        string last5 = last6.Length >= 5 ? last6.Substring(last6.Length - 5) : last6;
-                        bool appended = false;
-
-                        // Check if we need to update the content ID (equivalent to Base_File.txt lines 264-266)
-                        if (hyperlink.TextToDisplay.EndsWith($" ({last5})") && !hyperlink.TextToDisplay.EndsWith($" ({last6})"))
-                        {
-                            updatedHyperlink.TextToDisplay = hyperlink.TextToDisplay.Substring(0, hyperlink.TextToDisplay.Length - $" ({last5})".Length) + $" ({last6})";
-                            appended = true;
-                        }
-                        // Check if content ID is not already present (equivalent to Base_File.txt line 274)
-                        else if (!hyperlink.TextToDisplay.Contains($" ({last6})"))
-                        {
-                            updatedHyperlink.TextToDisplay = hyperlink.TextToDisplay.Trim() + $" ({last6})";
-                            appended = true;
-                        }
-
-                        // Check for title changes (equivalent to Base_File.txt lines 282-286)
-                        if (!string.IsNullOrEmpty(result.Title))
-                        {
-                            string currentTitleWithoutContentId = hyperlink.TextToDisplay;
-                            if (currentTitleWithoutContentId.EndsWith($" ({last6})"))
-                            {
-                                currentTitleWithoutContentId = currentTitleWithoutContentId.Substring(0, currentTitleWithoutContentId.Length - $" ({last6})".Length);
-                            }
-                            else if (currentTitleWithoutContentId.EndsWith($" ({last5})"))
-                            {
-                                currentTitleWithoutContentId = currentTitleWithoutContentId.Substring(0, currentTitleWithoutContentId.Length - $" ({last5})".Length);
-                            }
-
-                            if (!currentTitleWithoutContentId.Equals(result.Title.Trim()))
-                            {
-                                changes.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Possible Title Change\n" +
-                                    $"        Current Title: {currentTitleWithoutContentId}\n" +
-                                    $"        New Title:     {result.Title}\n" +
-                                    $"        Content ID:    {result.Content_ID}");
-                            }
-                        }
-
-                        // Log if URL was updated or content ID was appended
-                        if (urlChanged || appended)
-                        {
-                            string updateType = "";
-                            if (urlChanged) updateType = "URL Updated";
-                            if (appended) updateType += (string.IsNullOrEmpty(updateType) ? "" : ", ") + "Appended Content ID";
-
-                            changes.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | {updateType}, {result.Title}");
-                        }
-                    }
-                }
-                else if (!string.IsNullOrEmpty(lookupId))
-                {
-                    // Lookup ID found but not in API response
-                    if (!hyperlink.TextToDisplay.Contains(" - Not Found") &&
-                        !hyperlink.TextToDisplay.Contains(" - Expired"))
-                    {
-                        updatedHyperlink.TextToDisplay += " - Not Found";
-                        updatedHyperlink.Status = "notfound";
-                        notFoundCount++;
-                        changes.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Not Found: {hyperlink.TextToDisplay}");
-                    }
-                }
-
-                updatedHyperlinks.Add(updatedHyperlink);
-            }
-
-            if (updatedCount > 0)
-            {
-                changes.Add($"Total URLs updated: {updatedCount}");
-            }
-            if (expiredCount > 0)
-            {
-                changes.Add($"Total expired links: {expiredCount}");
-            }
-            if (notFoundCount > 0)
-            {
-                changes.Add($"Total not found links: {notFoundCount}");
-            }
-
-            return updatedHyperlinks;
-        }
-    }
-
     public partial class MainForm : Form
     {
         [GeneratedRegex(@"\s*\((\d{5,6})\)\s*$")]
@@ -395,13 +23,15 @@ namespace Bulk_Editor
         private static partial Regex MultipleSpacesPatternRegex();
 
         private HyperlinkReplacementRules _hyperlinkReplacementRules;
+        private readonly WordDocumentProcessor _processor;
 
         public MainForm()
         {
             InitializeComponent();
+            _processor = new WordDocumentProcessor();
             SetupCheckboxDependencies();
             SetupFileListHandlers();
-            LoadHyperlinkReplacementRules(); // Fire and forget, as we don't need to wait for this
+            LoadHyperlinkReplacementRules();
         }
 
         private async void LoadHyperlinkReplacementRules()
@@ -419,11 +49,9 @@ namespace Bulk_Editor
         {
             if (lstFiles.SelectedIndex >= 0)
             {
-                // Check if we have a changelog for this file
                 string selectedItem = lstFiles.SelectedItem.ToString();
                 string fileName = selectedItem.Split('(')[0].Trim();
 
-                // Try to find the changelog file for this item
                 string changelogPath = FindLatestChangelog();
 
                 if (File.Exists(changelogPath))
@@ -432,7 +60,6 @@ namespace Bulk_Editor
                 }
                 else
                 {
-                    // Show empty changelog panel with message
                     lblChangelogTitle.Text = $"Changelog - {fileName}";
                     txtChangelog.Text = "No changelog file found. Please run the tools first.";
                     pnlChangelog.Visible = true;
@@ -452,35 +79,29 @@ namespace Bulk_Editor
                     string filePath = Path.Combine(txtFolderPath.Text, fileName);
                     if (File.Exists(filePath))
                     {
-                        try
-                        {
-                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                            {
-                                FileName = filePath,
-                                UseShellExecute = true
-                            });
-                        }
-                        catch (Exception ex)
-                        {
-                            MessageBox.Show($"Error opening file: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        }
+                        OpenFile(filePath);
                     }
                 }
                 else if (File.Exists(txtFolderPath.Text))
                 {
-                    try
-                    {
-                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                        {
-                            FileName = txtFolderPath.Text,
-                            UseShellExecute = true
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"Error opening file: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
+                    OpenFile(txtFolderPath.Text);
                 }
+            }
+        }
+
+        private void OpenFile(string filePath)
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = filePath,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error opening file: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -492,18 +113,21 @@ namespace Bulk_Editor
                 bool foundFileSection = false;
                 var fileChangelog = new System.Text.StringBuilder();
 
+                // Add document title
+                fileChangelog.AppendLine(Path.GetFileNameWithoutExtension(fileName));
+                fileChangelog.AppendLine();
+
                 foreach (string line in changelogLines)
                 {
                     if (line.StartsWith($"Processing file: {fileName}"))
                     {
                         foundFileSection = true;
-                        fileChangelog.AppendLine(line);
+                        continue; // Skip the "Processing file:" line as we're showing the document title above
                     }
                     else if (foundFileSection)
                     {
                         if (line.StartsWith("Processing file:") || line.StartsWith("Processed"))
                         {
-                            // We've reached the next file or the end
                             break;
                         }
                         fileChangelog.AppendLine(line);
@@ -513,7 +137,7 @@ namespace Bulk_Editor
                 if (fileChangelog.Length > 0)
                 {
                     lblChangelogTitle.Text = $"Changelog - {fileName}";
-                    txtChangelog.Text = fileChangelog.ToString();
+                    txtChangelog.Text = fileChangelog.ToString().Trim();
                     ShowChangelog();
                 }
                 else
@@ -531,10 +155,7 @@ namespace Bulk_Editor
 
         private void SetupCheckboxDependencies()
         {
-            // Set initial state
             UpdateSubCheckboxStates();
-
-            // Add event handlers
             chkFixSourceHyperlinks.CheckedChanged += ChkFixSourceHyperlinks_CheckedChanged;
         }
 
@@ -545,17 +166,14 @@ namespace Bulk_Editor
 
         private void UpdateSubCheckboxStates()
         {
-            // Enable/disable sub-checkboxes based on Fix Source Hyperlinks
             chkAppendContentID.Enabled = chkFixSourceHyperlinks.Checked;
             chkFixTitles.Enabled = chkFixSourceHyperlinks.Checked;
 
-            // Set text color based on Fix Source Hyperlinks state
             chkAppendContentID.ForeColor = chkFixSourceHyperlinks.Checked ?
                 SystemColors.ControlText : SystemColors.ControlDark;
             chkFixTitles.ForeColor = chkFixSourceHyperlinks.Checked ?
                 SystemColors.ControlText : SystemColors.ControlDark;
 
-            // If Fix Source Hyperlinks is unchecked, uncheck sub-options
             if (!chkFixSourceHyperlinks.Checked)
             {
                 chkAppendContentID.Checked = false;
@@ -618,16 +236,21 @@ namespace Bulk_Editor
 
             try
             {
-                // Create backup folder if it doesn't exist
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Starting processing: {path}");
+
+                _hyperlinkReplacementRules.TrimRules();
+
                 string backupPath = Path.Combine(basePath, "Backup");
                 if (!Directory.Exists(backupPath))
                 {
                     Directory.CreateDirectory(backupPath);
                 }
 
-                // Create a changelog file in the same folder as the processed files with unique naming
                 string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
                 string changelogPath = Path.Combine(basePath, $"BulkEditor_Changelog_{timestamp}.txt");
+
+                ShowProgress(true);
+                btnRunTools.Enabled = false;
 
                 using (var writer = new StreamWriter(changelogPath, append: false))
                 {
@@ -637,25 +260,29 @@ namespace Bulk_Editor
 
                     if (isFolder)
                     {
-                        // Process all files in the folder
-                        string[] files = Directory.GetFiles(path);
-                        foreach (string file in files)
+                        string[] files = Directory.GetFiles(path, "*.docx");
+                        for (int i = 0; i < files.Length; i++)
                         {
-                            await ProcessFile(file, writer);
+                            await ProcessFile(files[i], writer, i, files.Length);
+                            UpdateProgress((i + 1) * 100 / files.Length);
                         }
                         writer.WriteLine($"Processed {files.Length} files.");
                     }
                     else
                     {
-                        // Process single file
-                        await ProcessFile(path, writer);
+                        await ProcessFile(path, writer, 0, 1);
                         writer.WriteLine("Processed 1 file.");
+                        UpdateProgress(100);
                     }
                 }
 
+                ShowProgress(false);
+                btnRunTools.Enabled = true;
+
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Finished processing: {path}");
+
                 MessageBox.Show($"Processing complete. Changelog saved to:\n{changelogPath}", "Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                // Show the changelog for the first file in the list
                 if (lstFiles.Items.Count > 0)
                 {
                     lstFiles.SelectedIndex = 0;
@@ -663,8 +290,27 @@ namespace Bulk_Editor
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Error processing: {path} - {ex.Message}");
+                ShowProgress(false);
+                btnRunTools.Enabled = true;
                 MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private void ShowProgress(bool show)
+        {
+            progressBar.Visible = show;
+            if (show)
+            {
+                progressBar.Value = 0;
+                progressBar.Maximum = 100;
+            }
+        }
+
+        private void UpdateProgress(int value)
+        {
+            progressBar.Value = Math.Min(value, progressBar.Maximum);
+            Application.DoEvents();
         }
 
         private void LoadFile(string filePath)
@@ -682,26 +328,24 @@ namespace Bulk_Editor
             }
         }
 
-        private async Task ProcessFile(string filePath, StreamWriter logWriter)
+        private async Task ProcessFile(string filePath, StreamWriter logWriter, int fileIndex, int totalFiles)
         {
             try
             {
-                // Create backup of the file before processing
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Starting processing file: {filePath}");
+
                 string backupPath = Path.Combine(Path.GetDirectoryName(filePath), "Backup", Path.GetFileName(filePath));
                 File.Copy(filePath, backupPath, true);
                 logWriter.WriteLine($"Backup created: {Path.GetFileName(backupPath)}");
 
                 string fileContent = File.ReadAllText(filePath);
                 string originalContent = fileContent;
-                List<string> changes = [];
+                List<string> changes = new();
 
                 logWriter.WriteLine($"Processing file: {Path.GetFileName(filePath)}");
 
-                // Initialize Word document processor
-                var processor = new WordDocumentProcessor();
                 var hyperlinks = WordDocumentProcessor.ExtractHyperlinks(filePath);
 
-                // Collections for detailed logging
                 var updatedLinks = new Collection<string>();
                 var notFoundLinks = new Collection<string>();
                 var expiredLinks = new Collection<string>();
@@ -709,38 +353,36 @@ namespace Bulk_Editor
                 var updatedUrls = new Collection<string>();
                 var replacedHyperlinks = new Collection<string>();
 
-                // Apply selected tools
                 if (chkFixSourceHyperlinks.Checked)
                 {
-                    fileContent = await FixSourceHyperlinks(fileContent, hyperlinks, processor, changes, updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls);
+                    fileContent = await ProcessingService.FixSourceHyperlinks(fileContent, hyperlinks, _processor, changes, updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls);
                 }
 
                 if (chkAppendContentID.Checked)
                 {
-                    fileContent = AppendContentID(fileContent, hyperlinks, processor, changes);
+                    fileContent = ProcessingService.AppendContentID(fileContent, hyperlinks, changes);
                 }
 
                 if (chkFixInternalHyperlink.Checked)
                 {
-                    fileContent = FixInternalHyperlink(fileContent, hyperlinks, processor, changes);
+                    fileContent = ProcessingService.FixInternalHyperlink(fileContent, hyperlinks, changes);
                 }
 
                 if (chkFixTitles.Checked)
                 {
-                    fileContent = FixTitles(fileContent, hyperlinks, processor, changes);
+                    fileContent = ProcessingService.FixTitles(fileContent, hyperlinks, changes);
                 }
 
                 if (chkFixDoubleSpaces.Checked)
                 {
-                    fileContent = FixDoubleSpaces(fileContent, changes);
+                    fileContent = ProcessingService.FixDoubleSpaces(fileContent, changes);
                 }
 
                 if (chkReplaceHyperlink.Checked)
                 {
-                    fileContent = ReplaceHyperlinks(fileContent, hyperlinks, processor, changes, replacedHyperlinks);
+                    fileContent = ProcessingService.ReplaceHyperlinks(fileContent, hyperlinks, _hyperlinkReplacementRules, changes, replacedHyperlinks);
                 }
 
-                // Save changes if any were made
                 if (changes.Count > 0 && fileContent != originalContent)
                 {
                     File.WriteAllText(filePath, fileContent);
@@ -755,66 +397,17 @@ namespace Bulk_Editor
                     logWriter.WriteLine($"  No changes were needed or made.");
                 }
 
-                // Write detailed changelog information
-                WriteDetailedChangelog(logWriter, updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, replacedHyperlinks, processor);
-
-                // Also save to Downloads folder with unique naming
-                WriteDetailedChangelogToDownloads(updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, replacedHyperlinks, processor);
+                WriteDetailedChangelog(logWriter, updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, replacedHyperlinks, _processor);
+                WriteDetailedChangelogToDownloads(updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, replacedHyperlinks, _processor);
 
                 logWriter.WriteLine();
+
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Finished processing file: {filePath}");
             }
             catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Error processing file: {filePath} - {ex.Message}");
                 logWriter.WriteLine($"  Error processing file: {ex.Message}");
-            }
-        }
-
-        private void WriteDetailedChangelog(StreamWriter writer, Collection<string> updatedLinks, Collection<string> notFoundLinks,
-            Collection<string> expiredLinks, Collection<string> errorLinks, Collection<string> updatedUrls, WordDocumentProcessor processor)
-        {
-            // Add version information and update notification
-            writer.WriteLine($"  Bulk Editor Version: {WordDocumentProcessor.CurrentVersion}");
-
-            if (processor.NeedsUpdate)
-            {
-                writer.WriteLine($"  UPDATE AVAILABLE: Version {processor.FlowVersion} is now available");
-                writer.WriteLine($"  Update Notes: {processor.UpdateNotes}");
-                writer.WriteLine();
-            }
-
-            writer.WriteLine();
-            writer.WriteLine($"  Updated Links ({updatedLinks.Count}):");
-            foreach (var link in updatedLinks)
-            {
-                writer.WriteLine($"    {link}");
-            }
-
-            writer.WriteLine();
-            writer.WriteLine($"  Found Expired ({expiredLinks.Count}):");
-            foreach (var link in expiredLinks)
-            {
-                writer.WriteLine($"    {link}");
-            }
-
-            writer.WriteLine();
-            writer.WriteLine($"  Not Found ({notFoundLinks.Count}):");
-            foreach (var link in notFoundLinks)
-            {
-                writer.WriteLine($"    {link}");
-            }
-
-            writer.WriteLine();
-            writer.WriteLine($"  Found Error ({errorLinks.Count}):");
-            foreach (var link in errorLinks)
-            {
-                writer.WriteLine($"    {link}");
-            }
-
-            writer.WriteLine();
-            writer.WriteLine($"  Potential Outdated Titles ({updatedUrls.Count}):");
-            foreach (var url in updatedUrls)
-            {
-                writer.WriteLine($"    {url}");
             }
         }
 
@@ -822,7 +415,6 @@ namespace Bulk_Editor
             Collection<string> expiredLinks, Collection<string> errorLinks, Collection<string> updatedUrls,
             Collection<string> replacedHyperlinks, WordDocumentProcessor processor)
         {
-            // Add version information and update notification
             writer.WriteLine($"  Bulk Editor Version: {WordDocumentProcessor.CurrentVersion}");
 
             if (processor.NeedsUpdate)
@@ -840,15 +432,15 @@ namespace Bulk_Editor
             }
 
             writer.WriteLine();
-            writer.WriteLine($"  Found Expired ({expiredLinks.Count}):");
-            foreach (var link in expiredLinks)
+            writer.WriteLine($"  Not Found ({notFoundLinks.Count}):");
+            foreach (var link in notFoundLinks)
             {
                 writer.WriteLine($"    {link}");
             }
 
             writer.WriteLine();
-            writer.WriteLine($"  Not Found ({notFoundLinks.Count}):");
-            foreach (var link in notFoundLinks)
+            writer.WriteLine($"  Found Expired ({expiredLinks.Count}):");
+            foreach (var link in expiredLinks)
             {
                 writer.WriteLine($"    {link}");
             }
@@ -876,13 +468,6 @@ namespace Bulk_Editor
         }
 
         private void WriteDetailedChangelogToDownloads(Collection<string> updatedLinks, Collection<string> notFoundLinks,
-            Collection<string> expiredLinks, Collection<string> errorLinks, Collection<string> updatedUrls, WordDocumentProcessor processor)
-        {
-            // Call the new overload with an empty replacedHyperlinks collection
-            WriteDetailedChangelogToDownloads(updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, [], processor);
-        }
-
-        private void WriteDetailedChangelogToDownloads(Collection<string> updatedLinks, Collection<string> notFoundLinks,
             Collection<string> expiredLinks, Collection<string> errorLinks, Collection<string> updatedUrls,
             Collection<string> replacedHyperlinks, WordDocumentProcessor processor)
         {
@@ -894,7 +479,6 @@ namespace Bulk_Editor
                     downloadsFolder = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
                 }
 
-                // Create unique filename
                 string baseFileName = "BulkEditor_Changelog";
                 string fileExtension = ".txt";
                 string changelogPath = Path.Combine(downloadsFolder, baseFileName + fileExtension);
@@ -909,8 +493,6 @@ namespace Bulk_Editor
                 using (StreamWriter writer = new StreamWriter(changelogPath, false))
                 {
                     writer.WriteLine($"Bulk Editor Processing Log - {DateTime.Now}");
-
-                    // Add version information and update notification
                     writer.WriteLine($"Bulk Editor Version: {WordDocumentProcessor.CurrentVersion}");
 
                     if (processor.NeedsUpdate)
@@ -963,10 +545,8 @@ namespace Bulk_Editor
                     }
                 }
 
-                // Update status
                 lblStatus.Text = $"Changelog saved to: {changelogPath}";
 
-                // Ask if user wants to open the file
                 var result = MessageBox.Show("Changelog saved to Downloads folder. Would you like to open it?", "Changelog Saved", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                 if (result == DialogResult.Yes)
                 {
@@ -983,266 +563,6 @@ namespace Bulk_Editor
             }
         }
 
-        private async Task<string> FixSourceHyperlinks(string content, List<HyperlinkData> hyperlinks, WordDocumentProcessor processor, List<string> changes,
-            Collection<string> updatedLinks, Collection<string> notFoundLinks, Collection<string> expiredLinks,
-            Collection<string> errorLinks, Collection<string> updatedUrls)
-        {
-            // Implementation based on Base_File.txt UpdateHyperlinksFromAPI function
-
-            // Remove invisible external hyperlinks
-            var removedHyperlinks = WordDocumentProcessor.RemoveInvisibleExternalHyperlinks(hyperlinks);
-            if (removedHyperlinks.Count > 0)
-            {
-                changes.Add($"Removed {removedHyperlinks.Count} invisible external hyperlinks");
-
-                // Add to error links collection for logging
-                foreach (var hyperlink in removedHyperlinks)
-                {
-                    errorLinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Invisible Hyperlink Deleted");
-                }
-            }
-
-            // Extract unique lookup IDs
-            var uniqueIds = new HashSet<string>();
-            foreach (var hyperlink in hyperlinks)
-            {
-                string lookupId = WordDocumentProcessor.ExtractLookupID(hyperlink.Address, hyperlink.SubAddress);
-                if (!string.IsNullOrEmpty(lookupId))
-                {
-                    uniqueIds.Add(lookupId);
-                }
-            }
-
-            if (uniqueIds.Count > 0)
-            {
-                changes.Add($"Found {uniqueIds.Count} unique lookup IDs that would be updated via API");
-
-                // Send to API (simulated)
-                string apiResponse = await processor.SendToPowerAutomateFlow(uniqueIds.ToList(), "https://prod-00.eastus.logic.azure.com:443/workflows/...");
-                var response = processor.ParseApiResponse(apiResponse);
-
-                // Create a dictionary for faster lookup
-                var resultDict = new Dictionary<string, WordDocumentProcessor.ApiResult>();
-                foreach (var result in response.Results)
-                {
-                    if (!resultDict.ContainsKey(result.Document_ID))
-                        resultDict.Add(result.Document_ID, result);
-                    if (!resultDict.ContainsKey(result.Content_ID))
-                        resultDict.Add(result.Content_ID, result);
-                }
-
-                // Update hyperlinks based on API response
-                foreach (var hyperlink in hyperlinks)
-                {
-                    string lookupId = WordDocumentProcessor.ExtractLookupID(hyperlink.Address, hyperlink.SubAddress);
-                    if (!string.IsNullOrEmpty(lookupId))
-                    {
-                        if (resultDict.TryGetValue(lookupId, out var result))
-                        {
-                            // Update hyperlink address and sub-address
-                            string targetAddress = "https://thesource.cvshealth.com/nuxeo/thesource/";
-                            string targetSub = "!/view?docid=" + result.Document_ID;
-
-                            bool changedURL = (hyperlink.Address != targetAddress) || (hyperlink.SubAddress != targetSub);
-                            if (changedURL)
-                            {
-                                hyperlink.Address = targetAddress;
-                                hyperlink.SubAddress = targetSub;
-                                updatedLinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | URL Updated, {result.Title}");
-                            }
-
-                            // Check for status and update display text
-                            bool alreadyExpired = hyperlink.TextToDisplay.Contains(" - Expired");
-                            bool alreadyNotFound = hyperlink.TextToDisplay.Contains(" - Not Found");
-
-                            if (!alreadyExpired && !alreadyNotFound)
-                            {
-                                // Append content ID if needed
-                                string last6 = result.Content_ID.Substring(Math.Max(0, result.Content_ID.Length - 6));
-                                string last5 = last6.Substring(Math.Max(0, last6.Length - 5));
-                                bool appended = false;
-
-                                // Check if we need to update the content ID
-                                if (hyperlink.TextToDisplay.EndsWith($" ({last5})") && !hyperlink.TextToDisplay.EndsWith($" ({last6})"))
-                                {
-                                    hyperlink.TextToDisplay = hyperlink.TextToDisplay.Substring(0, hyperlink.TextToDisplay.Length - $" ({last5})".Length) + $" ({last6})";
-                                    appended = true;
-                                }
-                                else if (!hyperlink.TextToDisplay.Contains($" ({last6})"))
-                                {
-                                    hyperlink.TextToDisplay = hyperlink.TextToDisplay.Trim() + $" ({last6})";
-                                    appended = true;
-                                }
-
-                                // Check for title changes
-                                string currentTitle = hyperlink.TextToDisplay;
-                                string expectedTitle = result.Title.Trim();
-                                if (!string.IsNullOrEmpty(expectedTitle) &&
-                                    currentTitle.Length > $" ({last6})".Length &&
-                                    !currentTitle.Substring(0, currentTitle.Length - $" ({last6})".Length).Equals(expectedTitle))
-                                {
-                                    updatedUrls.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Possible Title Change\n" +
-                                        $"        Current Title: {currentTitle.Substring(0, currentTitle.Length - $" ({last6})".Length)}\n" +
-                                        $"        New Title:     {expectedTitle}\n" +
-                                        $"        Content ID:    {result.Content_ID}");
-                                }
-
-                                if (appended || changedURL)
-                                {
-                                    string updateType = "";
-                                    if (changedURL) updateType = "URL Updated";
-                                    if (appended) updateType += (string.IsNullOrEmpty(updateType) ? "" : ", ") + "Appended Content ID";
-
-                                    updatedLinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | {updateType}, {result.Title}");
-                                }
-                            }
-
-                            // Handle expired status
-                            if (result.Status == "Expired" && !alreadyExpired)
-                            {
-                                hyperlink.TextToDisplay += " - Expired";
-                                expiredLinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Expired, {result.Title}\n        {result.Content_ID}");
-                            }
-                        }
-                        else
-                        {
-                            // Mark as not found if not already marked
-                            bool alreadyExpired = hyperlink.TextToDisplay.Contains(" - Expired");
-                            bool alreadyNotFound = hyperlink.TextToDisplay.Contains(" - Not Found");
-
-                            if (!alreadyNotFound && !alreadyExpired)
-                            {
-                                hyperlink.TextToDisplay += " - Not Found";
-                                notFoundLinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Not Found\n        {hyperlink.TextToDisplay}");
-                            }
-                        }
-                    }
-                }
-            }
-
-            return content;
-        }
-
-        private static string AppendContentID(string content, List<HyperlinkData> hyperlinks, WordDocumentProcessor processor, List<string> changes)
-        {
-            // Implementation for appending Content ID based on Base_File.txt
-            int modifiedCount = 0;
-
-            foreach (var hyperlink in hyperlinks)
-            {
-                string lookupId = WordDocumentProcessor.ExtractLookupID(hyperlink.Address, hyperlink.SubAddress);
-                if (!string.IsNullOrEmpty(lookupId))
-                {
-                    // Extract the last 6 characters of the content ID
-                    string last6 = lookupId.Length >= 6 ? lookupId.Substring(lookupId.Length - 6) : lookupId;
-                    string last5 = last6.Length >= 5 ? last6.Substring(last6.Length - 5) : last6;
-
-                    // Check if we need to append the content ID
-                    if (!hyperlink.TextToDisplay.Contains("(" + last6 + ")"))
-                    {
-                        // If it ends with last5 but not last6, replace it
-                        if (hyperlink.TextToDisplay.EndsWith("(" + last5 + ")"))
-                        {
-                            hyperlink.TextToDisplay = hyperlink.TextToDisplay.Substring(0, hyperlink.TextToDisplay.Length - last5.Length - 2) + last6 + ")";
-                        }
-                        else
-                        {
-                            hyperlink.TextToDisplay = hyperlink.TextToDisplay.Trim() + " (" + last6 + ")";
-                        }
-                        modifiedCount++;
-                    }
-                }
-            }
-
-            if (modifiedCount > 0)
-            {
-                changes.Add($"Appended Content ID to {modifiedCount} links");
-            }
-
-            return content;
-        }
-
-        private static string FixInternalHyperlink(string content, List<HyperlinkData> hyperlinks, WordDocumentProcessor processor, List<string> changes)
-        {
-            // Implementation for fixing internal hyperlinks
-            int fixedCount = 0;
-
-            foreach (var hyperlink in hyperlinks)
-            {
-                // Check if it's an internal hyperlink (empty address but has sub-address)
-                if (string.IsNullOrEmpty(hyperlink.Address) && !string.IsNullOrEmpty(hyperlink.SubAddress))
-                {
-                    // In a real implementation, we would check if the anchor exists in the document
-                    // For now, we'll just validate the format
-                    if (hyperlink.SubAddress.StartsWith("!") || hyperlink.SubAddress.StartsWith("_"))
-                    {
-                        fixedCount++;
-                        changes.Add($"Validated internal hyperlink: {hyperlink.SubAddress}");
-                    }
-                }
-            }
-
-            if (fixedCount > 0)
-            {
-                changes.Add($"Fixed {fixedCount} internal hyperlinks");
-            }
-
-            return content;
-        }
-
-        private static string FixTitles(string content, List<HyperlinkData> hyperlinks, WordDocumentProcessor processor, List<string> changes)
-        {
-            // Implementation for fixing titles based on Base_File.txt
-            int fixedCount = 0;
-
-            foreach (var hyperlink in hyperlinks)
-            {
-                string lookupId = WordDocumentProcessor.ExtractLookupID(hyperlink.Address, hyperlink.SubAddress);
-                if (!string.IsNullOrEmpty(lookupId))
-                {
-                    // In a real implementation, we would get the title from the API response
-                    // For now, we'll just check if the title needs updating
-                    if (!string.IsNullOrEmpty(hyperlink.TextToDisplay) &&
-                        (hyperlink.TextToDisplay.Contains(" - Expired") ||
-                         hyperlink.TextToDisplay.Contains(" - Not Found")))
-                    {
-                        // Remove expired/not found markers
-                        hyperlink.TextToDisplay = hyperlink.TextToDisplay
-                            .Replace(" - Expired", "")
-                            .Replace(" - Not Found", "")
-                            .Trim();
-                        fixedCount++;
-                    }
-                }
-            }
-
-            if (fixedCount > 0)
-            {
-                changes.Add($"Fixed {fixedCount} titles");
-            }
-
-            return content;
-        }
-
-        private static string FixDoubleSpaces(string content, List<string> changes)
-        {
-            // Replace multiple spaces with a single space
-            // Using regex to handle any number of consecutive spaces
-            string replacement = " ";
-            string newContent = MultipleSpacesPatternRegex().Replace(content, replacement);
-
-            // Count how many replacements were made by comparing lengths
-            if (newContent != content)
-            {
-                // Count occurrences of the pattern to get an approximate count
-                MatchCollection matches = MultipleSpacesPatternRegex().Matches(content);
-                int fixedCount = matches.Count;
-                changes.Add($"Fixed {fixedCount} instances of multiple spaces");
-            }
-
-            return newContent;
-        }
-
         private void LoadFiles(string folderPath)
         {
             try
@@ -1251,7 +571,6 @@ namespace Bulk_Editor
 
                 if (Directory.Exists(folderPath))
                 {
-                    // Only load .docx files
                     string[] files = Directory.GetFiles(folderPath, "*.docx");
 
                     foreach (string file in files)
@@ -1290,24 +609,20 @@ namespace Bulk_Editor
 
         private string FindLatestChangelog()
         {
-            // First, check if we have a selected folder or file
             if (!string.IsNullOrEmpty(txtFolderPath.Text))
             {
                 bool isFolder = Directory.Exists(txtFolderPath.Text);
                 string basePath = isFolder ? txtFolderPath.Text : Path.GetDirectoryName(txtFolderPath.Text);
 
-                // Look for changelog files in the same folder as the processed files
                 string[] changelogFiles = Directory.GetFiles(basePath, "BulkEditor_Changelog_*.txt");
 
                 if (changelogFiles.Length > 0)
                 {
-                    // Get the most recent changelog file
                     Array.Sort(changelogFiles);
                     return changelogFiles[changelogFiles.Length - 1];
                 }
             }
 
-            // If not found in the processed folder, check the desktop (for backward compatibility)
             string desktopChangelogPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "BulkEditor_Changelog.txt");
             if (File.Exists(desktopChangelogPath))
             {
@@ -1322,91 +637,18 @@ namespace Bulk_Editor
             using var configForm = new ReplaceHyperlinkConfigForm(_hyperlinkReplacementRules);
             if (configForm.ShowDialog() == DialogResult.OK)
             {
-                // Save the rules when the user clicks OK
                 await _hyperlinkReplacementRules.SaveAsync();
             }
-        }
-
-        private string ReplaceHyperlinks(string content, List<HyperlinkData> hyperlinks, WordDocumentProcessor processor, List<string> changes, Collection<string> replacedHyperlinks)
-        {
-            int replacedCount = 0;
-
-            // Process each hyperlink replacement rule
-            foreach (var rule in _hyperlinkReplacementRules.Rules)
-            {
-                // Skip empty rules
-                if (string.IsNullOrWhiteSpace(rule.OldTitle) || string.IsNullOrWhiteSpace(rule.NewTitle) || string.IsNullOrWhiteSpace(rule.NewFullContentID))
-                    continue;
-
-                // Process each hyperlink in the document
-                foreach (var hyperlink in hyperlinks)
-                {
-                    // Create a copy of the original hyperlink for comparison
-                    var originalHyperlink = new HyperlinkData
-                    {
-                        Address = hyperlink.Address,
-                        SubAddress = hyperlink.SubAddress,
-                        TextToDisplay = hyperlink.TextToDisplay,
-                        PageNumber = hyperlink.PageNumber,
-                        LineNumber = hyperlink.LineNumber
-                    };
-
-                    // Sanitize the hyperlink text by removing content ID suffixes
-                    string sanitizedText = hyperlink.TextToDisplay.Trim();
-
-                    // Remove trailing whitespace
-                    string oldTitle = rule.OldTitle.Trim();
-                    string newTitle = rule.NewTitle.Trim();
-
-                    // Extract last 6 digits of new content ID
-                    string newContentIdLast6 = rule.NewFullContentID.Length >= 6 ?
-                        rule.NewFullContentID.Substring(rule.NewFullContentID.Length - 6) :
-                        rule.NewFullContentID;
-
-                    // Check if the hyperlink text ends with a 5 or 6 digit content ID in parentheses
-                    var match = ContentIdPatternRegex().Match(sanitizedText);
-
-                    if (match.Success)
-                    {
-                        // Remove the content ID suffix
-                        sanitizedText = sanitizedText.Substring(0, match.Index).Trim();
-                    }
-
-                    // Check if the sanitized text matches the old title
-                    if (sanitizedText.Equals(oldTitle, StringComparison.OrdinalIgnoreCase))
-                    {
-                        // Update the hyperlink text to the new title with new content ID
-                        hyperlink.TextToDisplay = $"{newTitle} ({newContentIdLast6})";
-
-                        // Update the hyperlink address based on the new content ID
-                        // This follows the same pattern as the existing hyperlink update logic
-                        hyperlink.Address = "https://thesource.cvshealth.com/nuxeo/thesource/";
-                        hyperlink.SubAddress = $"!/view?docid={rule.NewFullContentID}";
-
-                        // Add to changelog
-                        replacedHyperlinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | {oldTitle} -> {newTitle}\n        Content ID: {rule.NewFullContentID}");
-
-                        replacedCount++;
-                    }
-                }
-            }
-
-            if (replacedCount > 0)
-            {
-                changes.Add($"Replaced {replacedCount} hyperlinks");
-            }
-
-            return content;
         }
 
         private void BtnExportChangelog_Click(object sender, EventArgs e)
         {
             try
             {
-                // Check if we have changelog data in the UI
-                if (string.IsNullOrEmpty(txtChangelog.Text) || txtChangelog.Text.Contains("No changelog file found"))
+                string changelogPath = FindLatestChangelog();
+                if (string.IsNullOrEmpty(changelogPath) || !File.Exists(changelogPath))
                 {
-                    MessageBox.Show("No changelog data to export. Please run the tools first.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show("No changelog file found. Please run the tools first.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return;
                 }
 
@@ -1416,8 +658,7 @@ namespace Bulk_Editor
                     downloadsFolder = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
                 }
 
-                // Create unique filename
-                string baseFileName = "BulkEditor_Changelog_Export";
+                string baseFileName = "BulkEditor_Combined_Changelog";
                 string fileExtension = ".txt";
                 string exportPath = Path.Combine(downloadsFolder, baseFileName + fileExtension);
                 int counter = 1;
@@ -1428,14 +669,13 @@ namespace Bulk_Editor
                     counter++;
                 }
 
-                // Write the changelog content to the file
-                File.WriteAllText(exportPath, txtChangelog.Text);
+                // Read the complete changelog and export it
+                string completeChangelog = File.ReadAllText(changelogPath);
+                File.WriteAllText(exportPath, completeChangelog);
 
-                // Update status
-                lblStatus.Text = $"Changelog exported to: {exportPath}";
+                lblStatus.Text = $"Combined changelog exported to: {exportPath}";
 
-                // Ask if user wants to open the file
-                var result = MessageBox.Show("Changelog exported successfully to Downloads folder. Would you like to open it?", "Export Complete", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                var result = MessageBox.Show("Combined changelog exported successfully to Downloads folder. Would you like to open it?", "Export Complete", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                 if (result == DialogResult.Yes)
                 {
                     System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
@@ -1447,11 +687,67 @@ namespace Bulk_Editor
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error exporting changelog: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Error exporting combined changelog: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void BtnExportSingleChangelog_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(txtChangelog.Text) || txtChangelog.Text.Contains("No changelog file found"))
+                {
+                    MessageBox.Show("No changelog data to export. Please select a file first.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                string downloadsFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+                if (!Directory.Exists(downloadsFolder))
+                {
+                    downloadsFolder = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                }
+
+                string selectedFileName = "";
+                if (lstFiles.SelectedIndex >= 0)
+                {
+                    selectedFileName = lstFiles.SelectedItem.ToString().Split('(')[0].Trim();
+                    selectedFileName = Path.GetFileNameWithoutExtension(selectedFileName);
+                }
+
+                string baseFileName = string.IsNullOrEmpty(selectedFileName) ? "BulkEditor_Single_Changelog" : $"BulkEditor_{selectedFileName}_Changelog";
+                string fileExtension = ".txt";
+                string exportPath = Path.Combine(downloadsFolder, baseFileName + fileExtension);
+                int counter = 1;
+
+                while (File.Exists(exportPath))
+                {
+                    exportPath = Path.Combine(downloadsFolder, $"{baseFileName}_{counter}{fileExtension}");
+                    counter++;
+                }
+
+                // Create single file changelog with header
+                string singleChangelog = $"Bulk Editor Processing Log - {WordDocumentProcessor.CurrentVersion}\n";
+                singleChangelog += $"Processing: {txtFolderPath.Text}\n\n";
+                singleChangelog += txtChangelog.Text;
+
+                File.WriteAllText(exportPath, singleChangelog);
+
+                lblStatus.Text = $"Single changelog exported to: {exportPath}";
+
+                var result = MessageBox.Show("Single file changelog exported successfully to Downloads folder. Would you like to open it?", "Export Complete", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (result == DialogResult.Yes)
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = exportPath,
+                        UseShellExecute = true
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error exporting single changelog: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }
 }
-
-
-
