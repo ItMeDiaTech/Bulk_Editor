@@ -8,7 +8,10 @@ namespace Bulk_Editor
 {
     public class HyperlinkReplacementRules
     {
-        public List<HyperlinkReplacementRule> Rules { get; set; } = new List<HyperlinkReplacementRule>();
+        // Cached JsonSerializerOptions instance for consistent formatting
+        private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+
+        public List<HyperlinkReplacementRule> Rules { get; set; } = [];
 
         // File path for saving/loading rules
         private static readonly string SettingsFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "hyperlink_replacement_rules.json");
@@ -18,7 +21,7 @@ namespace Bulk_Editor
         {
             try
             {
-                var json = JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
+                var json = JsonSerializer.Serialize(this, JsonOptions);
                 await File.WriteAllTextAsync(SettingsFilePath, json);
             }
             catch (Exception ex)
@@ -36,8 +39,8 @@ namespace Bulk_Editor
                 if (File.Exists(SettingsFilePath))
                 {
                     var json = await File.ReadAllTextAsync(SettingsFilePath);
-                    var rules = JsonSerializer.Deserialize<HyperlinkReplacementRules>(json);
-                    return rules ?? new HyperlinkReplacementRules();
+                    var rules = JsonSerializer.Deserialize<HyperlinkReplacementRules>(json, JsonOptions);
+                    return rules ?? new();
                 }
             }
             catch (Exception ex)
@@ -47,7 +50,7 @@ namespace Bulk_Editor
             }
 
             // Return empty rules if file doesn't exist or there was an error
-            return new HyperlinkReplacementRules();
+            return new();
         }
     }
 }

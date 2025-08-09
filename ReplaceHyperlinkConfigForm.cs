@@ -12,7 +12,7 @@ namespace Bulk_Editor
 {
     public partial class ReplaceHyperlinkConfigForm : Form
     {
-        private HyperlinkReplacementRules _rules;
+        private readonly HyperlinkReplacementRules _rules;
 
         public ReplaceHyperlinkConfigForm(HyperlinkReplacementRules rules)
         {
@@ -84,14 +84,14 @@ namespace Bulk_Editor
         private void BtnOK_Click(object sender, EventArgs e)
         {
             // Data is automatically updated in the bound collection
-            this.DialogResult = DialogResult.OK;
-            this.Close();
+            DialogResult = DialogResult.OK;
+            Close();
         }
 
         private void BtnCancel_Click(object sender, EventArgs e)
         {
-            this.DialogResult = DialogResult.Cancel;
-            this.Close();
+            DialogResult = DialogResult.Cancel;
+            Close();
         }
     }
 }

@@ -27,9 +27,18 @@ namespace Bulk_Editor
         public string Status { get; set; } = string.Empty;
     }
 
-    public class WordDocumentProcessor
+    public partial class WordDocumentProcessor
     {
-        public List<HyperlinkData> ExtractHyperlinks(string filePath)
+        [GeneratedRegex(@"<a[^>]*href=""([^""]*)""[^>]*>([^<]*)</a>", RegexOptions.IgnoreCase)]
+        private static partial Regex HyperlinkPatternRegex();
+
+        [GeneratedRegex(@"(TSRC-[^-]+-[0-9]{6}|CMS-[^-]+-[0-9]{6})", RegexOptions.IgnoreCase)]
+        private static partial Regex IdPatternRegex();
+
+        [GeneratedRegex(@"docid=([^&]*)", RegexOptions.IgnoreCase)]
+        private static partial Regex DocIdPatternRegex();
+
+        public static List<HyperlinkData> ExtractHyperlinks(string filePath)
         {
             // Simplified implementation - in a real scenario, this would use
             // Microsoft.Office.Interop.Word or DocumentFormat.OpenXml
@@ -42,8 +51,7 @@ namespace Bulk_Editor
                 string content = File.ReadAllText(filePath);
 
                 // Simple regex to find hyperlinks in the text content
-                var hyperlinkPattern = new Regex(@"<a[^>]*href=""([^""]*)""[^>]*>([^<]*)</a>", RegexOptions.IgnoreCase);
-                var matches = hyperlinkPattern.Matches(content);
+                var matches = HyperlinkPatternRegex().Matches(content);
 
                 int index = 0;
                 foreach (Match match in matches)
@@ -57,7 +65,7 @@ namespace Bulk_Editor
                     };
 
                     // Extract sub-address if present
-                    if (hyperlink.Address.Contains("#"))
+                    if (hyperlink.Address.Contains('#'))
                     {
                         var parts = hyperlink.Address.Split('#');
                         hyperlink.Address = parts[0];
@@ -76,7 +84,7 @@ namespace Bulk_Editor
             return hyperlinks;
         }
 
-        public List<HyperlinkData> RemoveInvisibleExternalHyperlinks(List<HyperlinkData> hyperlinks)
+        public static List<HyperlinkData> RemoveInvisibleExternalHyperlinks(List<HyperlinkData> hyperlinks)
         {
             var removedHyperlinks = new List<HyperlinkData>();
 
@@ -94,13 +102,12 @@ namespace Bulk_Editor
             return removedHyperlinks;
         }
 
-        public string ExtractLookupID(string address, string subAddress)
+        public static string ExtractLookupID(string address, string subAddress)
         {
             string fullAddress = address + (!string.IsNullOrEmpty(subAddress) ? "#" + subAddress : "");
 
             // Pattern to match TSRC-XXXX-XXXXXX or CMS-XXXX-XXXXXX
-            var idPattern = new Regex(@"(TSRC-[^-]+-[0-9]{6}|CMS-[^-]+-[0-9]{6})", RegexOptions.IgnoreCase);
-            var match = idPattern.Match(fullAddress);
+            var match = IdPatternRegex().Match(fullAddress);
 
             if (match.Success)
             {
@@ -108,8 +115,7 @@ namespace Bulk_Editor
             }
 
             // Alternative pattern for docid parameter
-            var docIdPattern = new Regex(@"docid=([^&]*)", RegexOptions.IgnoreCase);
-            match = docIdPattern.Match(fullAddress);
+            match = DocIdPatternRegex().Match(fullAddress);
 
             if (match.Success)
             {
@@ -119,7 +125,7 @@ namespace Bulk_Editor
             return string.Empty;
         }
 
-        public string SendToPowerAutomateFlow(List<string> lookupIds, string flowUrl)
+        public async Task<string> SendToPowerAutomateFlow(List<string> lookupIds, string flowUrl)
         {
             try
             {
@@ -129,25 +135,23 @@ namespace Bulk_Editor
                     Lookup_ID = lookupIds
                 };
 
-                string jsonBody = System.Text.Json.JsonSerializer.Serialize(jsonPayload);
+                string jsonBody = JsonSerializer.Serialize(jsonPayload);
 
                 // Create HTTP request
-                using (var client = new System.Net.Http.HttpClient())
+                using var client = new HttpClient();
+                var content = new StringContent(jsonBody, System.Text.Encoding.UTF8, "application/json");
+
+                // IMPORTANT: Replace the flowUrl with your actual Power Automate Flow URL
+                // The URL should look like: https://prod-00.eastus.logic.azure.com:443/workflows/[GUID]/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=[SIGNATURE]
+                var response = await client.PostAsync(flowUrl, content);
+
+                if (response.IsSuccessStatusCode)
                 {
-                    var content = new System.Net.Http.StringContent(jsonBody, System.Text.Encoding.UTF8, "application/json");
-
-                    // IMPORTANT: Replace the flowUrl with your actual Power Automate Flow URL
-                    // The URL should look like: https://prod-00.eastus.logic.azure.com:443/workflows/[GUID]/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=[SIGNATURE]
-                    var response = client.PostAsync(flowUrl, content).Result;
-
-                    if (response.IsSuccessStatusCode)
-                    {
-                        return response.Content.ReadAsStringAsync().Result;
-                    }
-                    else
-                    {
-                        return $"Error: {response.StatusCode} - {response.ReasonPhrase}";
-                    }
+                    return await response.Content.ReadAsStringAsync();
+                }
+                else
+                {
+                    return $"Error: {response.StatusCode} - {response.ReasonPhrase}";
                 }
             }
             catch (Exception ex)
@@ -160,7 +164,7 @@ namespace Bulk_Editor
         {
             public string Version { get; set; } = string.Empty;
             public string Changes { get; set; } = string.Empty;
-            public List<ApiResult> Results { get; set; } = new List<ApiResult>();
+            public List<ApiResult> Results { get; set; } = [];
         }
 
         public class ApiResult
@@ -181,7 +185,7 @@ namespace Bulk_Editor
         {
             try
             {
-                var response = System.Text.Json.JsonSerializer.Deserialize<ApiResponse>(jsonResponse) ?? new ApiResponse();
+                var response = JsonSerializer.Deserialize<ApiResponse>(jsonResponse) ?? new();
 
                 // Check for version updates
                 FlowVersion = response.Version;
@@ -193,11 +197,11 @@ namespace Bulk_Editor
             catch (Exception ex)
             {
                 MessageBox.Show($"Error parsing API response: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return new ApiResponse();
+                return new();
             }
         }
 
-        public List<HyperlinkData> UpdateHyperlinksFromApiResponse(List<HyperlinkData> hyperlinks, ApiResponse apiResponse, List<string> changes)
+        public static List<HyperlinkData> UpdateHyperlinksFromApiResponse(List<HyperlinkData> hyperlinks, ApiResponse apiResponse, List<string> changes)
         {
             var updatedHyperlinks = new List<HyperlinkData>();
             var resultsDict = new Dictionary<string, ApiResult>();
@@ -239,15 +243,14 @@ namespace Bulk_Editor
                 bool alreadyExpired = hyperlink.TextToDisplay.Contains(" - Expired");
                 bool alreadyNotFound = hyperlink.TextToDisplay.Contains(" - Not Found");
 
-                if (!string.IsNullOrEmpty(lookupId) && resultsDict.ContainsKey(lookupId))
+                if (!string.IsNullOrEmpty(lookupId) && resultsDict.TryGetValue(lookupId, out var result))
                 {
-                    var result = resultsDict[lookupId];
 
                     // Update the hyperlink address and sub-address based on API response
                     string targetAddress = "https://beginningofhyperlinkurladdress.com/";
                     string targetSubAddress = "!/view?docid=" + result.Document_ID;
 
-                    bool urlChanged = (hyperlink.Address != targetAddress || hyperlink.SubAddress != targetSubAddress);
+                    bool urlChanged = hyperlink.Address != targetAddress || hyperlink.SubAddress != targetSubAddress;
 
                     if (urlChanged)
                     {
@@ -330,7 +333,7 @@ namespace Bulk_Editor
                                 currentTitleWithoutContentId = currentTitleWithoutContentId.Substring(0, currentTitleWithoutContentId.Length - $" ({last5})".Length);
                             }
 
-                            if (!currentTitleWithoutContentId.Equals(result.Title))
+                            if (!currentTitleWithoutContentId.Equals(result.Title.Trim()))
                             {
                                 changes.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Possible Title Change\n" +
                                     $"        Current Title: {currentTitleWithoutContentId}\n" +
@@ -385,6 +388,12 @@ namespace Bulk_Editor
 
     public partial class MainForm : Form
     {
+        [GeneratedRegex(@"\s*\((\d{5,6})\)\s*$")]
+        private static partial Regex ContentIdPatternRegex();
+
+        [GeneratedRegex(@"[ ]{2,}")]
+        private static partial Regex MultipleSpacesPatternRegex();
+
         private HyperlinkReplacementRules _hyperlinkReplacementRules;
 
         public MainForm()
@@ -556,34 +565,30 @@ namespace Bulk_Editor
 
         private void BtnSelectFolder_Click(object sender, EventArgs e)
         {
-            using (var folderDialog = new FolderBrowserDialog())
-            {
-                folderDialog.Description = "Select a folder containing .docx files to process";
-                folderDialog.ShowNewFolderButton = false;
+            using var folderDialog = new FolderBrowserDialog();
+            folderDialog.Description = "Select a folder containing .docx files to process";
+            folderDialog.ShowNewFolderButton = false;
 
-                if (folderDialog.ShowDialog() == DialogResult.OK)
-                {
-                    txtFolderPath.Text = folderDialog.SelectedPath;
-                    LoadFiles(folderDialog.SelectedPath);
-                    ShowFileList();
-                }
+            if (folderDialog.ShowDialog() == DialogResult.OK)
+            {
+                txtFolderPath.Text = folderDialog.SelectedPath;
+                LoadFiles(folderDialog.SelectedPath);
+                ShowFileList();
             }
         }
 
         private void BtnSelectFile_Click(object sender, EventArgs e)
         {
-            using (var fileDialog = new OpenFileDialog())
-            {
-                fileDialog.Title = "Select a .docx file to process";
-                fileDialog.Filter = "Word documents (*.docx)|*.docx";
-                fileDialog.Multiselect = false;
+            using var fileDialog = new OpenFileDialog();
+            fileDialog.Title = "Select a .docx file to process";
+            fileDialog.Filter = "Word documents (*.docx)|*.docx";
+            fileDialog.Multiselect = false;
 
-                if (fileDialog.ShowDialog() == DialogResult.OK)
-                {
-                    txtFolderPath.Text = fileDialog.FileName;
-                    LoadFile(fileDialog.FileName);
-                    ShowFileList();
-                }
+            if (fileDialog.ShowDialog() == DialogResult.OK)
+            {
+                txtFolderPath.Text = fileDialog.FileName;
+                LoadFile(fileDialog.FileName);
+                ShowFileList();
             }
         }
 
@@ -599,7 +604,7 @@ namespace Bulk_Editor
             pnlChangelog.Visible = true;
         }
 
-        private void BtnRunTools_Click(object sender, EventArgs e)
+        private async void BtnRunTools_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrEmpty(txtFolderPath.Text))
             {
@@ -636,14 +641,14 @@ namespace Bulk_Editor
                         string[] files = Directory.GetFiles(path);
                         foreach (string file in files)
                         {
-                            ProcessFile(file, writer);
+                            await ProcessFile(file, writer);
                         }
                         writer.WriteLine($"Processed {files.Length} files.");
                     }
                     else
                     {
                         // Process single file
-                        ProcessFile(path, writer);
+                        await ProcessFile(path, writer);
                         writer.WriteLine("Processed 1 file.");
                     }
                 }
@@ -667,7 +672,7 @@ namespace Bulk_Editor
             try
             {
                 lstFiles.Items.Clear();
-                FileInfo fileInfo = new FileInfo(filePath);
+                FileInfo fileInfo = new(filePath);
                 lstFiles.Items.Add($"{fileInfo.Name} ({FormatFileSize(fileInfo.Length)})");
                 lblStatus.Text = $"Loaded file: {filePath}";
             }
@@ -677,7 +682,7 @@ namespace Bulk_Editor
             }
         }
 
-        private void ProcessFile(string filePath, StreamWriter logWriter)
+        private async Task ProcessFile(string filePath, StreamWriter logWriter)
         {
             try
             {
@@ -688,13 +693,13 @@ namespace Bulk_Editor
 
                 string fileContent = File.ReadAllText(filePath);
                 string originalContent = fileContent;
-                List<string> changes = new List<string>();
+                List<string> changes = [];
 
                 logWriter.WriteLine($"Processing file: {Path.GetFileName(filePath)}");
 
                 // Initialize Word document processor
                 var processor = new WordDocumentProcessor();
-                var hyperlinks = processor.ExtractHyperlinks(filePath);
+                var hyperlinks = WordDocumentProcessor.ExtractHyperlinks(filePath);
 
                 // Collections for detailed logging
                 var updatedLinks = new Collection<string>();
@@ -707,7 +712,7 @@ namespace Bulk_Editor
                 // Apply selected tools
                 if (chkFixSourceHyperlinks.Checked)
                 {
-                    fileContent = FixSourceHyperlinks(fileContent, hyperlinks, processor, changes, updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls);
+                    fileContent = await FixSourceHyperlinks(fileContent, hyperlinks, processor, changes, updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls);
                 }
 
                 if (chkAppendContentID.Checked)
@@ -874,7 +879,7 @@ namespace Bulk_Editor
             Collection<string> expiredLinks, Collection<string> errorLinks, Collection<string> updatedUrls, WordDocumentProcessor processor)
         {
             // Call the new overload with an empty replacedHyperlinks collection
-            WriteDetailedChangelogToDownloads(updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, new Collection<string>(), processor);
+            WriteDetailedChangelogToDownloads(updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, [], processor);
         }
 
         private void WriteDetailedChangelogToDownloads(Collection<string> updatedLinks, Collection<string> notFoundLinks,
@@ -978,14 +983,14 @@ namespace Bulk_Editor
             }
         }
 
-        private string FixSourceHyperlinks(string content, List<HyperlinkData> hyperlinks, WordDocumentProcessor processor, List<string> changes,
+        private async Task<string> FixSourceHyperlinks(string content, List<HyperlinkData> hyperlinks, WordDocumentProcessor processor, List<string> changes,
             Collection<string> updatedLinks, Collection<string> notFoundLinks, Collection<string> expiredLinks,
             Collection<string> errorLinks, Collection<string> updatedUrls)
         {
             // Implementation based on Base_File.txt UpdateHyperlinksFromAPI function
 
             // Remove invisible external hyperlinks
-            var removedHyperlinks = processor.RemoveInvisibleExternalHyperlinks(hyperlinks);
+            var removedHyperlinks = WordDocumentProcessor.RemoveInvisibleExternalHyperlinks(hyperlinks);
             if (removedHyperlinks.Count > 0)
             {
                 changes.Add($"Removed {removedHyperlinks.Count} invisible external hyperlinks");
@@ -1001,7 +1006,7 @@ namespace Bulk_Editor
             var uniqueIds = new HashSet<string>();
             foreach (var hyperlink in hyperlinks)
             {
-                string lookupId = processor.ExtractLookupID(hyperlink.Address, hyperlink.SubAddress);
+                string lookupId = WordDocumentProcessor.ExtractLookupID(hyperlink.Address, hyperlink.SubAddress);
                 if (!string.IsNullOrEmpty(lookupId))
                 {
                     uniqueIds.Add(lookupId);
@@ -1013,7 +1018,7 @@ namespace Bulk_Editor
                 changes.Add($"Found {uniqueIds.Count} unique lookup IDs that would be updated via API");
 
                 // Send to API (simulated)
-                string apiResponse = processor.SendToPowerAutomateFlow(uniqueIds.ToList(), "https://prod-00.eastus.logic.azure.com:443/workflows/...");
+                string apiResponse = await processor.SendToPowerAutomateFlow(uniqueIds.ToList(), "https://prod-00.eastus.logic.azure.com:443/workflows/...");
                 var response = processor.ParseApiResponse(apiResponse);
 
                 // Create a dictionary for faster lookup
@@ -1029,7 +1034,7 @@ namespace Bulk_Editor
                 // Update hyperlinks based on API response
                 foreach (var hyperlink in hyperlinks)
                 {
-                    string lookupId = processor.ExtractLookupID(hyperlink.Address, hyperlink.SubAddress);
+                    string lookupId = WordDocumentProcessor.ExtractLookupID(hyperlink.Address, hyperlink.SubAddress);
                     if (!string.IsNullOrEmpty(lookupId))
                     {
                         if (resultDict.TryGetValue(lookupId, out var result))
@@ -1071,7 +1076,7 @@ namespace Bulk_Editor
 
                                 // Check for title changes
                                 string currentTitle = hyperlink.TextToDisplay;
-                                string expectedTitle = result.Title;
+                                string expectedTitle = result.Title.Trim();
                                 if (!string.IsNullOrEmpty(expectedTitle) &&
                                     currentTitle.Length > $" ({last6})".Length &&
                                     !currentTitle.Substring(0, currentTitle.Length - $" ({last6})".Length).Equals(expectedTitle))
@@ -1118,14 +1123,14 @@ namespace Bulk_Editor
             return content;
         }
 
-        private string AppendContentID(string content, List<HyperlinkData> hyperlinks, WordDocumentProcessor processor, List<string> changes)
+        private static string AppendContentID(string content, List<HyperlinkData> hyperlinks, WordDocumentProcessor processor, List<string> changes)
         {
             // Implementation for appending Content ID based on Base_File.txt
             int modifiedCount = 0;
 
             foreach (var hyperlink in hyperlinks)
             {
-                string lookupId = processor.ExtractLookupID(hyperlink.Address, hyperlink.SubAddress);
+                string lookupId = WordDocumentProcessor.ExtractLookupID(hyperlink.Address, hyperlink.SubAddress);
                 if (!string.IsNullOrEmpty(lookupId))
                 {
                     // Extract the last 6 characters of the content ID
@@ -1157,7 +1162,7 @@ namespace Bulk_Editor
             return content;
         }
 
-        private string FixInternalHyperlink(string content, List<HyperlinkData> hyperlinks, WordDocumentProcessor processor, List<string> changes)
+        private static string FixInternalHyperlink(string content, List<HyperlinkData> hyperlinks, WordDocumentProcessor processor, List<string> changes)
         {
             // Implementation for fixing internal hyperlinks
             int fixedCount = 0;
@@ -1185,14 +1190,14 @@ namespace Bulk_Editor
             return content;
         }
 
-        private string FixTitles(string content, List<HyperlinkData> hyperlinks, WordDocumentProcessor processor, List<string> changes)
+        private static string FixTitles(string content, List<HyperlinkData> hyperlinks, WordDocumentProcessor processor, List<string> changes)
         {
             // Implementation for fixing titles based on Base_File.txt
             int fixedCount = 0;
 
             foreach (var hyperlink in hyperlinks)
             {
-                string lookupId = processor.ExtractLookupID(hyperlink.Address, hyperlink.SubAddress);
+                string lookupId = WordDocumentProcessor.ExtractLookupID(hyperlink.Address, hyperlink.SubAddress);
                 if (!string.IsNullOrEmpty(lookupId))
                 {
                     // In a real implementation, we would get the title from the API response
@@ -1219,28 +1224,23 @@ namespace Bulk_Editor
             return content;
         }
 
-        private string FixDoubleSpaces(string content, List<string> changes)
+        private static string FixDoubleSpaces(string content, List<string> changes)
         {
-            // Implementation for fixing double spaces
-            int fixedCount = 0;
-            string originalContent = content;
-
             // Replace multiple spaces with a single space
             // Using regex to handle any number of consecutive spaces
-            string pattern = @"[ ]{2,}";
             string replacement = " ";
-            content = Regex.Replace(content, pattern, replacement);
+            string newContent = MultipleSpacesPatternRegex().Replace(content, replacement);
 
-            // Count how many replacements were made
-            if (content != originalContent)
+            // Count how many replacements were made by comparing lengths
+            if (newContent != content)
             {
                 // Count occurrences of the pattern to get an approximate count
-                MatchCollection matches = Regex.Matches(originalContent, pattern);
-                fixedCount = matches.Count;
+                MatchCollection matches = MultipleSpacesPatternRegex().Matches(content);
+                int fixedCount = matches.Count;
                 changes.Add($"Fixed {fixedCount} instances of multiple spaces");
             }
 
-            return content;
+            return newContent;
         }
 
         private void LoadFiles(string folderPath)
@@ -1256,7 +1256,7 @@ namespace Bulk_Editor
 
                     foreach (string file in files)
                     {
-                        FileInfo fileInfo = new FileInfo(file);
+                        FileInfo fileInfo = new(file);
                         lstFiles.Items.Add($"{fileInfo.Name} ({FormatFileSize(fileInfo.Length)})");
                     }
 
@@ -1273,7 +1273,7 @@ namespace Bulk_Editor
             }
         }
 
-        private string FormatFileSize(long bytes)
+        private static string FormatFileSize(long bytes)
         {
             string[] sizes = { "B", "KB", "MB", "GB", "TB" };
             int order = 0;
@@ -1317,15 +1317,13 @@ namespace Bulk_Editor
             return string.Empty;
         }
 
-        private void BtnConfigureReplaceHyperlink_Click(object sender, EventArgs e)
+        private async void BtnConfigureReplaceHyperlink_Click(object sender, EventArgs e)
         {
-            using (var configForm = new ReplaceHyperlinkConfigForm(_hyperlinkReplacementRules))
+            using var configForm = new ReplaceHyperlinkConfigForm(_hyperlinkReplacementRules);
+            if (configForm.ShowDialog() == DialogResult.OK)
             {
-                if (configForm.ShowDialog() == DialogResult.OK)
-                {
-                    // Save the rules when the user clicks OK
-                    _hyperlinkReplacementRules.SaveAsync();
-                }
+                // Save the rules when the user clicks OK
+                await _hyperlinkReplacementRules.SaveAsync();
             }
         }
 
@@ -1366,8 +1364,7 @@ namespace Bulk_Editor
                         rule.NewFullContentID;
 
                     // Check if the hyperlink text ends with a 5 or 6 digit content ID in parentheses
-                    var contentIdPattern = new Regex(@"\s*\((\d{5,6})\)\s*$");
-                    var match = contentIdPattern.Match(sanitizedText);
+                    var match = ContentIdPatternRegex().Match(sanitizedText);
 
                     if (match.Success)
                     {
