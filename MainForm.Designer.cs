@@ -170,6 +170,19 @@ namespace Bulk_Editor
             this.chkFixDoubleSpaces.Text = "Fix Double Spaces";
             this.chkFixDoubleSpaces.UseVisualStyleBackColor = true;
             //
+            // btnConfigureReplaceHyperlink
+            //
+            this.btnConfigureReplaceHyperlink.FlatAppearance.BorderSize = 0;
+            this.btnConfigureReplaceHyperlink.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnConfigureReplaceHyperlink.Font = new System.Drawing.Font("Segoe UI", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnConfigureReplaceHyperlink.Location = new System.Drawing.Point(270, 105);
+            this.btnConfigureReplaceHyperlink.Name = "btnConfigureReplaceHyperlink";
+            this.btnConfigureReplaceHyperlink.Size = new System.Drawing.Size(200, 23);
+            this.btnConfigureReplaceHyperlink.TabIndex = 7;
+            this.btnConfigureReplaceHyperlink.Text = "Configure Replacement Hyperlinks";
+            this.btnConfigureReplaceHyperlink.UseVisualStyleBackColor = true;
+            this.btnConfigureReplaceHyperlink.Click += new System.EventHandler(this.BtnConfigureReplaceHyperlink_Click);
+            //
             // chkReplaceHyperlink
             //
             this.chkReplaceHyperlink.AutoSize = true;
@@ -180,19 +193,6 @@ namespace Bulk_Editor
             this.chkReplaceHyperlink.TabIndex = 6;
             this.chkReplaceHyperlink.Text = "Replace Hyperlink";
             this.chkReplaceHyperlink.UseVisualStyleBackColor = true;
-            //
-            // btnConfigureReplaceHyperlink
-            //
-            this.btnConfigureReplaceHyperlink.FlatAppearance.BorderSize = 0;
-            this.btnConfigureReplaceHyperlink.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnConfigureReplaceHyperlink.Font = new System.Drawing.Font("Segoe UI", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnConfigureReplaceHyperlink.Location = new System.Drawing.Point(390, 78);
-            this.btnConfigureReplaceHyperlink.Name = "btnConfigureReplaceHyperlink";
-            this.btnConfigureReplaceHyperlink.Size = new System.Drawing.Size(75, 23);
-            this.btnConfigureReplaceHyperlink.TabIndex = 7;
-            this.btnConfigureReplaceHyperlink.Text = "Configure";
-            this.btnConfigureReplaceHyperlink.UseVisualStyleBackColor = true;
-            this.btnConfigureReplaceHyperlink.Click += new System.EventHandler(this.BtnConfigureReplaceHyperlink_Click);
             //
             // btnRunTools
             //

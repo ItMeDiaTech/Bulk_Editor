@@ -59,8 +59,8 @@ namespace Bulk_Editor
 
         private void BtnAddRow_Click(object sender, EventArgs e)
         {
-            // The DataGridView allows adding rows directly, so we don't need to do anything here
-            // unless we want custom behavior
+            // Add a new row to the DataGridView
+            dataGridViewRules.Rows.Add();
         }
 
         private void BtnDeleteRow_Click(object sender, EventArgs e)
@@ -71,12 +71,22 @@ namespace Bulk_Editor
                 {
                     if (!row.IsNewRow)
                     {
+                        // Remove from the data source first
+                        if (row.DataBoundItem != null)
+                        {
+                            _rules.Rules.Remove((HyperlinkReplacementRule)row.DataBoundItem);
+                        }
                         dataGridViewRules.Rows.RemoveAt(row.Index);
                     }
                 }
             }
             else if (dataGridViewRules.CurrentRow != null && !dataGridViewRules.CurrentRow.IsNewRow)
             {
+                // Remove from the data source first
+                if (dataGridViewRules.CurrentRow.DataBoundItem != null)
+                {
+                    _rules.Rules.Remove((HyperlinkReplacementRule)dataGridViewRules.CurrentRow.DataBoundItem);
+                }
                 dataGridViewRules.Rows.RemoveAt(dataGridViewRules.CurrentRow.Index);
             }
         }
