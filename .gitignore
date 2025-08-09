@@ -1,0 +1,18 @@
+# .NET Core
+project.assets.json
+project.packagespec.json
+*.csproj.nuget.*
+*.nuget.targets
+*.nuget.props
+
+# .NET Core build output
+bin/
+obj/
+
+# Visual Studio
+*.user
+*.suo
+*.sln.docstates
+*.sln.ide
+*.vs/
+*.vscode/
