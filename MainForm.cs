@@ -264,9 +264,9 @@ namespace Bulk_Editor
                         {
                             updatedHyperlink.TextToDisplay += " - Expired";
                             updatedHyperlink.Status = "expired";
-                            expiredCount++;
-                            changes.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Expired: {result.Title}");
                         }
+                        expiredCount++;
+                        changes.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Expired: {result.Title}");
                     }
                     else if (result.Status.Equals("notfound", StringComparison.OrdinalIgnoreCase))
                     {
@@ -274,9 +274,9 @@ namespace Bulk_Editor
                         {
                             updatedHyperlink.TextToDisplay += " - Not Found";
                             updatedHyperlink.Status = "notfound";
-                            notFoundCount++;
-                            changes.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Not Found: {hyperlink.TextToDisplay}");
                         }
+                        notFoundCount++;
+                        changes.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Not Found: {hyperlink.TextToDisplay}");
                     }
                     else
                     {
@@ -385,11 +385,19 @@ namespace Bulk_Editor
 
     public partial class MainForm : Form
     {
+        private HyperlinkReplacementRules _hyperlinkReplacementRules;
+
         public MainForm()
         {
             InitializeComponent();
             SetupCheckboxDependencies();
             SetupFileListHandlers();
+            LoadHyperlinkReplacementRules(); // Fire and forget, as we don't need to wait for this
+        }
+
+        private async void LoadHyperlinkReplacementRules()
+        {
+            _hyperlinkReplacementRules = await HyperlinkReplacementRules.LoadAsync();
         }
 
         private void SetupFileListHandlers()
@@ -694,6 +702,7 @@ namespace Bulk_Editor
                 var expiredLinks = new Collection<string>();
                 var errorLinks = new Collection<string>();
                 var updatedUrls = new Collection<string>();
+                var replacedHyperlinks = new Collection<string>();
 
                 // Apply selected tools
                 if (chkFixSourceHyperlinks.Checked)
@@ -721,6 +730,11 @@ namespace Bulk_Editor
                     fileContent = FixDoubleSpaces(fileContent, changes);
                 }
 
+                if (chkReplaceHyperlink.Checked)
+                {
+                    fileContent = ReplaceHyperlinks(fileContent, hyperlinks, processor, changes, replacedHyperlinks);
+                }
+
                 // Save changes if any were made
                 if (changes.Count > 0 && fileContent != originalContent)
                 {
@@ -737,10 +751,10 @@ namespace Bulk_Editor
                 }
 
                 // Write detailed changelog information
-                WriteDetailedChangelog(logWriter, updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, processor);
+                WriteDetailedChangelog(logWriter, updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, replacedHyperlinks, processor);
 
                 // Also save to Downloads folder with unique naming
-                WriteDetailedChangelogToDownloads(updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, processor);
+                WriteDetailedChangelogToDownloads(updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, replacedHyperlinks, processor);
 
                 logWriter.WriteLine();
             }
@@ -799,8 +813,73 @@ namespace Bulk_Editor
             }
         }
 
+        private void WriteDetailedChangelog(StreamWriter writer, Collection<string> updatedLinks, Collection<string> notFoundLinks,
+            Collection<string> expiredLinks, Collection<string> errorLinks, Collection<string> updatedUrls,
+            Collection<string> replacedHyperlinks, WordDocumentProcessor processor)
+        {
+            // Add version information and update notification
+            writer.WriteLine($"  Bulk Editor Version: {WordDocumentProcessor.CurrentVersion}");
+
+            if (processor.NeedsUpdate)
+            {
+                writer.WriteLine($"  UPDATE AVAILABLE: Version {processor.FlowVersion} is now available");
+                writer.WriteLine($"  Update Notes: {processor.UpdateNotes}");
+                writer.WriteLine();
+            }
+
+            writer.WriteLine();
+            writer.WriteLine($"  Updated Links ({updatedLinks.Count}):");
+            foreach (var link in updatedLinks)
+            {
+                writer.WriteLine($"    {link}");
+            }
+
+            writer.WriteLine();
+            writer.WriteLine($"  Found Expired ({expiredLinks.Count}):");
+            foreach (var link in expiredLinks)
+            {
+                writer.WriteLine($"    {link}");
+            }
+
+            writer.WriteLine();
+            writer.WriteLine($"  Not Found ({notFoundLinks.Count}):");
+            foreach (var link in notFoundLinks)
+            {
+                writer.WriteLine($"    {link}");
+            }
+
+            writer.WriteLine();
+            writer.WriteLine($"  Found Error ({errorLinks.Count}):");
+            foreach (var link in errorLinks)
+            {
+                writer.WriteLine($"    {link}");
+            }
+
+            writer.WriteLine();
+            writer.WriteLine($"  Potential Outdated Titles ({updatedUrls.Count}):");
+            foreach (var url in updatedUrls)
+            {
+                writer.WriteLine($"    {url}");
+            }
+
+            writer.WriteLine();
+            writer.WriteLine($"  Replaced Hyperlinks ({replacedHyperlinks.Count}):");
+            foreach (var hyperlink in replacedHyperlinks)
+            {
+                writer.WriteLine($"    {hyperlink}");
+            }
+        }
+
         private void WriteDetailedChangelogToDownloads(Collection<string> updatedLinks, Collection<string> notFoundLinks,
             Collection<string> expiredLinks, Collection<string> errorLinks, Collection<string> updatedUrls, WordDocumentProcessor processor)
+        {
+            // Call the new overload with an empty replacedHyperlinks collection
+            WriteDetailedChangelogToDownloads(updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, new Collection<string>(), processor);
+        }
+
+        private void WriteDetailedChangelogToDownloads(Collection<string> updatedLinks, Collection<string> notFoundLinks,
+            Collection<string> expiredLinks, Collection<string> errorLinks, Collection<string> updatedUrls,
+            Collection<string> replacedHyperlinks, WordDocumentProcessor processor)
         {
             try
             {
@@ -869,6 +948,13 @@ namespace Bulk_Editor
                     foreach (var url in updatedUrls)
                     {
                         writer.WriteLine($"{url}");
+                    }
+
+                    writer.WriteLine();
+                    writer.WriteLine($"Replaced Hyperlinks ({replacedHyperlinks.Count}):");
+                    foreach (var hyperlink in replacedHyperlinks)
+                    {
+                        writer.WriteLine($"{hyperlink}");
                     }
                 }
 
@@ -1229,6 +1315,91 @@ namespace Bulk_Editor
             }
 
             return string.Empty;
+        }
+
+        private void BtnConfigureReplaceHyperlink_Click(object sender, EventArgs e)
+        {
+            using (var configForm = new ReplaceHyperlinkConfigForm(_hyperlinkReplacementRules))
+            {
+                if (configForm.ShowDialog() == DialogResult.OK)
+                {
+                    // Save the rules when the user clicks OK
+                    _hyperlinkReplacementRules.SaveAsync();
+                }
+            }
+        }
+
+        private string ReplaceHyperlinks(string content, List<HyperlinkData> hyperlinks, WordDocumentProcessor processor, List<string> changes, Collection<string> replacedHyperlinks)
+        {
+            int replacedCount = 0;
+
+            // Process each hyperlink replacement rule
+            foreach (var rule in _hyperlinkReplacementRules.Rules)
+            {
+                // Skip empty rules
+                if (string.IsNullOrWhiteSpace(rule.OldTitle) || string.IsNullOrWhiteSpace(rule.NewTitle) || string.IsNullOrWhiteSpace(rule.NewFullContentID))
+                    continue;
+
+                // Process each hyperlink in the document
+                foreach (var hyperlink in hyperlinks)
+                {
+                    // Create a copy of the original hyperlink for comparison
+                    var originalHyperlink = new HyperlinkData
+                    {
+                        Address = hyperlink.Address,
+                        SubAddress = hyperlink.SubAddress,
+                        TextToDisplay = hyperlink.TextToDisplay,
+                        PageNumber = hyperlink.PageNumber,
+                        LineNumber = hyperlink.LineNumber
+                    };
+
+                    // Sanitize the hyperlink text by removing content ID suffixes
+                    string sanitizedText = hyperlink.TextToDisplay.Trim();
+
+                    // Remove trailing whitespace
+                    string oldTitle = rule.OldTitle.Trim();
+                    string newTitle = rule.NewTitle.Trim();
+
+                    // Extract last 6 digits of new content ID
+                    string newContentIdLast6 = rule.NewFullContentID.Length >= 6 ?
+                        rule.NewFullContentID.Substring(rule.NewFullContentID.Length - 6) :
+                        rule.NewFullContentID;
+
+                    // Check if the hyperlink text ends with a 5 or 6 digit content ID in parentheses
+                    var contentIdPattern = new Regex(@"\s*\((\d{5,6})\)\s*$");
+                    var match = contentIdPattern.Match(sanitizedText);
+
+                    if (match.Success)
+                    {
+                        // Remove the content ID suffix
+                        sanitizedText = sanitizedText.Substring(0, match.Index).Trim();
+                    }
+
+                    // Check if the sanitized text matches the old title
+                    if (sanitizedText.Equals(oldTitle, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Update the hyperlink text to the new title with new content ID
+                        hyperlink.TextToDisplay = $"{newTitle} ({newContentIdLast6})";
+
+                        // Update the hyperlink address based on the new content ID
+                        // This follows the same pattern as the existing hyperlink update logic
+                        hyperlink.Address = "https://thesource.cvshealth.com/nuxeo/thesource/";
+                        hyperlink.SubAddress = $"!/view?docid={rule.NewFullContentID}";
+
+                        // Add to changelog
+                        replacedHyperlinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | {oldTitle} -> {newTitle}\n        Content ID: {rule.NewFullContentID}");
+
+                        replacedCount++;
+                    }
+                }
+            }
+
+            if (replacedCount > 0)
+            {
+                changes.Add($"Replaced {replacedCount} hyperlinks");
+            }
+
+            return content;
         }
 
         private void BtnExportChangelog_Click(object sender, EventArgs e)

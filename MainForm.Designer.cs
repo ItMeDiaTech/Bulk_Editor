@@ -38,6 +38,8 @@ namespace Bulk_Editor
             this.chkFixInternalHyperlink = new System.Windows.Forms.CheckBox();
             this.chkFixTitles = new System.Windows.Forms.CheckBox();
             this.chkFixDoubleSpaces = new System.Windows.Forms.CheckBox();
+            this.chkReplaceHyperlink = new System.Windows.Forms.CheckBox();
+            this.btnConfigureReplaceHyperlink = new System.Windows.Forms.Button();
             this.btnRunTools = new System.Windows.Forms.Button();
             this.btnExportChangelog = new System.Windows.Forms.Button();
             this.btnSelectFile = new System.Windows.Forms.Button();
@@ -96,6 +98,8 @@ namespace Bulk_Editor
             //
             // grpTools
             //
+            this.grpTools.Controls.Add(this.btnConfigureReplaceHyperlink);
+            this.grpTools.Controls.Add(this.chkReplaceHyperlink);
             this.grpTools.Controls.Add(this.chkFixDoubleSpaces);
             this.grpTools.Controls.Add(this.chkFixTitles);
             this.grpTools.Controls.Add(this.chkFixInternalHyperlink);
@@ -165,6 +169,30 @@ namespace Bulk_Editor
             this.chkFixDoubleSpaces.TabIndex = 4;
             this.chkFixDoubleSpaces.Text = "Fix Double Spaces";
             this.chkFixDoubleSpaces.UseVisualStyleBackColor = true;
+            //
+            // chkReplaceHyperlink
+            //
+            this.chkReplaceHyperlink.AutoSize = true;
+            this.chkReplaceHyperlink.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.chkReplaceHyperlink.Location = new System.Drawing.Point(270, 80);
+            this.chkReplaceHyperlink.Name = "chkReplaceHyperlink";
+            this.chkReplaceHyperlink.Size = new System.Drawing.Size(120, 19);
+            this.chkReplaceHyperlink.TabIndex = 6;
+            this.chkReplaceHyperlink.Text = "Replace Hyperlink";
+            this.chkReplaceHyperlink.UseVisualStyleBackColor = true;
+            //
+            // btnConfigureReplaceHyperlink
+            //
+            this.btnConfigureReplaceHyperlink.FlatAppearance.BorderSize = 0;
+            this.btnConfigureReplaceHyperlink.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnConfigureReplaceHyperlink.Font = new System.Drawing.Font("Segoe UI", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnConfigureReplaceHyperlink.Location = new System.Drawing.Point(390, 78);
+            this.btnConfigureReplaceHyperlink.Name = "btnConfigureReplaceHyperlink";
+            this.btnConfigureReplaceHyperlink.Size = new System.Drawing.Size(75, 23);
+            this.btnConfigureReplaceHyperlink.TabIndex = 7;
+            this.btnConfigureReplaceHyperlink.Text = "Configure";
+            this.btnConfigureReplaceHyperlink.UseVisualStyleBackColor = true;
+            this.btnConfigureReplaceHyperlink.Click += new System.EventHandler(this.BtnConfigureReplaceHyperlink_Click);
             //
             // btnRunTools
             //
@@ -292,5 +320,7 @@ namespace Bulk_Editor
         private System.Windows.Forms.Label lblChangelogTitle;
         private System.Windows.Forms.TextBox txtChangelog;
         private System.Windows.Forms.CheckBox chkFixDoubleSpaces;
+        private System.Windows.Forms.CheckBox chkReplaceHyperlink;
+        private System.Windows.Forms.Button btnConfigureReplaceHyperlink;
     }
 }
