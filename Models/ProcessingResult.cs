@@ -12,8 +12,8 @@ namespace Bulk_Editor.Models
         public T Data { get; set; }
         public string ErrorMessage { get; set; }
         public Exception Exception { get; set; }
-        public List<string> Warnings { get; set; } = new();
-        public Dictionary<string, object> Metadata { get; set; } = new();
+        public List<string> Warnings { get; set; } = [];
+        public Dictionary<string, object> Metadata { get; set; } = [];
 
         /// <summary>
         /// Creates a successful result
@@ -24,7 +24,7 @@ namespace Bulk_Editor.Models
             {
                 Success = true,
                 Data = data,
-                Warnings = warnings ?? new List<string>()
+                Warnings = warnings ?? []
             };
         }
 
@@ -68,14 +68,14 @@ namespace Bulk_Editor.Models
             return new ProcessingResult
             {
                 Success = true,
-                Warnings = warnings ?? new List<string>()
+                Warnings = warnings ?? []
             };
         }
 
         /// <summary>
         /// Creates a failed result
         /// </summary>
-        public new static ProcessingResult CreateFailure(string errorMessage, Exception exception = null)
+        public static new ProcessingResult CreateFailure(string errorMessage, Exception exception = null)
         {
             return new ProcessingResult
             {
@@ -88,7 +88,7 @@ namespace Bulk_Editor.Models
         /// <summary>
         /// Creates a failed result from an exception
         /// </summary>
-        public new static ProcessingResult CreateFailure(Exception exception)
+        public static new ProcessingResult CreateFailure(Exception exception)
         {
             return new ProcessingResult
             {
@@ -110,9 +110,9 @@ namespace Bulk_Editor.Models
         public int SkippedFiles { get; set; }
         public TimeSpan TotalProcessingTime { get; set; }
         public long TotalBytesProcessed { get; set; }
-        public List<string> ProcessedFileNames { get; set; } = new();
-        public List<string> FailedFileNames { get; set; } = new();
-        public List<string> SkippedFileNames { get; set; } = new();
+        public List<string> ProcessedFileNames { get; set; } = [];
+        public List<string> FailedFileNames { get; set; } = [];
+        public List<string> SkippedFileNames { get; set; } = [];
 
         /// <summary>
         /// Success rate as a percentage
