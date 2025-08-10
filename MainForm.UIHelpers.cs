@@ -115,39 +115,29 @@ namespace Bulk_Editor
                 chkFixTitles.Checked = false;
             }
 
-            // Force color updates directly - don't rely on theme service
-            var theme = _themeService?.GetCurrentTheme();
+            // Always keep Fix Source Hyperlinks in normal color
+            chkFixSourceHyperlinks.ForeColor = Color.Black;
 
-            // Always keep Fix Source Hyperlinks visible
-            if (theme != null)
-            {
-                chkFixSourceHyperlinks.ForeColor = theme.PrimaryCheckBoxForeground;
-            }
-            else
-            {
-                chkFixSourceHyperlinks.ForeColor = SystemColors.ControlText;
-            }
-
-            // Set sub-checkbox colors based on parent state
-            Color subColor;
+            // Use very obvious colors to test if color changes work
             if (chkFixSourceHyperlinks.Checked)
             {
-                subColor = theme?.SubCheckBoxForeground ?? SystemColors.ControlText;
+                // When enabled - use normal black text
+                chkAppendContentID.ForeColor = Color.Black;
+                chkCheckTitleChanges.ForeColor = Color.Black;
+                chkFixTitles.ForeColor = Color.Black;
             }
             else
             {
-                subColor = theme?.DisabledCheckBoxForeground ?? SystemColors.ControlDark;
+                // When disabled - use light gray text (very obvious difference)
+                chkAppendContentID.ForeColor = Color.LightGray;
+                chkCheckTitleChanges.ForeColor = Color.LightGray;
+                chkFixTitles.ForeColor = Color.LightGray;
             }
 
-            // Force the color update on all sub-checkboxes
-            chkAppendContentID.ForeColor = subColor;
-            chkCheckTitleChanges.ForeColor = subColor;
-            chkFixTitles.ForeColor = subColor;
-
-            // Force a refresh to ensure colors are applied
-            chkAppendContentID.Invalidate();
-            chkCheckTitleChanges.Invalidate();
-            chkFixTitles.Invalidate();
+            // Force visual refresh
+            chkAppendContentID.Refresh();
+            chkCheckTitleChanges.Refresh();
+            chkFixTitles.Refresh();
         }
 
 
