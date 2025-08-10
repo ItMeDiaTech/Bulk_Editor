@@ -508,46 +508,16 @@ namespace Bulk_Editor.Services
             checkBox.FlatStyle = FlatStyle.Standard; // or FlatStyle.System
             checkBox.BackColor = Color.Transparent;
 
-            // text color logic
+            // For the main checkbox and its sub-checkboxes, let MainForm.UIHelpers handle the coloring
+            // to avoid conflicts between theme service and UI helpers
+            if (checkBox.Name == "chkFixSourceHyperlinks" || IsSubCheckBox(checkBox))
+            {
+                // Don't set colors here - UIHelpers will handle it
+                return;
+            }
+
+            // For other checkboxes, apply standard theme coloring
             checkBox.ForeColor = theme.CheckBoxForeground;
-
-            if (checkBox.Name == "chkFixSourceHyperlinks")
-            {
-                // For primary checkbox, use faded color when unchecked in light theme
-                UpdatePrimaryCheckBoxColor(checkBox, theme);
-
-                // Wire up event handler for dynamic color updates (only once)
-                if (!Equals(checkBox.Tag, "color-handler-wired"))
-                {
-                    checkBox.CheckedChanged += (s, e) =>
-                    {
-                        var cb = (CheckBox)s!;
-                        var currentTheme = GetCurrentTheme();
-                        UpdatePrimaryCheckBoxColor(cb, currentTheme);
-
-                        // Also update sub-checkboxes when main checkbox changes
-                        UpdateSubCheckBoxColors(cb.FindForm(), currentTheme);
-                    };
-                    checkBox.Tag = "color-handler-wired";
-                }
-            }
-            else if (IsSubCheckBox(checkBox))
-            {
-                // For sub-checkboxes, update color based on parent state
-                UpdateSubCheckBoxColor(checkBox, theme);
-
-                // Wire up event handler for dynamic color updates (only once)
-                if (!Equals(checkBox.Tag, "color-handler-wired"))
-                {
-                    checkBox.CheckedChanged += (s, e) =>
-                    {
-                        var cb = (CheckBox)s!;
-                        var currentTheme = GetCurrentTheme();
-                        UpdateSubCheckBoxColor(cb, currentTheme);
-                    };
-                    checkBox.Tag = "color-handler-wired";
-                }
-            }
         }
 
         private static void UpdatePrimaryCheckBoxColor(CheckBox checkBox, ThemeConfiguration theme)
