@@ -136,41 +136,23 @@ namespace Bulk_Editor
                 bool foundFileSection = false;
                 var fileChangelog = new System.Text.StringBuilder();
 
-                // Add document title
-                fileChangelog.AppendLine(Path.GetFileNameWithoutExtension(fileName));
-                fileChangelog.AppendLine();
-
                 foreach (string line in changelogLines)
                 {
-                    // Use exact match to avoid matching similar file names
-                    if (line.Equals($"Processing file: {fileName}", StringComparison.OrdinalIgnoreCase))
+                    // Look for the document processing section using the actual pattern written
+                    if (line.Equals($"Document Processed: {fileName}", StringComparison.OrdinalIgnoreCase))
                     {
                         foundFileSection = true;
-                        continue; // Skip the "Processing file:" line as we're showing the document title above
+                        continue; // Skip the "Document Processed:" line
                     }
                     else if (foundFileSection)
                     {
-                        // Stop when we hit the next file section or processing summary
-                        if (line.StartsWith("Processing file:") || line.StartsWith("Processed") ||
-                            line.StartsWith("Backup created:"))
+                        // Stop when we hit the next file section
+                        if (line.StartsWith("Document Processed:") && !line.EndsWith(fileName))
                         {
-                            // Only break if this is a different file's backup or processing line
-                            if (line.StartsWith("Processing file:") || line.StartsWith("Processed"))
-                            {
-                                break;
-                            }
-                            // For backup lines, only include the one for our current file
-                            if (line.StartsWith("Backup created:"))
-                            {
-                                string backupFileName = line.Substring("Backup created: ".Length);
-                                // Check if this backup belongs to our current file
-                                if (backupFileName.StartsWith(Path.GetFileNameWithoutExtension(fileName)))
-                                {
-                                    fileChangelog.AppendLine(line);
-                                }
-                                continue;
-                            }
+                            break;
                         }
+
+                        // Include all content for this file
                         fileChangelog.AppendLine(line);
                     }
                 }
@@ -302,14 +284,41 @@ namespace Bulk_Editor
                 }
 
                 string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                string changelogPath = Path.Combine(basePath, $"BulkEditor_Changelog_{timestamp}.txt");
+                string changelogPath;
+
+                // Use document filename for single file processing
+                if (!isFolder && File.Exists(path))
+                {
+                    string docName = Path.GetFileNameWithoutExtension(path);
+                    string dateFormat = DateTime.Now.ToString("MMddyyyy");
+                    changelogPath = Path.Combine(basePath, $"{docName}_Changelog_{dateFormat}.txt");
+                }
+                else
+                {
+                    changelogPath = Path.Combine(basePath, $"BulkEditor_Changelog_{timestamp}.txt");
+                }
 
                 ShowProgress(true);
 
                 using (var writer = new StreamWriter(changelogPath, append: false))
                 {
-                    writer.WriteLine($"Bulk Editor Processing Log - {DateTime.Now}");
-                    writer.WriteLine($"Processing: {path}");
+                    writer.WriteLine($"Bulk Editor: Changelog - {DateTime.Now}");
+                    writer.WriteLine($"Version: 2.1");
+                    writer.WriteLine();
+
+                    // Check for updates
+                    if (_processor.NeedsUpdate)
+                    {
+                        writer.WriteLine("***New Update Available***");
+                        writer.WriteLine("Please download and update as time allows.");
+                    }
+                    else
+                    {
+                        writer.WriteLine("Up to Date");
+                    }
+
+                    writer.WriteLine();
+                    writer.WriteLine($"Processed: {path}");
                     writer.WriteLine();
 
                     if (isFolder)
@@ -343,8 +352,29 @@ namespace Bulk_Editor
 
                 MessageBox.Show($"Processing complete. Changelog saved to:\n{changelogPath}", "Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                if (lstFiles.Items.Count > 0)
+                // Handle changelog display based on checkbox
+                if (chkOpenChangelogAfterUpdates.Checked)
                 {
+                    if (lstFiles.Items.Count == 1)
+                    {
+                        // Single document: show individual changelog in the UI panel
+                        lstFiles.SelectedIndex = 0;
+                        string fileName = lstFiles.Items[0].ToString().Split('(')[0].Trim();
+                        DisplayChangelogForFile(changelogPath, fileName);
+                    }
+                    else if (lstFiles.Items.Count > 1)
+                    {
+                        // Multiple documents: auto-open the batch changelog file
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = changelogPath,
+                            UseShellExecute = true
+                        });
+                    }
+                }
+                else if (lstFiles.Items.Count > 0)
+                {
+                    // Default behavior: just select first file without auto-displaying changelog
                     lstFiles.SelectedIndex = 0;
                 }
             }
@@ -466,7 +496,11 @@ namespace Bulk_Editor
                 string originalContent = fileContent;
                 List<string> changes = new();
 
-                logWriter.WriteLine($"Processing file: {Path.GetFileName(filePath)}");
+                logWriter.WriteLine($"Document Processed: {Path.GetFileName(filePath)}");
+                logWriter.WriteLine("Backup File Created");
+                logWriter.WriteLine();
+                logWriter.WriteLine($"Title of Document: {Path.GetFileNameWithoutExtension(filePath)}");
+                logWriter.WriteLine();
 
                 var hyperlinks = WordDocumentProcessor.ExtractHyperlinks(filePath);
 
@@ -519,10 +553,6 @@ namespace Bulk_Editor
                         logWriter.WriteLine($"    - {change}");
                     }
                 }
-                else if (changes.Count == 0)
-                {
-                    logWriter.WriteLine($"  No changes were needed or made.");
-                }
 
                 WriteDetailedChangelog(logWriter, updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, replacedHyperlinks, _processor);
                 WriteDetailedChangelogToDownloads(updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, replacedHyperlinks, _processor);
@@ -542,15 +572,6 @@ namespace Bulk_Editor
             Collection<string> expiredLinks, Collection<string> errorLinks, Collection<string> updatedUrls,
             Collection<string> replacedHyperlinks, WordDocumentProcessor processor)
         {
-            writer.WriteLine($"  Bulk Editor Version: {WordDocumentProcessor.CurrentVersion}");
-
-            if (processor.NeedsUpdate)
-            {
-                writer.WriteLine($"  UPDATE AVAILABLE: Version {processor.FlowVersion} is now available");
-                writer.WriteLine($"  Update Notes: {processor.UpdateNotes}");
-                writer.WriteLine();
-            }
-
             writer.WriteLine();
             writer.WriteLine($"  Updated Links ({updatedLinks.Count}):");
             foreach (var link in updatedLinks)
@@ -580,7 +601,7 @@ namespace Bulk_Editor
             }
 
             writer.WriteLine();
-            writer.WriteLine($"  Potential Outdated Titles ({updatedUrls.Count}):");
+            writer.WriteLine($"  Potential Title Change ({updatedUrls.Count}):");
             foreach (var url in updatedUrls)
             {
                 writer.WriteLine($"    {url}");
@@ -619,14 +640,18 @@ namespace Bulk_Editor
 
                 using (StreamWriter writer = new StreamWriter(changelogPath, false))
                 {
-                    writer.WriteLine($"Bulk Editor Processing Log - {DateTime.Now}");
-                    writer.WriteLine($"Bulk Editor Version: {WordDocumentProcessor.CurrentVersion}");
+                    writer.WriteLine($"Bulk Editor: Changelog - {DateTime.Now}");
+                    writer.WriteLine($"Version: 2.1");
+                    writer.WriteLine();
 
                     if (processor.NeedsUpdate)
                     {
-                        writer.WriteLine($"UPDATE AVAILABLE: Version {processor.FlowVersion} is now available");
-                        writer.WriteLine($"Update Notes: {processor.UpdateNotes}");
-                        writer.WriteLine();
+                        writer.WriteLine("***New Update Available***");
+                        writer.WriteLine("Please download and update as time allows.");
+                    }
+                    else
+                    {
+                        writer.WriteLine("Up to Date");
                     }
 
                     writer.WriteLine();
@@ -658,7 +683,7 @@ namespace Bulk_Editor
                     }
 
                     writer.WriteLine();
-                    writer.WriteLine($"Potential Outdated Titles ({updatedUrls.Count}):");
+                    writer.WriteLine($"Potential Title Change ({updatedUrls.Count}):");
                     foreach (var url in updatedUrls)
                     {
                         writer.WriteLine($"{url}");
@@ -674,9 +699,22 @@ namespace Bulk_Editor
 
                 lblStatus.Text = $"Changelog saved to: {changelogPath}";
 
-                var result = MessageBox.Show("Changelog saved to Downloads folder. Would you like to open it?", "Changelog Saved", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                if (result == DialogResult.Yes)
+                // Only prompt to open if the checkbox is not checked
+                if (!chkOpenChangelogAfterUpdates.Checked)
                 {
+                    var result = MessageBox.Show("Changelog saved to Downloads folder. Would you like to open it?", "Changelog Saved", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                    if (result == DialogResult.Yes)
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = changelogPath,
+                            UseShellExecute = true
+                        });
+                    }
+                }
+                else
+                {
+                    // Auto-open changelog if checkbox is checked
                     System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                     {
                         FileName = changelogPath,
@@ -741,12 +779,22 @@ namespace Bulk_Editor
                 bool isFolder = Directory.Exists(txtFolderPath.Text);
                 string basePath = isFolder ? txtFolderPath.Text : Path.GetDirectoryName(txtFolderPath.Text);
 
-                string[] changelogFiles = Directory.GetFiles(basePath, "BulkEditor_Changelog_*.txt");
+                var allChangelogFiles = new List<string>();
 
-                if (changelogFiles.Length > 0)
+                // Look for both old format and new format changelog files
+                var bulkEditorFiles = Directory.GetFiles(basePath, "BulkEditor_Changelog_*.txt");
+                allChangelogFiles.AddRange(bulkEditorFiles);
+
+                // Look for single document changelog files (new format)
+                var singleDocFiles = Directory.GetFiles(basePath, "*_Changelog_*.txt")
+                    .Where(f => !Path.GetFileName(f).StartsWith("BulkEditor_"));
+                allChangelogFiles.AddRange(singleDocFiles);
+
+                if (allChangelogFiles.Count > 0)
                 {
-                    Array.Sort(changelogFiles);
-                    return changelogFiles[changelogFiles.Length - 1];
+                    // Sort by file creation time to get the most recent
+                    allChangelogFiles.Sort((x, y) => File.GetCreationTime(y).CompareTo(File.GetCreationTime(x)));
+                    return allChangelogFiles[0];
                 }
             }
 
@@ -853,8 +901,10 @@ namespace Bulk_Editor
                 }
 
                 // Create single file changelog with header
-                string singleChangelog = $"Bulk Editor Processing Log - {WordDocumentProcessor.CurrentVersion}\n";
-                singleChangelog += $"Processing: {txtFolderPath.Text}\n\n";
+                string singleChangelog = $"Bulk Editor: Changelog - {DateTime.Now}\n";
+                singleChangelog += $"Version: 2.1\n\n";
+                singleChangelog += $"Up to Date\n\n";
+                singleChangelog += $"Processed: {txtFolderPath.Text}\n\n";
                 singleChangelog += txtChangelog.Text;
 
                 File.WriteAllText(exportPath, singleChangelog);
@@ -874,6 +924,169 @@ namespace Bulk_Editor
             catch (Exception ex)
             {
                 MessageBox.Show($"Error exporting single changelog: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void BtnAddFile_Click(object sender, EventArgs e)
+        {
+            using var fileDialog = new OpenFileDialog();
+            fileDialog.Title = "Select a .docx file to add";
+            fileDialog.Filter = "Word documents (*.docx)|*.docx";
+            fileDialog.Multiselect = true;
+
+            if (fileDialog.ShowDialog() == DialogResult.OK)
+            {
+                foreach (string fileName in fileDialog.FileNames)
+                {
+                    FileInfo fileInfo = new(fileName);
+                    string displayText = $"{fileInfo.Name} ({FormatFileSize(fileInfo.Length)})";
+
+                    // Check if file is already in the list
+                    bool alreadyExists = false;
+                    for (int i = 0; i < lstFiles.Items.Count; i++)
+                    {
+                        if (lstFiles.Items[i].ToString().StartsWith(fileInfo.Name))
+                        {
+                            alreadyExists = true;
+                            break;
+                        }
+                    }
+
+                    if (!alreadyExists)
+                    {
+                        lstFiles.Items.Add(displayText);
+
+                        // Store the full path for processing (we'll need to modify the processing logic)
+                        if (lstFiles.Tag == null)
+                        {
+                            lstFiles.Tag = new List<string>();
+                        }
+                        ((List<string>)lstFiles.Tag).Add(fileName);
+                    }
+                }
+
+                lblStatus.Text = $"Added {fileDialog.FileNames.Length} file(s) to selection";
+                ShowFileList();
+            }
+        }
+
+        private void BtnRemoveFile_Click(object sender, EventArgs e)
+        {
+            if (lstFiles.SelectedIndex >= 0)
+            {
+                int selectedIndex = lstFiles.SelectedIndex;
+
+                // Remove from the file paths list if it exists
+                if (lstFiles.Tag is List<string> filePaths && selectedIndex < filePaths.Count)
+                {
+                    filePaths.RemoveAt(selectedIndex);
+                }
+
+                string fileName = lstFiles.SelectedItem.ToString().Split('(')[0].Trim();
+                lstFiles.Items.RemoveAt(selectedIndex);
+
+                lblStatus.Text = $"Removed {fileName} from file list";
+
+                // Select next item if available
+                if (lstFiles.Items.Count > 0)
+                {
+                    if (selectedIndex >= lstFiles.Items.Count)
+                        selectedIndex = lstFiles.Items.Count - 1;
+                    lstFiles.SelectedIndex = selectedIndex;
+                }
+                else
+                {
+                    pnlChangelog.Visible = false;
+                }
+            }
+            else
+            {
+                MessageBox.Show("Please select a file to remove.", "No File Selected", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private void BtnOpenFileLocation_Click(object sender, EventArgs e)
+        {
+            if (lstFiles.SelectedIndex >= 0)
+            {
+                string fileName = lstFiles.SelectedItem.ToString().Split('(')[0].Trim();
+                string folderPath = null;
+
+                // First priority: Try to get the full path from stored paths (individually added files)
+                if (lstFiles.Tag is List<string> filePaths && lstFiles.SelectedIndex < filePaths.Count)
+                {
+                    string fullFilePath = filePaths[lstFiles.SelectedIndex];
+                    if (File.Exists(fullFilePath))
+                    {
+                        folderPath = Path.GetDirectoryName(fullFilePath);
+                    }
+                }
+
+                // Second priority: If no stored path or file doesn't exist, check the main folder/file path
+                if (string.IsNullOrEmpty(folderPath))
+                {
+                    if (Directory.Exists(txtFolderPath.Text))
+                    {
+                        // Main path is a directory, check if file exists there
+                        string possibleFilePath = Path.Combine(txtFolderPath.Text, fileName);
+                        if (File.Exists(possibleFilePath))
+                        {
+                            folderPath = txtFolderPath.Text;
+                        }
+                    }
+                    else if (File.Exists(txtFolderPath.Text))
+                    {
+                        // Main path is a file, use its directory
+                        folderPath = Path.GetDirectoryName(txtFolderPath.Text);
+                    }
+                }
+
+                // If still no valid folder found, show error
+                if (string.IsNullOrEmpty(folderPath) || !Directory.Exists(folderPath))
+                {
+                    MessageBox.Show($"Unable to determine file location for '{fileName}'. The file may have been moved or the path is no longer valid.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                try
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = folderPath,
+                        UseShellExecute = true
+                    });
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error opening file location: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Please select a file first.", "No File Selected", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private void BtnClearFileList_Click(object sender, EventArgs e)
+        {
+            if (lstFiles.Items.Count > 0)
+            {
+                var result = MessageBox.Show("Are you sure you want to remove all documents from the File List?",
+                                            "Clear Document List",
+                                            MessageBoxButtons.YesNo,
+                                            MessageBoxIcon.Question);
+                if (result == DialogResult.Yes)
+                {
+                    lstFiles.Items.Clear();
+                    lstFiles.Tag = null;
+                    txtFolderPath.Text = string.Empty;
+                    pnlChangelog.Visible = false;
+                    lblStatus.Text = "Document list cleared";
+                }
+            }
+            else
+            {
+                MessageBox.Show("File list is already empty.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
     }
