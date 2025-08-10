@@ -693,7 +693,7 @@ namespace Bulk_Editor.Services
                 CheckBoxForeground = Color.FromArgb(73, 80, 87),
                 PrimaryCheckBoxForeground = Color.FromArgb(73, 80, 87),
                 SubCheckBoxForeground = Color.FromArgb(73, 80, 87),
-                DisabledCheckBoxForeground = Color.FromArgb(108, 117, 125)
+                DisabledCheckBoxForeground = Color.FromArgb(173, 181, 189)
             };
         }
 
