@@ -167,7 +167,7 @@ namespace Bulk_Editor
                             continue; // Skip separator lines in UI display
                         }
 
-                        // Include all other content for this file
+                        // Include all other content for this file, including empty lines to preserve formatting
                         fileChangelog.AppendLine(line);
                     }
                 }
@@ -527,6 +527,9 @@ namespace Bulk_Editor
                 string originalContent = fileContent;
                 List<string> changes = new();
 
+                logWriter.WriteLine();
+                logWriter.WriteLine("__________");
+                logWriter.WriteLine();
                 logWriter.WriteLine($"Title of Document: {Path.GetFileNameWithoutExtension(filePath)}");
                 logWriter.WriteLine("Backup File Created");
                 logWriter.WriteLine();
