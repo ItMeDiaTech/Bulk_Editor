@@ -126,27 +126,11 @@ namespace Bulk_Editor
             this.lblTitle.AutoSize = true;
             this.lblTitle.Font = new System.Drawing.Font("Segoe UI", 18F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.lblTitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(33)))), ((int)(((byte)(37)))), ((int)(((byte)(41)))));
-            this.lblTitle.Location = new System.Drawing.Point(20, 20);
+            this.lblTitle.Location = new System.Drawing.Point(20, 10);
             this.lblTitle.Name = "lblTitle";
             this.lblTitle.Size = new System.Drawing.Size(133, 32);
             this.lblTitle.TabIndex = 0;
             this.lblTitle.Text = "Bulk Editor";
-
-            //
-            // btnSelectFolder
-            //
-            this.btnSelectFolder.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(123)))), ((int)(((byte)(255)))));
-            this.btnSelectFolder.FlatAppearance.BorderSize = 0;
-            this.btnSelectFolder.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnSelectFolder.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.btnSelectFolder.ForeColor = System.Drawing.Color.White;
-            this.btnSelectFolder.Location = new System.Drawing.Point(20, 60);
-            this.btnSelectFolder.Name = "btnSelectFolder";
-            this.btnSelectFolder.Size = new System.Drawing.Size(140, 40);
-            this.btnSelectFolder.TabIndex = 1;
-            this.btnSelectFolder.Text = "📁 Select Folder";
-            this.btnSelectFolder.UseVisualStyleBackColor = false;
-            this.btnSelectFolder.Click += new System.EventHandler(this.BtnSelectFolder_Click);
 
             //
             // btnSelectFile
@@ -156,13 +140,31 @@ namespace Bulk_Editor
             this.btnSelectFile.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnSelectFile.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.btnSelectFile.ForeColor = System.Drawing.Color.White;
-            this.btnSelectFile.Location = new System.Drawing.Point(170, 60);
+            this.btnSelectFile.Location = new System.Drawing.Point(20, 55);
             this.btnSelectFile.Name = "btnSelectFile";
-            this.btnSelectFile.Size = new System.Drawing.Size(140, 40);
-            this.btnSelectFile.TabIndex = 2;
+            this.btnSelectFile.Size = new System.Drawing.Size(140, 35);
+            this.btnSelectFile.TabIndex = 1;
             this.btnSelectFile.Text = "📄 Select File";
+            this.btnSelectFile.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.btnSelectFile.UseVisualStyleBackColor = false;
             this.btnSelectFile.Click += new System.EventHandler(this.BtnSelectFile_Click);
+
+            //
+            // btnSelectFolder
+            //
+            this.btnSelectFolder.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(123)))), ((int)(((byte)(255)))));
+            this.btnSelectFolder.FlatAppearance.BorderSize = 0;
+            this.btnSelectFolder.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnSelectFolder.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.btnSelectFolder.ForeColor = System.Drawing.Color.White;
+            this.btnSelectFolder.Location = new System.Drawing.Point(170, 55);
+            this.btnSelectFolder.Name = "btnSelectFolder";
+            this.btnSelectFolder.Size = new System.Drawing.Size(140, 35);
+            this.btnSelectFolder.TabIndex = 2;
+            this.btnSelectFolder.Text = "📁 Select Folder";
+            this.btnSelectFolder.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.btnSelectFolder.UseVisualStyleBackColor = false;
+            this.btnSelectFolder.Click += new System.EventHandler(this.BtnSelectFolder_Click);
 
             //
             // txtFolderPath
@@ -171,10 +173,10 @@ namespace Bulk_Editor
             | System.Windows.Forms.AnchorStyles.Right)));
             this.txtFolderPath.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.txtFolderPath.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.txtFolderPath.Location = new System.Drawing.Point(300, 60);
+            this.txtFolderPath.Location = new System.Drawing.Point(320, 62);
             this.txtFolderPath.Name = "txtFolderPath";
             this.txtFolderPath.ReadOnly = true;
-            this.txtFolderPath.Size = new System.Drawing.Size(928, 25);
+            this.txtFolderPath.Size = new System.Drawing.Size(908, 25);
             this.txtFolderPath.TabIndex = 3;
 
             //

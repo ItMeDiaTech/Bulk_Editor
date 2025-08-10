@@ -304,7 +304,6 @@ namespace Bulk_Editor
                 {
                     writer.WriteLine($"Bulk Editor: Changelog - {DateTime.Now}");
                     writer.WriteLine($"Version: 2.1");
-                    writer.WriteLine();
 
                     // Check for updates
                     if (_processor.NeedsUpdate)
@@ -369,8 +368,6 @@ namespace Bulk_Editor
                 _progressReporter.Report(ProgressReport.CreateStatus("Processing complete!", 100));
 
                 System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Finished processing: {path}");
-
-                MessageBox.Show($"Processing complete. Changelog saved to:\n{changelogPath}", "Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
                 // Handle changelog display based on checkbox
                 if (chkOpenChangelogAfterUpdates.Checked)
@@ -517,10 +514,8 @@ namespace Bulk_Editor
                 List<string> changes = new();
 
                 logWriter.WriteLine($"Document Processed: {Path.GetFileName(filePath)}");
-                logWriter.WriteLine("Backup File Created");
-                logWriter.WriteLine();
                 logWriter.WriteLine($"Title of Document: {Path.GetFileNameWithoutExtension(filePath)}");
-                logWriter.WriteLine();
+                logWriter.WriteLine("Backup File Created");
 
                 var hyperlinks = WordDocumentProcessor.ExtractHyperlinks(filePath);
 
@@ -662,7 +657,6 @@ namespace Bulk_Editor
                 {
                     writer.WriteLine($"Bulk Editor: Changelog - {DateTime.Now}");
                     writer.WriteLine($"Version: 2.1");
-                    writer.WriteLine();
 
                     if (processor.NeedsUpdate)
                     {
