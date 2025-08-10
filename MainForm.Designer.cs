@@ -191,7 +191,7 @@ namespace Bulk_Editor
             this.btnSettings.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnSettings.Location = new System.Drawing.Point(1188, 10);
             this.btnSettings.Name = "btnSettings";
-            this.btnSettings.Size = new System.Drawing.Size(40, 40);
+            this.btnSettings.Size = new System.Drawing.Size(25, 25);
             this.btnSettings.TabIndex = 4;
             this.btnSettings.UseVisualStyleBackColor = false;
             this.btnSettings.Click += new System.EventHandler(this.BtnSettings_Click);
@@ -401,7 +401,7 @@ namespace Bulk_Editor
             this.btnExportSingleChangelog.ForeColor = System.Drawing.Color.White;
             this.btnExportSingleChangelog.Location = new System.Drawing.Point(500, 0);
             this.btnExportSingleChangelog.Name = "btnExportSingleChangelog";
-            this.btnExportSingleChangelog.Size = new System.Drawing.Size(200, 25);
+            this.btnExportSingleChangelog.Size = new System.Drawing.Size(180, 25);
             this.btnExportSingleChangelog.TabIndex = 2;
             this.btnExportSingleChangelog.Text = "📄 Export This Changelog";
             this.btnExportSingleChangelog.UseVisualStyleBackColor = false;

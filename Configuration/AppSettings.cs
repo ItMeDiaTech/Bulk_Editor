@@ -109,6 +109,75 @@ namespace Bulk_Editor.Configuration
                 System.Diagnostics.Debug.WriteLine($"Error saving configuration: {ex.Message}");
             }
         }
+
+        /// <summary>
+        /// Export current settings to a file
+        /// </summary>
+        public async Task ExportSettingsAsync(string filePath)
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(this, new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
+                await File.WriteAllTextAsync(filePath, json);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error exporting settings: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Import settings from a file
+        /// </summary>
+        public static async Task<AppSettings> ImportSettingsAsync(string filePath)
+        {
+            try
+            {
+                if (!File.Exists(filePath))
+                {
+                    throw new FileNotFoundException("Settings file not found");
+                }
+
+                var json = await File.ReadAllTextAsync(filePath);
+                var settings = JsonSerializer.Deserialize<AppSettings>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true,
+                    WriteIndented = true
+                });
+
+                if (settings != null)
+                {
+                    settings.ValidateSettings();
+                    return settings;
+                }
+
+                throw new InvalidOperationException("Failed to deserialize settings");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error importing settings: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Reset all settings to defaults
+        /// </summary>
+        public void ResetToDefaults()
+        {
+            ApiSettings = new ApiSettings();
+            RetrySettings = new RetrySettings();
+            ApplicationSettings = new ApplicationSettings();
+            ChangelogSettings = new ChangelogSettings();
+            Processing = new ProcessingSettings();
+            UI = new UiSettings();
+            Logging = new LoggingSettings();
+            ValidateSettings();
+        }
     }
 
     /// <summary>
@@ -146,6 +215,13 @@ namespace Bulk_Editor.Configuration
         public int MaxFileBatchSize { get; set; } = 100;
         public bool EnableDetailedLogging { get; set; } = true;
         public bool AutoBackupEnabled { get; set; } = true;
+        public bool CheckForUpdatesOnStartup { get; set; } = true;
+        public bool RememberWindowPosition { get; set; } = true;
+        public bool ConfirmBeforeProcessing { get; set; } = true;
+        public bool ShowProcessingPreview { get; set; } = true;
+        public string DefaultFileFilter { get; set; } = "*.docx";
+        public bool AutoSaveSettings { get; set; } = true;
+        public int RecentFilesCount { get; set; } = 10;
     }
 
     /// <summary>
@@ -159,6 +235,12 @@ namespace Bulk_Editor.Configuration
         public string BackupFolderName { get; set; } = "Backup";
         public bool ValidateDocuments { get; set; } = true;
         public string[] AllowedExtensions { get; set; } = { ".docx" };
+        public bool SkipCorruptedFiles { get; set; } = true;
+        public bool PreserveFileAttributes { get; set; } = true;
+        public int ProcessingTimeoutMinutes { get; set; } = 30;
+        public bool EnableFileComparison { get; set; } = false;
+        public bool CreateProcessingReport { get; set; } = true;
+        public string TempFolderPath { get; set; } = Path.GetTempPath();
     }
 
     /// <summary>
@@ -171,6 +253,14 @@ namespace Bulk_Editor.Configuration
         public bool AutoSelectFirstFile { get; set; } = true;
         public int ChangelogRefreshIntervalMs { get; set; } = 1000;
         public string Theme { get; set; } = "Light";
+        public bool ShowToolTips { get; set; } = true;
+        public bool ConfirmOnExit { get; set; } = false;
+        public bool MinimizeToTray { get; set; } = false;
+        public bool ShowStatusBar { get; set; } = true;
+        public bool EnableSounds { get; set; } = true;
+        public string Language { get; set; } = "en-US";
+        public int AutoSaveIntervalSeconds { get; set; } = 300;
+        public bool ShowWelcomeScreen { get; set; } = true;
     }
 
     /// <summary>
@@ -184,6 +274,12 @@ namespace Bulk_Editor.Configuration
         public string LogFilePath { get; set; } = "logs/bulk-editor.log";
         public int MaxLogFileSizeMB { get; set; } = 10;
         public int MaxLogFiles { get; set; } = 5;
+        public bool LogUserActions { get; set; } = false;
+        public bool LogPerformanceMetrics { get; set; } = false;
+        public bool EnableDebugMode { get; set; } = false;
+        public bool IncludeStackTrace { get; set; } = true;
+        public string LogFormat { get; set; } = "JSON";
+        public bool CompressOldLogs { get; set; } = true;
     }
 
     /// <summary>
