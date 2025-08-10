@@ -158,7 +158,7 @@ namespace Bulk_Editor
             this.btnSelectFile.ForeColor = System.Drawing.Color.White;
             this.btnSelectFile.Location = new System.Drawing.Point(170, 60);
             this.btnSelectFile.Name = "btnSelectFile";
-            this.btnSelectFile.Size = new System.Drawing.Size(120, 40);
+            this.btnSelectFile.Size = new System.Drawing.Size(140, 40);
             this.btnSelectFile.TabIndex = 2;
             this.btnSelectFile.Text = "📄 Select File";
             this.btnSelectFile.UseVisualStyleBackColor = false;
@@ -380,9 +380,9 @@ namespace Bulk_Editor
             this.btnExportSingleChangelog.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnExportSingleChangelog.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.btnExportSingleChangelog.ForeColor = System.Drawing.Color.White;
-            this.btnExportSingleChangelog.Location = new System.Drawing.Point(557, 0);
+            this.btnExportSingleChangelog.Location = new System.Drawing.Point(517, 0);
             this.btnExportSingleChangelog.Name = "btnExportSingleChangelog";
-            this.btnExportSingleChangelog.Size = new System.Drawing.Size(180, 21);
+            this.btnExportSingleChangelog.Size = new System.Drawing.Size(200, 21);
             this.btnExportSingleChangelog.TabIndex = 2;
             this.btnExportSingleChangelog.Text = "📄 Export This Changelog";
             this.btnExportSingleChangelog.UseVisualStyleBackColor = false;
