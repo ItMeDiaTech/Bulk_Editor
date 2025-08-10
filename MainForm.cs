@@ -321,28 +321,48 @@ namespace Bulk_Editor
                     writer.WriteLine($"Processed: {path}");
                     writer.WriteLine();
 
+                    // Handle both folder-based files and individually added files
+                    List<string> filesToProcess = new List<string>();
+
                     if (isFolder)
                     {
-                        string[] files = Directory.GetFiles(path, "*.docx");
-
-                        for (int i = 0; i < files.Length; i++)
-                        {
-                            _cancellationTokenSource.Token.ThrowIfCancellationRequested();
-
-                            var fileName = Path.GetFileName(files[i]);
-                            _progressReporter.Report(ProgressReport.CreateFileProgress(i + 1, files.Length, fileName));
-
-                            await ProcessFileWithProgress(files[i], writer, i, files.Length, _cancellationTokenSource.Token);
-                        }
-                        writer.WriteLine($"Processed {files.Length} files.");
+                        // Add all .docx files from the selected folder
+                        string[] folderFiles = Directory.GetFiles(path, "*.docx");
+                        filesToProcess.AddRange(folderFiles);
                     }
-                    else
+                    else if (File.Exists(path))
                     {
-                        var fileName = Path.GetFileName(path);
-                        _progressReporter.Report(ProgressReport.CreateFileProgress(1, 1, fileName));
+                        // Single file selected via file dialog
+                        filesToProcess.Add(path);
+                    }
 
-                        await ProcessFileWithProgress(path, writer, 0, 1, _cancellationTokenSource.Token);
-                        writer.WriteLine("Processed 1 file.");
+                    // Add any individually added files from the file list
+                    if (lstFiles.Tag is List<string> individualFiles)
+                    {
+                        foreach (string individualFile in individualFiles)
+                        {
+                            if (File.Exists(individualFile) && !filesToProcess.Contains(individualFile))
+                            {
+                                filesToProcess.Add(individualFile);
+                            }
+                        }
+                    }
+
+                    // Process all files
+                    for (int i = 0; i < filesToProcess.Count; i++)
+                    {
+                        _cancellationTokenSource.Token.ThrowIfCancellationRequested();
+
+                        var fileName = Path.GetFileName(filesToProcess[i]);
+                        _progressReporter.Report(ProgressReport.CreateFileProgress(i + 1, filesToProcess.Count, fileName));
+
+                        await ProcessFileWithProgress(filesToProcess[i], writer, i, filesToProcess.Count, _cancellationTokenSource.Token);
+                    }
+
+                    // Only write summary for multiple files
+                    if (filesToProcess.Count > 1)
+                    {
+                        writer.WriteLine($"Processed {filesToProcess.Count} files.");
                     }
                 }
 
@@ -699,28 +719,7 @@ namespace Bulk_Editor
 
                 lblStatus.Text = $"Changelog saved to: {changelogPath}";
 
-                // Only prompt to open if the checkbox is not checked
-                if (!chkOpenChangelogAfterUpdates.Checked)
-                {
-                    var result = MessageBox.Show("Changelog saved to Downloads folder. Would you like to open it?", "Changelog Saved", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                    if (result == DialogResult.Yes)
-                    {
-                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                        {
-                            FileName = changelogPath,
-                            UseShellExecute = true
-                        });
-                    }
-                }
-                else
-                {
-                    // Auto-open changelog if checkbox is checked
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = changelogPath,
-                        UseShellExecute = true
-                    });
-                }
+                // No automatic prompts or opening - this is handled by the main processing logic
             }
             catch (Exception ex)
             {

@@ -125,7 +125,7 @@ namespace Bulk_Editor
             this.btnOK.Name = "btnOK";
             this.btnOK.Size = new System.Drawing.Size(120, 35);
             this.btnOK.TabIndex = 4;
-            this.btnOK.Text = "✅ OK";
+            this.btnOK.Text = "OK";
             this.btnOK.UseVisualStyleBackColor = false;
             this.btnOK.Click += new System.EventHandler(this.BtnOK_Click);
 

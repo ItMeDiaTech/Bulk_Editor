@@ -380,9 +380,9 @@ namespace Bulk_Editor
             this.btnExportSingleChangelog.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnExportSingleChangelog.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.btnExportSingleChangelog.ForeColor = System.Drawing.Color.White;
-            this.btnExportSingleChangelog.Location = new System.Drawing.Point(577, 0);
+            this.btnExportSingleChangelog.Location = new System.Drawing.Point(557, 0);
             this.btnExportSingleChangelog.Name = "btnExportSingleChangelog";
-            this.btnExportSingleChangelog.Size = new System.Drawing.Size(160, 21);
+            this.btnExportSingleChangelog.Size = new System.Drawing.Size(180, 21);
             this.btnExportSingleChangelog.TabIndex = 2;
             this.btnExportSingleChangelog.Text = "📄 Export This Changelog";
             this.btnExportSingleChangelog.UseVisualStyleBackColor = false;
