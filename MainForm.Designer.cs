@@ -558,7 +558,6 @@ namespace Bulk_Editor
             //
             // chkFixTitles
             //
-            this.chkFixTitles = new System.Windows.Forms.CheckBox();
             this.chkFixTitles.AutoSize = true;
             this.chkFixTitles.BackColor = System.Drawing.Color.Transparent;
             this.chkFixTitles.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
