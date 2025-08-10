@@ -30,11 +30,6 @@ Write-Host "📋 Copying .exe to standard locations..." -ForegroundColor Yellow
 Copy-Item ".\Publish\Bulk_Editor.exe" ".\Bulk_Editor.exe" -Force
 Write-Host "✅ Copied to project root: .\Bulk_Editor.exe" -ForegroundColor Green
 
-# Copy to Desktop
-$desktopPath = "C:\Users\DiaTech\Desktop\Bulk_Editor.exe"
-Copy-Item ".\Publish\Bulk_Editor.exe" $desktopPath -Force
-Write-Host "✅ Copied to Desktop: $desktopPath" -ForegroundColor Green
-
 Write-Host ""
 Write-Host "🎉 BUILD AND DEPLOY COMPLETE!" -ForegroundColor Cyan
 Write-Host "📍 Your .exe files are available at:" -ForegroundColor White

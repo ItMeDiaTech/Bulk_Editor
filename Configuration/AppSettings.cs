@@ -42,7 +42,7 @@ namespace Bulk_Editor.Configuration
                         PropertyNameCaseInsensitive = true,
                         WriteIndented = true
                     });
-                    
+
                     if (settings != null)
                     {
                         settings.ValidateSettings();

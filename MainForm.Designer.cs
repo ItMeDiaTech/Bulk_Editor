@@ -85,7 +85,7 @@ namespace Bulk_Editor
             //
             // tlpMain
             //
-            this.tlpMain.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(250)))));
+            this.tlpMain.BackColor = System.Drawing.Color.White; // Set to this value for light separation: System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(250)))));
             this.tlpMain.ColumnCount = 1;
             this.tlpMain.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tlpMain.Controls.Add(this.pnlHeader, 0, 0);
@@ -514,7 +514,7 @@ namespace Bulk_Editor
             this.chkFixTitles.Name = "chkFixTitles";
             this.chkFixTitles.Size = new System.Drawing.Size(74, 19);
             this.chkFixTitles.TabIndex = 2;
-            this.chkFixTitles.Text = "Fix Titles";
+            this.chkFixTitles.Text = "Update Titles";
             this.chkFixTitles.UseVisualStyleBackColor = true;
 
             //
@@ -611,7 +611,7 @@ namespace Bulk_Editor
             this.btnRunTools.Name = "btnRunTools";
             this.btnRunTools.Size = new System.Drawing.Size(282, 50);
             this.btnRunTools.TabIndex = 0;
-            this.btnRunTools.Text = "🚀 Run Tools";
+            this.btnRunTools.Text = "🚀 Fix All Documents";
             this.btnRunTools.UseVisualStyleBackColor = false;
             this.btnRunTools.Click += new System.EventHandler(this.BtnRunTools_Click);
 
