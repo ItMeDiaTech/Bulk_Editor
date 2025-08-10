@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Bulk_Editor.Models;
@@ -160,16 +161,185 @@ namespace Bulk_Editor.Services
                         }
                     }
 
-                    // Update progress every 100 hyperlinks processed
+                    // Update progress every 10 hyperlinks processed
                     processedCount++;
-                    if (processedCount % 100 == 0)
+                    if (processedCount % 10 == 0)
                     {
-                        Application.DoEvents(); // Allow UI to update
+                        // Removed Application.DoEvents() - now using proper Progress<T> pattern
+                        await Task.Yield(); // Allow UI thread to update
                     }
                 }
             }
 
             System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Finished FixSourceHyperlinks");
+
+            return content;
+        }
+
+        /// <summary>
+        /// Fixes source hyperlinks using API data with progress reporting and cancellation support
+        /// </summary>
+        public static async Task<string> FixSourceHyperlinksWithProgress(string content, List<HyperlinkData> hyperlinks,
+            WordDocumentProcessor processor, List<string> changes,
+            Collection<string> updatedLinks, Collection<string> notFoundLinks,
+            Collection<string> expiredLinks, Collection<string> errorLinks,
+            Collection<string> updatedUrls, RetryPolicyService retryService,
+            IProgress<ProgressReport> progress, CancellationToken cancellationToken)
+        {
+            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Starting FixSourceHyperlinks with progress");
+
+            // Remove invisible external hyperlinks
+            var removedHyperlinks = WordDocumentProcessor.RemoveInvisibleExternalHyperlinks(hyperlinks);
+            if (removedHyperlinks.Count > 0)
+            {
+                changes.Add($"Removed {removedHyperlinks.Count} invisible external hyperlinks");
+
+                foreach (var hyperlink in removedHyperlinks)
+                {
+                    errorLinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Invisible Hyperlink Deleted");
+                }
+            }
+
+            // Extract unique lookup IDs
+            var uniqueIds = new HashSet<string>();
+            foreach (var hyperlink in hyperlinks)
+            {
+                string lookupId = WordDocumentProcessor.ExtractLookupID(hyperlink.Address, hyperlink.SubAddress);
+                if (!string.IsNullOrEmpty(lookupId))
+                {
+                    uniqueIds.Add(lookupId);
+                }
+            }
+
+            if (uniqueIds.Count > 0)
+            {
+                changes.Add($"Found {uniqueIds.Count} unique lookup IDs that would be updated via API");
+
+                // Report API call progress
+                progress?.Report(ProgressReport.CreateStatus($"Calling API for {uniqueIds.Count} items..."));
+
+                // Send to API with retry policy
+                string apiResponse = await retryService.ExecuteWithRetryAsync(async (ct) =>
+                {
+                    return await processor.SendToPowerAutomateFlow(uniqueIds.ToList(),
+                        "https://prod-00.eastus.logic.azure.com:443/workflows/...");
+                }, cancellationToken);
+
+                var response = processor.ParseApiResponse(apiResponse);
+
+                // Create a dictionary for faster lookup
+                var resultDict = new Dictionary<string, ApiResult>();
+                foreach (var result in response.Results)
+                {
+                    if (!resultDict.ContainsKey(result.Document_ID))
+                        resultDict.Add(result.Document_ID, result);
+                    if (!resultDict.ContainsKey(result.Content_ID))
+                        resultDict.Add(result.Content_ID, result);
+                }
+
+                // Update hyperlinks based on API response
+                int processedCount = 0;
+                progress?.Report(ProgressReport.CreateStatus($"Processing {hyperlinks.Count} hyperlinks..."));
+
+                foreach (var hyperlink in hyperlinks)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    string lookupId = WordDocumentProcessor.ExtractLookupID(hyperlink.Address, hyperlink.SubAddress);
+                    if (!string.IsNullOrEmpty(lookupId))
+                    {
+                        if (resultDict.TryGetValue(lookupId, out var result))
+                        {
+                            // Update hyperlink address and sub-address
+                            string targetAddress = "https://thesource.cvshealth.com/nuxeo/thesource/";
+                            string targetSub = "!/view?docid=" + result.Document_ID;
+
+                            bool changedURL = (hyperlink.Address != targetAddress) || (hyperlink.SubAddress != targetSub);
+                            if (changedURL)
+                            {
+                                hyperlink.Address = targetAddress;
+                                hyperlink.SubAddress = targetSub;
+                                updatedLinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | URL Updated, {result.Title}");
+                            }
+
+                            // Check for status and update display text
+                            bool alreadyExpired = hyperlink.TextToDisplay.Contains(" - Expired");
+                            bool alreadyNotFound = hyperlink.TextToDisplay.Contains(" - Not Found");
+
+                            if (!alreadyExpired && !alreadyNotFound)
+                            {
+                                // Append content ID if needed
+                                string last6 = result.Content_ID.Length >= 6 ? result.Content_ID.Substring(result.Content_ID.Length - 6) : result.Content_ID;
+                                string last5 = last6.Length >= 5 ? last6.Substring(last6.Length - 5) : last6;
+                                bool appended = false;
+
+                                // Check if we need to update the content ID
+                                if (hyperlink.TextToDisplay.EndsWith($" ({last5})") && !hyperlink.TextToDisplay.EndsWith($" ({last6})"))
+                                {
+                                    hyperlink.TextToDisplay = hyperlink.TextToDisplay.Substring(0, hyperlink.TextToDisplay.Length - $" ({last5})".Length) + $" ({last6})";
+                                    appended = true;
+                                }
+                                else if (!hyperlink.TextToDisplay.Contains($" ({last6})"))
+                                {
+                                    hyperlink.TextToDisplay = hyperlink.TextToDisplay.Trim() + $" ({last6})";
+                                    appended = true;
+                                }
+
+                                // Check for title changes
+                                string currentTitle = hyperlink.TextToDisplay;
+                                string expectedTitle = result.Title.Trim();
+                                if (!string.IsNullOrEmpty(expectedTitle) &&
+                                    currentTitle.Length > $" ({last6})".Length &&
+                                    !currentTitle.Substring(0, currentTitle.Length - $" ({last6})".Length).Equals(expectedTitle))
+                                {
+                                    updatedUrls.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Possible Title Change\n" +
+                                        $"        Current Title: {currentTitle.Substring(0, currentTitle.Length - $" ({last6})".Length)}\n" +
+                                        $"        New Title:     {expectedTitle}\n" +
+                                        $"        Content ID:    {result.Content_ID}");
+                                }
+
+                                if (appended || changedURL)
+                                {
+                                    string updateType = "";
+                                    if (changedURL) updateType = "URL Updated";
+                                    if (appended) updateType += (string.IsNullOrEmpty(updateType) ? "" : ", ") + "Appended Content ID";
+
+                                    updatedLinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | {updateType}, {result.Title}");
+                                }
+                            }
+
+                            // Handle expired status
+                            if (result.Status == "Expired" && !alreadyExpired)
+                            {
+                                hyperlink.TextToDisplay += " - Expired";
+                                expiredLinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Expired, {result.Title}\n        {result.Content_ID}");
+                            }
+                        }
+                        else
+                        {
+                            // Mark as not found if not already marked
+                            bool alreadyExpired = hyperlink.TextToDisplay.Contains(" - Expired");
+                            bool alreadyNotFound = hyperlink.TextToDisplay.Contains(" - Not Found");
+
+                            if (!alreadyNotFound && !alreadyExpired)
+                            {
+                                hyperlink.TextToDisplay += " - Not Found";
+                                notFoundLinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Not Found\n        {hyperlink.TextToDisplay}");
+                            }
+                        }
+                    }
+
+                    // Update progress every 10 hyperlinks processed
+                    processedCount++;
+                    if (processedCount % 10 == 0)
+                    {
+                        progress?.Report(ProgressReport.CreateStatus($"Processed {processedCount} of {hyperlinks.Count} hyperlinks"));
+                        await Task.Yield(); // Allow UI thread to update
+                    }
+                }
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Finished FixSourceHyperlinks with progress");
 
             return content;
         }

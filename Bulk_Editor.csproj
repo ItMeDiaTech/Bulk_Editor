@@ -14,4 +14,10 @@
     <Copyright>Copyright © 2024 DiaTech</Copyright>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

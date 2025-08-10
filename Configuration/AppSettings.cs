@@ -10,7 +10,11 @@ namespace Bulk_Editor.Configuration
     /// </summary>
     public class AppSettings
     {
-        public ApiSettings Api { get; set; } = new();
+        public ApiSettings ApiSettings { get; set; } = new();
+        public RetrySettings RetrySettings { get; set; } = new();
+        public ApplicationSettings ApplicationSettings { get; set; } = new();
+
+        // Keep existing settings for backward compatibility
         public ProcessingSettings Processing { get; set; } = new();
         public UiSettings UI { get; set; } = new();
         public LoggingSettings Logging { get; set; } = new();
@@ -38,7 +42,12 @@ namespace Bulk_Editor.Configuration
                         PropertyNameCaseInsensitive = true,
                         WriteIndented = true
                     });
-                    return settings ?? new AppSettings();
+                    
+                    if (settings != null)
+                    {
+                        settings.ValidateSettings();
+                        return settings;
+                    }
                 }
             }
             catch (Exception ex)
@@ -48,8 +57,37 @@ namespace Bulk_Editor.Configuration
 
             // Return default configuration and save it
             var defaultSettings = new AppSettings();
+            defaultSettings.ValidateSettings();
             await defaultSettings.SaveAsync();
             return defaultSettings;
+        }
+
+        /// <summary>
+        /// Validate configuration settings and apply defaults
+        /// </summary>
+        private void ValidateSettings()
+        {
+            // Ensure API settings are valid
+            if (string.IsNullOrWhiteSpace(ApiSettings.PowerAutomateFlowUrl))
+            {
+                ApiSettings.PowerAutomateFlowUrl = "https://prod-00.eastus.logic.azure.com:443/workflows/...";
+            }
+
+            // Ensure retry settings are reasonable
+            if (RetrySettings.MaxRetryAttempts < 1 || RetrySettings.MaxRetryAttempts > 10)
+            {
+                RetrySettings.MaxRetryAttempts = 3;
+            }
+
+            if (RetrySettings.BaseDelayMs < 100 || RetrySettings.BaseDelayMs > 10000)
+            {
+                RetrySettings.BaseDelayMs = 1000;
+            }
+
+            if (RetrySettings.MaxDelayMs < RetrySettings.BaseDelayMs)
+            {
+                RetrySettings.MaxDelayMs = RetrySettings.BaseDelayMs * 8;
+            }
         }
 
         /// <summary>
@@ -77,11 +115,36 @@ namespace Bulk_Editor.Configuration
     /// </summary>
     public class ApiSettings
     {
-        public string BaseUrl { get; set; } = "https://prod-00.eastus.logic.azure.com:443/workflows/";
+        public string PowerAutomateFlowUrl { get; set; } = "https://prod-00.eastus.logic.azure.com:443/workflows/...";
         public int TimeoutSeconds { get; set; } = 30;
+        public int MaxConcurrentRequests { get; set; } = 5;
+
+        // Keep existing properties for backward compatibility
+        public string BaseUrl { get; set; } = "https://prod-00.eastus.logic.azure.com:443/workflows/";
         public int RetryCount { get; set; } = 3;
         public string UserAgent { get; set; } = "Bulk-Editor/2.1";
         public bool ValidateSsl { get; set; } = true;
+    }
+
+    /// <summary>
+    /// Retry policy settings
+    /// </summary>
+    public class RetrySettings
+    {
+        public int MaxRetryAttempts { get; set; } = 3;
+        public int BaseDelayMs { get; set; } = 1000;
+        public int MaxDelayMs { get; set; } = 8000;
+        public bool UseExponentialBackoff { get; set; } = true;
+    }
+
+    /// <summary>
+    /// General application settings
+    /// </summary>
+    public class ApplicationSettings
+    {
+        public int MaxFileBatchSize { get; set; } = 100;
+        public bool EnableDetailedLogging { get; set; } = true;
+        public bool AutoBackupEnabled { get; set; } = true;
     }
 
     /// <summary>

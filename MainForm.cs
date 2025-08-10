@@ -7,8 +7,10 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Bulk_Editor.Configuration;
 using Bulk_Editor.Models;
 using Bulk_Editor.Services;
 
@@ -24,18 +26,39 @@ namespace Bulk_Editor
 
         private HyperlinkReplacementRules _hyperlinkReplacementRules;
         private readonly WordDocumentProcessor _processor;
+        private AppSettings _appSettings;
+
+        // Progress reporting and cancellation
+        private CancellationTokenSource _cancellationTokenSource;
+        private IProgress<ProgressReport> _progressReporter;
+
+        // Button state management
+        private string _originalButtonText;
+        private Color _originalButtonColor;
 
         public MainForm()
         {
             InitializeComponent();
             _processor = new WordDocumentProcessor();
+            SetupProgressReporting();
             SetupCheckboxDependencies();
             SetupFileListHandlers();
-            LoadHyperlinkReplacementRules();
+            LoadConfigurationAsync();
         }
 
-        private async void LoadHyperlinkReplacementRules()
+        private void SetupProgressReporting()
         {
+            // Store original button state
+            _originalButtonText = btnRunTools.Text;
+            _originalButtonColor = btnRunTools.BackColor;
+
+            // Create progress reporter that updates UI on main thread
+            _progressReporter = new Progress<ProgressReport>(UpdateProgressUI);
+        }
+
+        private async void LoadConfigurationAsync()
+        {
+            _appSettings = await AppSettings.LoadAsync();
             _hyperlinkReplacementRules = await HyperlinkReplacementRules.LoadAsync();
         }
 
@@ -119,16 +142,34 @@ namespace Bulk_Editor
 
                 foreach (string line in changelogLines)
                 {
-                    if (line.StartsWith($"Processing file: {fileName}"))
+                    // Use exact match to avoid matching similar file names
+                    if (line.Equals($"Processing file: {fileName}", StringComparison.OrdinalIgnoreCase))
                     {
                         foundFileSection = true;
                         continue; // Skip the "Processing file:" line as we're showing the document title above
                     }
                     else if (foundFileSection)
                     {
-                        if (line.StartsWith("Processing file:") || line.StartsWith("Processed"))
+                        // Stop when we hit the next file section or processing summary
+                        if (line.StartsWith("Processing file:") || line.StartsWith("Processed") ||
+                            line.StartsWith("Backup created:"))
                         {
-                            break;
+                            // Only break if this is a different file's backup or processing line
+                            if (line.StartsWith("Processing file:") || line.StartsWith("Processed"))
+                            {
+                                break;
+                            }
+                            // For backup lines, only include the one for our current file
+                            if (line.StartsWith("Backup created:"))
+                            {
+                                string backupFileName = line.Substring("Backup created: ".Length);
+                                // Check if this backup belongs to our current file
+                                if (backupFileName.StartsWith(Path.GetFileNameWithoutExtension(fileName)))
+                                {
+                                    fileChangelog.AppendLine(line);
+                                }
+                                continue;
+                            }
                         }
                         fileChangelog.AppendLine(line);
                     }
@@ -224,6 +265,14 @@ namespace Bulk_Editor
 
         private async void BtnRunTools_Click(object sender, EventArgs e)
         {
+            // Check if this is a cancellation request
+            if (_cancellationTokenSource != null && !_cancellationTokenSource.Token.IsCancellationRequested)
+            {
+                _cancellationTokenSource.Cancel();
+                lblStatus.Text = "Cancelling processing...";
+                return;
+            }
+
             if (string.IsNullOrEmpty(txtFolderPath.Text))
             {
                 MessageBox.Show("Please select a file or folder first.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -234,9 +283,15 @@ namespace Bulk_Editor
             string path = txtFolderPath.Text;
             string basePath = isFolder ? path : Path.GetDirectoryName(path);
 
+            // Create new cancellation token for this operation
+            _cancellationTokenSource = new CancellationTokenSource();
+
             try
             {
                 System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Starting processing: {path}");
+
+                // Transform button for cancellation
+                TransformButtonForProcessing();
 
                 _hyperlinkReplacementRules.TrimRules();
 
@@ -250,7 +305,6 @@ namespace Bulk_Editor
                 string changelogPath = Path.Combine(basePath, $"BulkEditor_Changelog_{timestamp}.txt");
 
                 ShowProgress(true);
-                btnRunTools.Enabled = false;
 
                 using (var writer = new StreamWriter(changelogPath, append: false))
                 {
@@ -261,23 +315,29 @@ namespace Bulk_Editor
                     if (isFolder)
                     {
                         string[] files = Directory.GetFiles(path, "*.docx");
+
                         for (int i = 0; i < files.Length; i++)
                         {
-                            await ProcessFile(files[i], writer, i, files.Length);
-                            UpdateProgress((i + 1) * 100 / files.Length);
+                            _cancellationTokenSource.Token.ThrowIfCancellationRequested();
+
+                            var fileName = Path.GetFileName(files[i]);
+                            _progressReporter.Report(ProgressReport.CreateFileProgress(i + 1, files.Length, fileName));
+
+                            await ProcessFileWithProgress(files[i], writer, i, files.Length, _cancellationTokenSource.Token);
                         }
                         writer.WriteLine($"Processed {files.Length} files.");
                     }
                     else
                     {
-                        await ProcessFile(path, writer, 0, 1);
+                        var fileName = Path.GetFileName(path);
+                        _progressReporter.Report(ProgressReport.CreateFileProgress(1, 1, fileName));
+
+                        await ProcessFileWithProgress(path, writer, 0, 1, _cancellationTokenSource.Token);
                         writer.WriteLine("Processed 1 file.");
-                        UpdateProgress(100);
                     }
                 }
 
-                ShowProgress(false);
-                btnRunTools.Enabled = true;
+                _progressReporter.Report(ProgressReport.CreateStatus("Processing complete!", 100));
 
                 System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Finished processing: {path}");
 
@@ -288,12 +348,76 @@ namespace Bulk_Editor
                     lstFiles.SelectedIndex = 0;
                 }
             }
+            catch (OperationCanceledException)
+            {
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Processing cancelled by user: {path}");
+                _progressReporter.Report(ProgressReport.CreateStatus("Processing cancelled by user."));
+            }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Error processing: {path} - {ex.Message}");
-                ShowProgress(false);
-                btnRunTools.Enabled = true;
+                _progressReporter.Report(ProgressReport.CreateStatus($"Error: {ex.Message}"));
                 MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                // Always restore button state
+                RestoreButtonFromProcessing();
+                ShowProgress(false);
+
+                // Clean up cancellation token
+                _cancellationTokenSource?.Dispose();
+                _cancellationTokenSource = null;
+            }
+        }
+
+        private void TransformButtonForProcessing()
+        {
+            btnRunTools.Text = "❌ Cancel Processing";
+            btnRunTools.BackColor = Color.FromArgb(220, 53, 69); // Bootstrap danger red
+        }
+
+        private void RestoreButtonFromProcessing()
+        {
+            btnRunTools.Text = _originalButtonText;
+            btnRunTools.BackColor = _originalButtonColor;
+        }
+
+        private void UpdateProgressUI(ProgressReport report)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action<ProgressReport>(UpdateProgressUI), report);
+                return;
+            }
+
+            // Update progress bar
+            if (report.PercentComplete >= 0)
+            {
+                progressBar.Value = Math.Min(report.PercentComplete, progressBar.Maximum);
+            }
+
+            // Update status label
+            if (!string.IsNullOrEmpty(report.StatusMessage))
+            {
+                lblStatus.Text = report.StatusMessage;
+            }
+
+            // Handle retry notifications with visual feedback
+            if (report.IsRetryNotification)
+            {
+                lblStatus.ForeColor = Color.FromArgb(255, 193, 7); // Warning yellow
+
+                // Reset color after delay
+                var timer = new System.Windows.Forms.Timer();
+                timer.Interval = 2000; // 2 seconds
+                timer.Tick += (s, e) =>
+                {
+                    lblStatus.ForeColor = SystemColors.ControlText;
+                    timer.Stop();
+                    timer.Dispose();
+                };
+                timer.Start();
             }
         }
 
@@ -310,7 +434,7 @@ namespace Bulk_Editor
         private void UpdateProgress(int value)
         {
             progressBar.Value = Math.Min(value, progressBar.Maximum);
-            Application.DoEvents();
+            // Removed Application.DoEvents() - now using proper Progress<T> pattern
         }
 
         private void LoadFile(string filePath)
@@ -328,7 +452,7 @@ namespace Bulk_Editor
             }
         }
 
-        private async Task ProcessFile(string filePath, StreamWriter logWriter, int fileIndex, int totalFiles)
+        private async Task ProcessFileWithProgress(string filePath, StreamWriter logWriter, int fileIndex, int totalFiles, CancellationToken cancellationToken)
         {
             try
             {
@@ -355,7 +479,10 @@ namespace Bulk_Editor
 
                 if (chkFixSourceHyperlinks.Checked)
                 {
-                    fileContent = await ProcessingService.FixSourceHyperlinks(fileContent, hyperlinks, _processor, changes, updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls);
+                    var retryService = new RetryPolicyService(_appSettings.RetrySettings, _progressReporter);
+                    fileContent = await ProcessingService.FixSourceHyperlinksWithProgress(
+                        fileContent, hyperlinks, _processor, changes, updatedLinks, notFoundLinks,
+                        expiredLinks, errorLinks, updatedUrls, retryService, _progressReporter, cancellationToken);
                 }
 
                 if (chkAppendContentID.Checked)
