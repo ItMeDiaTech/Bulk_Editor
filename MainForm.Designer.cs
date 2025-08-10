@@ -189,7 +189,6 @@ namespace Bulk_Editor
             this.btnSettings.BackColor = System.Drawing.Color.Transparent;
             this.btnSettings.FlatAppearance.BorderSize = 0;
             this.btnSettings.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnSettings.Image = System.Drawing.Image.FromFile("Settings_Icon.png");
             this.btnSettings.Location = new System.Drawing.Point(1188, 10);
             this.btnSettings.Name = "btnSettings";
             this.btnSettings.Size = new System.Drawing.Size(40, 40);

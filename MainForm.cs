@@ -40,11 +40,35 @@ namespace Bulk_Editor
         public MainForm()
         {
             InitializeComponent();
+            LoadEmbeddedResources();
             _processor = new WordDocumentProcessor();
             SetupProgressReporting();
             SetupCheckboxDependencies();
             SetupFileListHandlers();
             LoadConfigurationAsync();
+        }
+
+        private void LoadEmbeddedResources()
+        {
+            try
+            {
+                var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+                using (var stream = assembly.GetManifestResourceStream("Bulk_Editor.Settings_Icon.png"))
+                {
+                    if (stream != null)
+                    {
+                        btnSettings.Image = System.Drawing.Image.FromStream(stream);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Fallback to text if image loading fails
+                btnSettings.Text = "⚙️";
+                btnSettings.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+                btnSettings.ForeColor = System.Drawing.Color.White;
+                System.Diagnostics.Debug.WriteLine($"Failed to load Settings icon: {ex.Message}");
+            }
         }
 
         private void SetupProgressReporting()
