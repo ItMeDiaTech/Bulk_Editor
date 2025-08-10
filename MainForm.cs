@@ -139,15 +139,16 @@ namespace Bulk_Editor
                 foreach (string line in changelogLines)
                 {
                     // Look for the document processing section using the actual pattern written
-                    if (line.Equals($"Document Processed: {fileName}", StringComparison.OrdinalIgnoreCase))
+                    if (line.Equals($"Title of Document: {Path.GetFileNameWithoutExtension(fileName)}", StringComparison.OrdinalIgnoreCase))
                     {
                         foundFileSection = true;
-                        continue; // Skip the "Document Processed:" line
+                        fileChangelog.AppendLine(line); // Include the title line
+                        continue;
                     }
                     else if (foundFileSection)
                     {
                         // Stop when we hit the next file section
-                        if (line.StartsWith("Document Processed:") && !line.EndsWith(fileName))
+                        if (line.StartsWith("Title of Document:") && !line.Contains(Path.GetFileNameWithoutExtension(fileName)))
                         {
                             break;
                         }
@@ -518,7 +519,6 @@ namespace Bulk_Editor
                 string originalContent = fileContent;
                 List<string> changes = new();
 
-                logWriter.WriteLine($"Document Processed: {Path.GetFileName(filePath)}");
                 logWriter.WriteLine($"Title of Document: {Path.GetFileNameWithoutExtension(filePath)}");
                 logWriter.WriteLine("Backup File Created");
                 logWriter.WriteLine();
@@ -595,44 +595,62 @@ namespace Bulk_Editor
         {
             writer.WriteLine($"Changes:");
             writer.WriteLine($"  Updated Links ({updatedLinks.Count}):");
-            foreach (var link in updatedLinks)
+            if (updatedLinks.Count > 0)
             {
-                writer.WriteLine($"    {link}");
+                foreach (var link in updatedLinks)
+                {
+                    writer.WriteLine($"    {link}");
+                }
             }
 
             writer.WriteLine();
             writer.WriteLine($"  Not Found ({notFoundLinks.Count}):");
-            foreach (var link in notFoundLinks)
+            if (notFoundLinks.Count > 0)
             {
-                writer.WriteLine($"    {link}");
+                foreach (var link in notFoundLinks)
+                {
+                    writer.WriteLine($"    {link}");
+                }
             }
 
             writer.WriteLine();
             writer.WriteLine($"  Found Expired ({expiredLinks.Count}):");
-            foreach (var link in expiredLinks)
+            if (expiredLinks.Count > 0)
             {
-                writer.WriteLine($"    {link}");
+                foreach (var link in expiredLinks)
+                {
+                    writer.WriteLine($"    {link}");
+                }
             }
 
             writer.WriteLine();
             writer.WriteLine($"  Found Error ({errorLinks.Count}):");
-            foreach (var link in errorLinks)
+            if (errorLinks.Count > 0)
             {
-                writer.WriteLine($"    {link}");
+                foreach (var link in errorLinks)
+                {
+                    writer.WriteLine($"    {link}");
+                }
             }
 
             writer.WriteLine();
             writer.WriteLine($"  Potential Title Change ({updatedUrls.Count}):");
-            foreach (var url in updatedUrls)
+            if (updatedUrls.Count > 0)
             {
-                writer.WriteLine($"    {url}");
+                foreach (var url in updatedUrls)
+                {
+                    writer.WriteLine($"    {url}");
+                }
             }
 
             writer.WriteLine();
             writer.WriteLine($"  Replaced Hyperlinks ({replacedHyperlinks.Count}):");
-            foreach (var hyperlink in replacedHyperlinks)
+            if (replacedHyperlinks.Count > 0)
             {
-                writer.WriteLine($"    {hyperlink}");
+                foreach (var hyperlink in replacedHyperlinks)
+                {
+                    writer.WriteLine($"    {hyperlink}");
+                }
             }
         }
 
