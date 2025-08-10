@@ -521,6 +521,7 @@ namespace Bulk_Editor
                 logWriter.WriteLine($"Document Processed: {Path.GetFileName(filePath)}");
                 logWriter.WriteLine($"Title of Document: {Path.GetFileNameWithoutExtension(filePath)}");
                 logWriter.WriteLine("Backup File Created");
+                logWriter.WriteLine();
 
                 var hyperlinks = WordDocumentProcessor.ExtractHyperlinks(filePath);
 
