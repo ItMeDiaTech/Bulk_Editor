@@ -593,7 +593,7 @@ namespace Bulk_Editor
             Collection<string> expiredLinks, Collection<string> errorLinks, Collection<string> updatedUrls,
             Collection<string> replacedHyperlinks, WordDocumentProcessor processor)
         {
-            writer.WriteLine();
+            writer.WriteLine($"Changes:");
             writer.WriteLine($"  Updated Links ({updatedLinks.Count}):");
             foreach (var link in updatedLinks)
             {
