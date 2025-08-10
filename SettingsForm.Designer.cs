@@ -894,7 +894,7 @@ namespace Bulk_Editor
             this.btnResetToDefaults.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(33)))), ((int)(((byte)(37)))), ((int)(((byte)(41)))));
             this.btnResetToDefaults.Location = new System.Drawing.Point(140, 10);
             this.btnResetToDefaults.Name = "btnResetToDefaults";
-            this.btnResetToDefaults.Size = new System.Drawing.Size(120, 45);
+            this.btnResetToDefaults.Size = new System.Drawing.Size(145, 35);
             this.btnResetToDefaults.TabIndex = 1;
             this.btnResetToDefaults.Text = "🔄 Reset to Defaults";
             this.btnResetToDefaults.UseVisualStyleBackColor = true;
@@ -924,9 +924,9 @@ namespace Bulk_Editor
             this.btnImportSettings.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnImportSettings.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.btnImportSettings.ForeColor = System.Drawing.Color.White;
-            this.btnImportSettings.Location = new System.Drawing.Point(270, 10);
+            this.btnImportSettings.Location = new System.Drawing.Point(295, 10);
             this.btnImportSettings.Name = "btnImportSettings";
-            this.btnImportSettings.Size = new System.Drawing.Size(80, 35);
+            this.btnImportSettings.Size = new System.Drawing.Size(40, 35);
             this.btnImportSettings.TabIndex = 4;
             this.btnImportSettings.Text = "📥 Import";
             this.btnImportSettings.UseVisualStyleBackColor = true;
@@ -940,7 +940,7 @@ namespace Bulk_Editor
             this.btnExportSettings.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnExportSettings.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.btnExportSettings.ForeColor = System.Drawing.Color.White;
-            this.btnExportSettings.Location = new System.Drawing.Point(360, 10);
+            this.btnExportSettings.Location = new System.Drawing.Point(380, 10);
             this.btnExportSettings.Name = "btnExportSettings";
             this.btnExportSettings.Size = new System.Drawing.Size(80, 35);
             this.btnExportSettings.TabIndex = 5;

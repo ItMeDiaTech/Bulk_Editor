@@ -56,6 +56,7 @@ namespace Bulk_Editor
             this.tlpTools = new System.Windows.Forms.TableLayoutPanel();
             this.chkFixSourceHyperlinks = new System.Windows.Forms.CheckBox();
             this.chkAppendContentID = new System.Windows.Forms.CheckBox();
+            this.chkCheckTitleChanges = new System.Windows.Forms.CheckBox();
             this.chkFixTitles = new System.Windows.Forms.CheckBox();
             this.chkFixInternalHyperlink = new System.Windows.Forms.CheckBox();
             this.chkFixDoubleSpaces = new System.Windows.Forms.CheckBox();
@@ -498,9 +499,9 @@ namespace Bulk_Editor
             this.tlpTools.Controls.Add(this.chkFixTitles, 0, 3);
             this.tlpTools.Controls.Add(this.chkFixInternalHyperlink, 1, 0);
             this.tlpTools.Controls.Add(this.chkFixDoubleSpaces, 1, 1);
-            this.tlpTools.Controls.Add(this.chkReplaceHyperlink, 2, 0);
+            this.tlpTools.Controls.Add(this.chkOpenChangelogAfterUpdates, 2, 0);
+            this.tlpTools.Controls.Add(this.chkReplaceHyperlink, 2, 1);
             this.tlpTools.Controls.Add(this.btnConfigureReplaceHyperlink, 2, 3);
-            this.tlpTools.Controls.Add(this.chkOpenChangelogAfterUpdates, 1, 3);
             this.tlpTools.Dock = System.Windows.Forms.DockStyle.Top;
             this.tlpTools.Location = new System.Drawing.Point(16, 38);
             this.tlpTools.Name = "tlpTools";
@@ -543,7 +544,6 @@ namespace Bulk_Editor
             //
             // chkCheckTitleChanges
             //
-            this.chkCheckTitleChanges = new System.Windows.Forms.CheckBox();
             this.chkCheckTitleChanges.AutoSize = true;
             this.chkCheckTitleChanges.BackColor = System.Drawing.Color.Transparent;
             this.chkCheckTitleChanges.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
@@ -602,7 +602,7 @@ namespace Bulk_Editor
             this.chkReplaceHyperlink.AutoSize = true;
             this.chkReplaceHyperlink.BackColor = System.Drawing.Color.Transparent;
             this.chkReplaceHyperlink.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.chkReplaceHyperlink.Location = new System.Drawing.Point(575, 3);
+            this.chkReplaceHyperlink.Location = new System.Drawing.Point(575, 31);
             this.chkReplaceHyperlink.Name = "chkReplaceHyperlink";
             this.chkReplaceHyperlink.Size = new System.Drawing.Size(126, 19);
             this.chkReplaceHyperlink.TabIndex = 6;
@@ -615,7 +615,7 @@ namespace Bulk_Editor
             this.chkOpenChangelogAfterUpdates.AutoSize = true;
             this.chkOpenChangelogAfterUpdates.BackColor = System.Drawing.Color.Transparent;
             this.chkOpenChangelogAfterUpdates.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.chkOpenChangelogAfterUpdates.Location = new System.Drawing.Point(289, 87);
+            this.chkOpenChangelogAfterUpdates.Location = new System.Drawing.Point(575, 3);
             this.chkOpenChangelogAfterUpdates.Name = "chkOpenChangelogAfterUpdates";
             this.chkOpenChangelogAfterUpdates.Size = new System.Drawing.Size(181, 19);
             this.chkOpenChangelogAfterUpdates.TabIndex = 8;
