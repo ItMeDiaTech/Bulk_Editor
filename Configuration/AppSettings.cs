@@ -186,6 +186,8 @@ namespace Bulk_Editor.Configuration
     public class ApiSettings
     {
         public string PowerAutomateFlowUrl { get; set; } = "https://prod-00.eastus.logic.azure.com:443/workflows/...";
+        public string HyperlinkBaseUrl { get; set; } = "https://thesource.cvshealth.com/nuxeo/thesource/";
+        public string HyperlinkViewPath { get; set; } = "!/view?docid=";
         public int TimeoutSeconds { get; set; } = 30;
         public int MaxConcurrentRequests { get; set; } = 5;
 
@@ -215,12 +217,10 @@ namespace Bulk_Editor.Configuration
         public int MaxFileBatchSize { get; set; } = 100;
         public bool EnableDetailedLogging { get; set; } = true;
         public bool AutoBackupEnabled { get; set; } = true;
-        public bool CheckForUpdatesOnStartup { get; set; } = true;
         public bool RememberWindowPosition { get; set; } = true;
         public bool ConfirmBeforeProcessing { get; set; } = true;
-        public bool ShowProcessingPreview { get; set; } = true;
         public string DefaultFileFilter { get; set; } = "*.docx";
-        public bool AutoSaveSettings { get; set; } = true;
+        public bool RemoveDocumentFilesOnExit { get; set; } = true;
         public int RecentFilesCount { get; set; } = 10;
     }
 
@@ -239,7 +239,6 @@ namespace Bulk_Editor.Configuration
         public bool PreserveFileAttributes { get; set; } = true;
         public int ProcessingTimeoutMinutes { get; set; } = 30;
         public bool EnableFileComparison { get; set; } = false;
-        public bool CreateProcessingReport { get; set; } = true;
         public string TempFolderPath { get; set; } = Path.GetTempPath();
     }
 
@@ -257,10 +256,8 @@ namespace Bulk_Editor.Configuration
         public bool ConfirmOnExit { get; set; } = false;
         public bool MinimizeToTray { get; set; } = false;
         public bool ShowStatusBar { get; set; } = true;
-        public bool EnableSounds { get; set; } = true;
         public string Language { get; set; } = "en-US";
         public int AutoSaveIntervalSeconds { get; set; } = 300;
-        public bool ShowWelcomeScreen { get; set; } = true;
     }
 
     /// <summary>
@@ -317,7 +314,7 @@ namespace Bulk_Editor.Configuration
         /// <summary>
         /// Whether to create backups in the centralized location
         /// </summary>
-        public bool CentralizeBackups { get; set; } = false;
+        public bool CentralizeBackups { get; set; } = true;
 
         /// <summary>
         /// Get the individual changelogs folder path

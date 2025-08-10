@@ -1,0 +1,855 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Drawing;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using Bulk_Editor.Models;
+using Bulk_Editor.Services;
+
+namespace Bulk_Editor
+{
+    public partial class MainForm
+    {
+        private async void BtnRunTools_Click(object sender, EventArgs e)
+        {
+            // Check if this is a cancellation request
+            if (_cancellationTokenSource != null && !_cancellationTokenSource.Token.IsCancellationRequested)
+            {
+                _cancellationTokenSource.Cancel();
+                lblStatus.Text = "Cancelling...";
+                return;
+            }
+
+            if (string.IsNullOrEmpty(txtFolderPath.Text))
+            {
+                MessageBox.Show("Please select a file or folder first.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            // Check ConfirmBeforeProcessing setting
+            if (_appSettings.ApplicationSettings.ConfirmBeforeProcessing)
+            {
+                bool isDirectory = Directory.Exists(txtFolderPath.Text);
+                int fileCount = isDirectory ? lstFiles.Items.Count : 1;
+
+                var result = MessageBox.Show(
+                    $"Are you sure you want to process {fileCount} file(s)?",
+                    "Confirm Processing",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+
+                if (result != DialogResult.Yes)
+                {
+                    return;
+                }
+            }
+
+            bool isFolder = Directory.Exists(txtFolderPath.Text);
+            string path = txtFolderPath.Text;
+            string basePath = isFolder ? path : Path.GetDirectoryName(path);
+
+            // Store the originally selected index to preserve user's selection
+            int originalSelectedIndex = lstFiles.SelectedIndex;
+
+            // Create new cancellation token for this operation with configured timeout
+            _cancellationTokenSource = new CancellationTokenSource();
+            if (_appSettings.Processing.ProcessingTimeoutMinutes > 0)
+            {
+                _cancellationTokenSource.CancelAfter(TimeSpan.FromMinutes(_appSettings.Processing.ProcessingTimeoutMinutes));
+            }
+
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Starting processing: {path}");
+
+                // Transform button for cancellation
+                TransformButtonForProcessing();
+
+                _hyperlinkReplacementRules.TrimRules();
+
+                // Create backup directory if backup is enabled
+                string backupPath = null;
+                if (_appSettings.Processing.CreateBackups)
+                {
+                    if (_appSettings.ChangelogSettings.CentralizeBackups && _appSettings.ChangelogSettings.UseCentralizedStorage)
+                    {
+                        // Use centralized backup location
+                        backupPath = _appSettings.ChangelogSettings.GetBackupsPath();
+                    }
+                    else
+                    {
+                        // Use local backup folder
+                        backupPath = Path.Combine(basePath, _appSettings.Processing.BackupFolderName);
+                    }
+
+                    if (!Directory.Exists(backupPath))
+                    {
+                        Directory.CreateDirectory(backupPath);
+                    }
+                }
+
+                string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                string changelogPath;
+
+                // Use centralized storage if configured, otherwise use legacy behavior
+                if (_changelogManager != null && _appSettings.ChangelogSettings.UseCentralizedStorage)
+                {
+                    if (!isFolder && File.Exists(path))
+                    {
+                        // Single file processing - use individual changelog path
+                        changelogPath = _changelogManager.GetIndividualChangelogPath(Path.GetFileName(path));
+                        if (string.IsNullOrEmpty(changelogPath))
+                        {
+                            // Fallback to legacy behavior
+                            string docName = Path.GetFileNameWithoutExtension(path);
+                            string dateFormat = DateTime.Now.ToString("MMddyyyy");
+                            changelogPath = Path.Combine(basePath, $"{docName}_Changelog_{dateFormat}.txt");
+                        }
+                    }
+                    else
+                    {
+                        // Multiple files processing - use combined changelog path
+                        changelogPath = _changelogManager.GetCombinedChangelogPath();
+                        if (string.IsNullOrEmpty(changelogPath))
+                        {
+                            // Fallback to legacy behavior
+                            changelogPath = Path.Combine(basePath, $"BulkEditor_Changelog_{timestamp}.txt");
+                        }
+                    }
+                }
+                else
+                {
+                    // Legacy behavior for backward compatibility
+                    if (!isFolder && File.Exists(path))
+                    {
+                        string docName = Path.GetFileNameWithoutExtension(path);
+                        string dateFormat = DateTime.Now.ToString("MMddyyyy");
+                        changelogPath = Path.Combine(basePath, $"{docName}_Changelog_{dateFormat}.txt");
+                    }
+                    else
+                    {
+                        changelogPath = Path.Combine(basePath, $"BulkEditor_Changelog_{timestamp}.txt");
+                    }
+                }
+
+                ShowProgress(true);
+
+                // Handle both folder-based files and individually added files
+                List<string> filesToProcess = new List<string>();
+
+                if (isFolder)
+                {
+                    // Add files matching allowed extensions from the selected folder
+                    var allowedFiles = new List<string>();
+                    foreach (string extension in _appSettings.Processing.AllowedExtensions)
+                    {
+                        string pattern = extension.StartsWith("*") ? extension : "*" + extension;
+                        string[] matchingFiles = Directory.GetFiles(path, pattern);
+                        allowedFiles.AddRange(matchingFiles);
+                    }
+                    filesToProcess.AddRange(allowedFiles.Distinct());
+                }
+                else if (File.Exists(path))
+                {
+                    // Single file selected via file dialog
+                    filesToProcess.Add(path);
+                }
+
+                // Add any individually added files from the file list
+                if (lstFiles.Tag is Dictionary<int, string> filePathMap)
+                {
+                    foreach (var kvp in filePathMap)
+                    {
+                        string individualFile = kvp.Value;
+                        if (File.Exists(individualFile) && !filesToProcess.Contains(individualFile))
+                        {
+                            filesToProcess.Add(individualFile);
+                        }
+                    }
+                }
+
+                // Validate and filter files before processing
+                var validFiles = await ValidateFilesForProcessing(filesToProcess);
+
+                // Respect batch size limits
+                if (validFiles.Count > _appSettings.ApplicationSettings.MaxFileBatchSize)
+                {
+                    validFiles = validFiles.Take(_appSettings.ApplicationSettings.MaxFileBatchSize).ToList();
+                }
+
+                using (var writer = new StreamWriter(changelogPath, append: false))
+                {
+                    writer.WriteLine($"Bulk Editor: Changelog - {DateTime.Now}");
+                    writer.WriteLine($"Version: 2.1");
+
+                    // Check for updates
+                    if (_processor.NeedsUpdate)
+                    {
+                        writer.WriteLine("***New Update Available***");
+                        writer.WriteLine("Please download and update as time allows.");
+                    }
+                    else
+                    {
+                        writer.WriteLine("Up to Date");
+                    }
+
+                    writer.WriteLine();
+                    writer.WriteLine($"Path: {path}");
+
+                    // Write file count summary now that we have the correct count
+                    if (validFiles.Count > 1)
+                    {
+                        writer.WriteLine($"Processed {validFiles.Count} files.");
+                    }
+
+                    // Write batch size limit note if applicable
+                    if (filesToProcess.Count > _appSettings.ApplicationSettings.MaxFileBatchSize)
+                    {
+                        writer.WriteLine($"Note: Processing limited to {_appSettings.ApplicationSettings.MaxFileBatchSize} files due to batch size limits.");
+                    }
+
+                    writer.WriteLine();
+
+                    // Process files with concurrency control
+                    if (_appSettings.Processing.MaxConcurrentFiles > 1 && validFiles.Count > 1)
+                    {
+                        await ProcessFilesConcurrently(validFiles, writer, _cancellationTokenSource.Token);
+                    }
+                    else
+                    {
+                        // Sequential processing
+                        for (int i = 0; i < validFiles.Count; i++)
+                        {
+                            _cancellationTokenSource.Token.ThrowIfCancellationRequested();
+
+                            var fileName = Path.GetFileName(validFiles[i]);
+                            _progressReporter.Report(ProgressReport.CreateFileProgress(i + 1, validFiles.Count, fileName));
+
+                            await ProcessFileWithProgress(validFiles[i], writer, backupPath, i, validFiles.Count, _cancellationTokenSource.Token);
+                        }
+                    }
+                }
+
+                _progressReporter.Report(ProgressReport.CreateStatus("Processing complete!", 100));
+
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Finished processing: {path}");
+
+                // Restore original selection or set to first item if nothing was selected
+                if (lstFiles.Items.Count > 0)
+                {
+                    if (originalSelectedIndex >= 0 && originalSelectedIndex < lstFiles.Items.Count)
+                    {
+                        // Restore the originally selected item
+                        lstFiles.SelectedIndex = originalSelectedIndex;
+                    }
+                    else
+                    {
+                        // No item was originally selected, default to first item
+                        lstFiles.SelectedIndex = 0;
+                    }
+                }
+
+                // Handle changelog display based on checkbox
+                if (chkOpenChangelogAfterUpdates.Checked)
+                {
+                    if (lstFiles.Items.Count == 1)
+                    {
+                        // Single document: show individual changelog in the UI panel
+                        string fileName = lstFiles.Items[0].ToString().Split('(')[0].Trim();
+                        await DisplayChangelogForFileAsync(changelogPath, fileName);
+                    }
+                    else if (lstFiles.Items.Count > 1)
+                    {
+                        // Multiple documents: auto-open the batch changelog file
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = changelogPath,
+                            UseShellExecute = true
+                        });
+                    }
+                }
+
+                // Force refresh the changelog display for the currently selected item with a delay
+                // This ensures the changelog updates even if the same item was already selected
+                // The delay allows the file system to fully release the changelog file lock
+                if (lstFiles.SelectedIndex >= 0)
+                {
+                    var refreshTimer = new System.Windows.Forms.Timer();
+                    refreshTimer.Interval = 1000; // 1 second delay to ensure file is fully released
+                    refreshTimer.Tick += (s, e) =>
+                    {
+                        refreshTimer.Stop();
+                        refreshTimer.Dispose();
+                        LstFiles_SelectedIndexChanged(null, null);
+                    };
+                    refreshTimer.Start();
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Processing cancelled by user: {path}");
+                _progressReporter.Report(ProgressReport.CreateStatus("Processing cancelled by user."));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Error processing: {path} - {ex.Message}");
+                _progressReporter.Report(ProgressReport.CreateStatus($"Error: {ex.Message}"));
+                MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                // Always restore button state
+                RestoreButtonFromProcessing();
+                ShowProgress(false);
+
+                // Clean up cancellation token
+                _cancellationTokenSource?.Dispose();
+                _cancellationTokenSource = null;
+            }
+        }
+
+        private async Task ProcessFileWithProgress(string filePath, StreamWriter logWriter, string backupBasePath, int fileIndex, int totalFiles, CancellationToken cancellationToken)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Starting processing file: {filePath}");
+
+                // Log file processing start
+                _loggingService?.LogUserAction("File Processing Started", $"File: {Path.GetFileName(filePath)}");
+
+                // Create backup if enabled
+                if (_appSettings.Processing.CreateBackups && !string.IsNullOrEmpty(backupBasePath))
+                {
+                    string backupPath = Path.Combine(backupBasePath, Path.GetFileName(filePath));
+                    File.Copy(filePath, backupPath, true);
+
+                    // Preserve file attributes if configured
+                    if (_appSettings.Processing.PreserveFileAttributes)
+                    {
+                        File.SetAttributes(backupPath, File.GetAttributes(filePath));
+                        File.SetCreationTime(backupPath, File.GetCreationTime(filePath));
+                        File.SetLastWriteTime(backupPath, File.GetLastWriteTime(filePath));
+                    }
+                }
+
+                List<string> changes = new();
+
+                logWriter.WriteLine();
+                logWriter.WriteLine("__________");
+                logWriter.WriteLine();
+                logWriter.WriteLine($"Title: {Path.GetFileNameWithoutExtension(filePath)}");
+                logWriter.WriteLine("Backup File Created");
+                logWriter.WriteLine();
+
+                // Extract hyperlinks from the Word document properly
+                var hyperlinks = WordDocumentProcessor.ExtractHyperlinks(filePath);
+                var originalHyperlinks = hyperlinks.Select(h => h.Clone()).ToList();
+
+                var updatedLinks = new Collection<string>();
+                var notFoundLinks = new Collection<string>();
+                var expiredLinks = new Collection<string>();
+                var errorLinks = new Collection<string>();
+                var updatedUrls = new Collection<string>();
+                var replacedHyperlinks = new Collection<string>();
+
+                // First, get API results if needed for various operations
+                Dictionary<string, ApiResult> apiResults = null;
+
+                if (chkFixSourceHyperlinks.Checked || chkFixTitles.Checked)
+                {
+                    // Extract unique lookup IDs for API call
+                    var uniqueIds = new HashSet<string>();
+                    foreach (var hyperlink in hyperlinks)
+                    {
+                        string lookupId = WordDocumentProcessor.ExtractLookupID(hyperlink.Address, hyperlink.SubAddress);
+                        if (!string.IsNullOrEmpty(lookupId))
+                        {
+                            uniqueIds.Add(lookupId);
+                        }
+                    }
+
+                    if (uniqueIds.Count > 0)
+                    {
+                        // Call API to get results
+                        string apiResponse = await _processor.SendToPowerAutomateFlow(uniqueIds.ToList());
+                        var response = _processor.ParseApiResponse(apiResponse);
+
+                        // Build dictionary for lookups
+                        apiResults = new Dictionary<string, ApiResult>();
+                        foreach (var result in response.Results)
+                        {
+                            if (!apiResults.ContainsKey(result.Document_ID))
+                                apiResults.Add(result.Document_ID, result);
+                            if (!apiResults.ContainsKey(result.Content_ID))
+                                apiResults.Add(result.Content_ID, result);
+                        }
+                    }
+                }
+
+                if (chkFixSourceHyperlinks.Checked)
+                {
+                    var retryService = new RetryPolicyService(_appSettings.RetrySettings, _progressReporter);
+                    // Process hyperlinks - this now modifies the hyperlinks list instead of file content
+                    await ProcessingService.FixSourceHyperlinksWithProgress(
+                        null, hyperlinks, _processor, changes, updatedLinks, notFoundLinks,
+                        expiredLinks, errorLinks, updatedUrls, retryService, _progressReporter, cancellationToken);
+                }
+
+                if (chkAppendContentID.Checked)
+                {
+                    string result = ProcessingService.AppendContentIDToHyperlinks(hyperlinks);
+                    if (!string.IsNullOrEmpty(result))
+                    {
+                        changes.Add(result);
+                    }
+                }
+
+                if (chkFixInternalHyperlink.Checked)
+                {
+                    ProcessingService.FixInternalHyperlink(null, hyperlinks, changes);
+                }
+
+                // Check for possible title changes (logs only, no modifications)
+                if (chkCheckTitleChanges.Checked)
+                {
+                    if (apiResults != null)
+                    {
+                        var titleChanges = new Collection<string>();
+                        ProcessingService.DetectTitleChanges(null, hyperlinks, apiResults, changes, titleChanges);
+
+                        // Add title changes to updatedUrls collection for changelog
+                        foreach (var change in titleChanges)
+                        {
+                            updatedUrls.Add(change);
+                        }
+                    }
+                }
+
+                // Update incorrect titles if checkbox is enabled
+                if (chkFixTitles.Checked)
+                {
+                    if (apiResults != null)
+                    {
+                        ProcessingService.UpdateTitles(null, hyperlinks, apiResults, changes);
+                    }
+                    else
+                    {
+                        // If no API results, at least skip already-processed links
+                        ProcessingService.SkipProcessedHyperlinks(null, hyperlinks, changes);
+                    }
+                }
+
+                if (chkReplaceHyperlink.Checked)
+                {
+                    ProcessingService.ReplaceHyperlinks(null, hyperlinks, _hyperlinkReplacementRules, changes, replacedHyperlinks);
+                }
+
+                // Check if any hyperlinks were modified
+                bool hyperlinksModified = false;
+                for (int i = 0; i < hyperlinks.Count; i++)
+                {
+                    if (!hyperlinks[i].Equals(originalHyperlinks[i]))
+                    {
+                        hyperlinksModified = true;
+                        break;
+                    }
+                }
+
+                // Update the Word document with modified hyperlinks
+                if (changes.Count > 0 && hyperlinksModified)
+                {
+                    WordDocumentProcessor.UpdateHyperlinksInDocument(filePath, hyperlinks);
+
+                    logWriter.WriteLine($"  Changes made:");
+                    foreach (string change in changes)
+                    {
+                        logWriter.WriteLine($"    - {change}");
+                    }
+                }
+
+                // Handle double spaces separately as it affects document text content
+                if (chkFixDoubleSpaces.Checked)
+                {
+                    try
+                    {
+                        // Use the OpenXML implementation to fix double spaces in Word documents
+                        int doubleSpaceCount = WordDocumentProcessorExtensions.FixDoubleSpacesInDocument(filePath);
+
+                        if (doubleSpaceCount > 0)
+                        {
+                            changes.Add($"Fixed {doubleSpaceCount} instances of multiple spaces");
+                            logWriter.WriteLine($"  Fixed {doubleSpaceCount} instances of multiple spaces in document text");
+                        }
+                        else
+                        {
+                            logWriter.WriteLine($"  No multiple spaces found in document");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        changes.Add($"Error fixing double spaces: {ex.Message}");
+                        logWriter.WriteLine($"  Error fixing double spaces: {ex.Message}");
+                    }
+                }
+
+                WriteDetailedChangelog(logWriter, updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, replacedHyperlinks, _processor);
+                WriteDetailedChangelogToDownloads(updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, replacedHyperlinks, _processor);
+
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Finished processing file: {filePath}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Error processing file: {filePath} - {ex.Message}");
+                logWriter.WriteLine($"  Error processing file: {ex.Message}");
+            }
+        }
+
+        private void WriteDetailedChangelog(StreamWriter writer, Collection<string> updatedLinks, Collection<string> notFoundLinks,
+            Collection<string> expiredLinks, Collection<string> errorLinks, Collection<string> updatedUrls,
+            Collection<string> replacedHyperlinks, WordDocumentProcessor processor)
+        {
+            writer.WriteLine($"Changes:");
+            writer.WriteLine($"  Updated Links ({updatedLinks.Count}):");
+            if (updatedLinks.Count > 0)
+            {
+                foreach (var link in updatedLinks)
+                {
+                    writer.WriteLine($"    {link}");
+                }
+            }
+
+            writer.WriteLine();
+            writer.WriteLine($"  Not Found ({notFoundLinks.Count}):");
+            if (notFoundLinks.Count > 0)
+            {
+                foreach (var link in notFoundLinks)
+                {
+                    writer.WriteLine($"    {link}");
+                }
+            }
+
+            writer.WriteLine();
+            writer.WriteLine($"  Found Expired ({expiredLinks.Count}):");
+            if (expiredLinks.Count > 0)
+            {
+                foreach (var link in expiredLinks)
+                {
+                    writer.WriteLine($"    {link}");
+                }
+            }
+
+            writer.WriteLine();
+            writer.WriteLine($"  Found Error ({errorLinks.Count}):");
+            if (errorLinks.Count > 0)
+            {
+                foreach (var link in errorLinks)
+                {
+                    writer.WriteLine($"    {link}");
+                }
+            }
+
+            writer.WriteLine();
+            writer.WriteLine($"  Potential Title Change ({updatedUrls.Count}):");
+            if (updatedUrls.Count > 0)
+            {
+                foreach (var url in updatedUrls)
+                {
+                    writer.WriteLine($"    {url}");
+                }
+            }
+
+            writer.WriteLine();
+            writer.WriteLine($"  Replaced Hyperlinks ({replacedHyperlinks.Count}):");
+            if (replacedHyperlinks.Count > 0)
+            {
+                foreach (var hyperlink in replacedHyperlinks)
+                {
+                    writer.WriteLine($"    {hyperlink}");
+                }
+            }
+        }
+
+        private void WriteDetailedChangelogToDownloads(Collection<string> updatedLinks, Collection<string> notFoundLinks,
+            Collection<string> expiredLinks, Collection<string> errorLinks, Collection<string> updatedUrls,
+            Collection<string> replacedHyperlinks, WordDocumentProcessor processor)
+        {
+            try
+            {
+                string downloadsFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+                if (!Directory.Exists(downloadsFolder))
+                {
+                    downloadsFolder = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                }
+
+                string baseFileName = "BulkEditor_Changelog";
+                string fileExtension = ".txt";
+                string changelogPath = Path.Combine(downloadsFolder, baseFileName + fileExtension);
+                int counter = 1;
+
+                while (File.Exists(changelogPath))
+                {
+                    changelogPath = Path.Combine(downloadsFolder, $"{baseFileName}_{counter}{fileExtension}");
+                    counter++;
+                }
+
+                using (StreamWriter writer = new StreamWriter(changelogPath, false))
+                {
+                    writer.WriteLine($"Bulk Editor: Changelog - {DateTime.Now}");
+                    writer.WriteLine($"Version: 2.1");
+
+                    if (processor.NeedsUpdate)
+                    {
+                        writer.WriteLine("***New Update Available***");
+                        writer.WriteLine("Please download and update as time allows.");
+                    }
+                    else
+                    {
+                        writer.WriteLine("Up to Date");
+                    }
+
+                    writer.WriteLine();
+                    writer.WriteLine($"Updated Links ({updatedLinks.Count}):");
+                    foreach (var link in updatedLinks)
+                    {
+                        writer.WriteLine($"{link}");
+                    }
+
+                    writer.WriteLine();
+                    writer.WriteLine($"Found Expired ({expiredLinks.Count}):");
+                    foreach (var link in expiredLinks)
+                    {
+                        writer.WriteLine($"{link}");
+                    }
+
+                    writer.WriteLine();
+                    writer.WriteLine($"Not Found ({notFoundLinks.Count}):");
+                    foreach (var link in notFoundLinks)
+                    {
+                        writer.WriteLine($"{link}");
+                    }
+                    writer.WriteLine();
+
+                    writer.WriteLine($"Replaced Hyperlinks ({replacedHyperlinks.Count}):");
+                    foreach (var hyperlink in replacedHyperlinks)
+                    {
+                        writer.WriteLine($"{hyperlink}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error writing changelog to downloads: {ex.Message}");
+            }
+        }
+
+        private void TransformButtonForProcessing()
+        {
+            btnRunTools.Text = "❌ Cancel Processing";
+            btnRunTools.BackColor = Color.FromArgb(220, 53, 69); // Bootstrap danger red
+        }
+
+        private void RestoreButtonFromProcessing()
+        {
+            btnRunTools.Text = _originalButtonText;
+            btnRunTools.BackColor = _originalButtonColor;
+        }
+
+        private void UpdateProgressUI(ProgressReport report)
+        {
+            if (InvokeRequired)
+            {
+                Invoke(new Action<ProgressReport>(UpdateProgressUI), report);
+                return;
+            }
+
+            // Update progress bar
+            if (report.PercentComplete >= 0)
+            {
+                progressBar.Value = Math.Min(report.PercentComplete, progressBar.Maximum);
+            }
+
+            // Update status label
+            if (!string.IsNullOrEmpty(report.StatusMessage))
+            {
+                lblStatus.Text = report.StatusMessage;
+            }
+
+            // Handle retry notifications with visual feedback
+            if (report.IsRetryNotification)
+            {
+                lblStatus.ForeColor = Color.FromArgb(255, 193, 7); // Warning yellow
+
+                // Reset color after delay
+                var timer = new System.Windows.Forms.Timer();
+                timer.Interval = 2000; // 2 seconds
+                timer.Tick += (s, e) =>
+                {
+                    lblStatus.ForeColor = SystemColors.ControlText;
+                    timer.Stop();
+                    timer.Dispose();
+                };
+                timer.Start();
+            }
+        }
+
+        private void ShowProgress(bool show)
+        {
+            progressBar.Visible = show;
+            if (show)
+            {
+                progressBar.Value = 0;
+                progressBar.Maximum = 100;
+            }
+        }
+
+        private void UpdateProgress(int value)
+        {
+            progressBar.Value = Math.Min(value, progressBar.Maximum);
+            // Removed Application.DoEvents() - now using proper Progress<T> pattern
+        }
+
+        /// <summary>
+        /// Validates files for processing based on configuration settings
+        /// </summary>
+        private async Task<List<string>> ValidateFilesForProcessing(List<string> filePaths)
+        {
+            var validFiles = new List<string>();
+
+            foreach (string filePath in filePaths)
+            {
+                try
+                {
+                    // Check if file exists
+                    if (!File.Exists(filePath))
+                    {
+                        _loggingService?.LogUserAction("File Validation Failed", $"File not found: {filePath}");
+                        continue;
+                    }
+
+                    // Check file size
+                    var fileInfo = new FileInfo(filePath);
+                    if (fileInfo.Length > _appSettings.Processing.MaxFileSizeBytes)
+                    {
+                        _loggingService?.LogUserAction("File Validation Failed", $"File too large: {filePath} ({fileInfo.Length} bytes)");
+                        continue;
+                    }
+
+                    // Check file extension
+                    string extension = Path.GetExtension(filePath).ToLowerInvariant();
+                    if (!_appSettings.Processing.AllowedExtensions.Any(ext =>
+                        ext.ToLowerInvariant() == extension ||
+                        ext.ToLowerInvariant() == "*" + extension))
+                    {
+                        _loggingService?.LogUserAction("File Validation Failed", $"Extension not allowed: {filePath}");
+                        continue;
+                    }
+
+                    // Validate document if enabled
+                    if (_appSettings.Processing.ValidateDocuments)
+                    {
+                        try
+                        {
+                            // Basic validation - try to read the file
+                            using (var stream = File.OpenRead(filePath))
+                            {
+                                // Simple validation - ensure we can read the file
+                                var buffer = new byte[1024];
+                                await stream.ReadAsync(buffer, 0, buffer.Length);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            if (_appSettings.Processing.SkipCorruptedFiles)
+                            {
+                                _loggingService?.LogUserAction("File Validation Failed", $"Corrupted file skipped: {filePath} - {ex.Message}");
+                                continue;
+                            }
+                            else
+                            {
+                                throw new InvalidOperationException($"Corrupted file: {filePath} - {ex.Message}");
+                            }
+                        }
+                    }
+
+                    validFiles.Add(filePath);
+                }
+                catch (Exception ex)
+                {
+                    _loggingService?.LogUserAction("File Validation Error", $"Error validating {filePath}: {ex.Message}");
+                    if (!_appSettings.Processing.SkipCorruptedFiles)
+                    {
+                        throw;
+                    }
+                }
+            }
+
+            return validFiles;
+        }
+
+        /// <summary>
+        /// Processes files concurrently based on configuration settings
+        /// </summary>
+        private async Task ProcessFilesConcurrently(List<string> filePaths, StreamWriter logWriter, CancellationToken cancellationToken)
+        {
+            var semaphore = new SemaphoreSlim(_appSettings.Processing.MaxConcurrentFiles, _appSettings.Processing.MaxConcurrentFiles);
+            var tasks = new List<Task>();
+
+            for (int i = 0; i < filePaths.Count; i++)
+            {
+                int fileIndex = i; // Capture loop variable
+                string filePath = filePaths[i];
+
+                var task = ProcessFileConcurrently(filePath, logWriter, fileIndex, filePaths.Count, semaphore, cancellationToken);
+                tasks.Add(task);
+            }
+
+            await Task.WhenAll(tasks);
+        }
+
+        /// <summary>
+        /// Processes a single file with concurrency control
+        /// </summary>
+        private async Task ProcessFileConcurrently(string filePath, StreamWriter logWriter, int fileIndex, int totalFiles, SemaphoreSlim semaphore, CancellationToken cancellationToken)
+        {
+            await semaphore.WaitAsync(cancellationToken);
+            try
+            {
+                var fileName = Path.GetFileName(filePath);
+                _progressReporter.Report(ProgressReport.CreateFileProgress(fileIndex + 1, totalFiles, fileName));
+
+                // Determine backup path
+                string backupBasePath = null;
+                if (_appSettings.Processing.CreateBackups)
+                {
+                    if (_appSettings.ChangelogSettings.CentralizeBackups && _appSettings.ChangelogSettings.UseCentralizedStorage)
+                    {
+                        // Use centralized backup location
+                        backupBasePath = _appSettings.ChangelogSettings.GetBackupsPath();
+                    }
+                    else
+                    {
+                        // Use local backup folder
+                        string baseDir = Path.GetDirectoryName(filePath);
+                        backupBasePath = Path.Combine(baseDir, _appSettings.Processing.BackupFolderName);
+                    }
+
+                    // Ensure backup directory exists
+                    if (!Directory.Exists(backupBasePath))
+                    {
+                        Directory.CreateDirectory(backupBasePath);
+                    }
+                }
+
+                await ProcessFileWithProgress(filePath, logWriter, backupBasePath, fileIndex, totalFiles, cancellationToken);
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        }
+    }
+}

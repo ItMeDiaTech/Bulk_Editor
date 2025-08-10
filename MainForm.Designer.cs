@@ -34,16 +34,18 @@ namespace Bulk_Editor
             this.btnSelectFolder = new System.Windows.Forms.Button();
             this.txtFolderPath = new System.Windows.Forms.TextBox();
             this.lblTitle = new System.Windows.Forms.Label();
+            this.btnSettings = new System.Windows.Forms.Button();
             this.pnlContent = new System.Windows.Forms.Panel();
             this.tlpContent = new System.Windows.Forms.TableLayoutPanel();
             this.pnlFiles = new System.Windows.Forms.Panel();
-            this.lstFiles = new System.Windows.Forms.ListBox();
-            this.lblFilesTitle = new System.Windows.Forms.Label();
+            this.btnFixHighlightedDocument = new System.Windows.Forms.Button();
             this.tlpFileButtons = new System.Windows.Forms.TableLayoutPanel();
             this.btnAddFile = new System.Windows.Forms.Button();
             this.btnRemoveFile = new System.Windows.Forms.Button();
             this.btnOpenFileLocation = new System.Windows.Forms.Button();
             this.btnClearFileList = new System.Windows.Forms.Button();
+            this.lstFiles = new System.Windows.Forms.ListBox();
+            this.lblFilesTitle = new System.Windows.Forms.Label();
             this.pnlChangelog = new System.Windows.Forms.Panel();
             this.txtChangelog = new System.Windows.Forms.TextBox();
             this.btnExportSingleChangelog = new System.Windows.Forms.Button();
@@ -67,7 +69,6 @@ namespace Bulk_Editor
             this.pnlStatus = new System.Windows.Forms.Panel();
             this.progressBar = new System.Windows.Forms.ProgressBar();
             this.lblStatus = new System.Windows.Forms.Label();
-            this.btnSettings = new System.Windows.Forms.Button();
 
             this.tlpMain.SuspendLayout();
             this.pnlHeader.SuspendLayout();
@@ -87,7 +88,6 @@ namespace Bulk_Editor
             //
             // tlpMain
             //
-            this.tlpMain.BackColor = System.Drawing.Color.White; // Set to this value for light separation: System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(250)))));
             this.tlpMain.ColumnCount = 1;
             this.tlpMain.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tlpMain.Controls.Add(this.pnlHeader, 0, 0);
@@ -109,7 +109,6 @@ namespace Bulk_Editor
             //
             // pnlHeader
             //
-            this.pnlHeader.BackColor = System.Drawing.Color.White;
             this.pnlHeader.Controls.Add(this.btnSettings);
             this.pnlHeader.Controls.Add(this.lblTitle);
             this.pnlHeader.Controls.Add(this.txtFolderPath);
@@ -128,7 +127,6 @@ namespace Bulk_Editor
             //
             this.lblTitle.AutoSize = true;
             this.lblTitle.Font = new System.Drawing.Font("Segoe UI", 18F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.lblTitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(33)))), ((int)(((byte)(37)))), ((int)(((byte)(41)))));
             this.lblTitle.Location = new System.Drawing.Point(20, 10);
             this.lblTitle.Name = "lblTitle";
             this.lblTitle.Size = new System.Drawing.Size(133, 32);
@@ -149,7 +147,7 @@ namespace Bulk_Editor
             this.btnSelectFile.TabIndex = 1;
             this.btnSelectFile.Text = "📄 Select File";
             this.btnSelectFile.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            this.btnSelectFile.UseVisualStyleBackColor = false;
+            this.btnSelectFile.UseVisualStyleBackColor = true;
             this.btnSelectFile.Click += new System.EventHandler(this.BtnSelectFile_Click);
 
             //
@@ -166,7 +164,7 @@ namespace Bulk_Editor
             this.btnSelectFolder.TabIndex = 2;
             this.btnSelectFolder.Text = "📁 Select Folder";
             this.btnSelectFolder.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            this.btnSelectFolder.UseVisualStyleBackColor = false;
+            this.btnSelectFolder.UseVisualStyleBackColor = true;
             this.btnSelectFolder.Click += new System.EventHandler(this.BtnSelectFolder_Click);
 
             //
@@ -188,18 +186,19 @@ namespace Bulk_Editor
             this.btnSettings.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.btnSettings.BackColor = System.Drawing.Color.Transparent;
             this.btnSettings.FlatAppearance.BorderSize = 0;
+            this.btnSettings.FlatAppearance.MouseDownBackColor = System.Drawing.Color.Transparent;
+            this.btnSettings.FlatAppearance.MouseOverBackColor = System.Drawing.Color.Transparent; // <- was 240,240,240
             this.btnSettings.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnSettings.Location = new System.Drawing.Point(1188, 10);
             this.btnSettings.Name = "btnSettings";
             this.btnSettings.Size = new System.Drawing.Size(25, 25);
             this.btnSettings.TabIndex = 4;
-            this.btnSettings.UseVisualStyleBackColor = false;
+            this.btnSettings.UseVisualStyleBackColor = false; // <- make the button honor our transparent BackColor
             this.btnSettings.Click += new System.EventHandler(this.BtnSettings_Click);
 
             //
             // pnlContent
             //
-            this.pnlContent.BackColor = System.Drawing.Color.White;
             this.pnlContent.Controls.Add(this.tlpContent);
             this.pnlContent.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pnlContent.Location = new System.Drawing.Point(16, 144);
@@ -228,6 +227,7 @@ namespace Bulk_Editor
             //
             // pnlFiles
             //
+            this.pnlFiles.Controls.Add(this.btnFixHighlightedDocument);
             this.pnlFiles.Controls.Add(this.tlpFileButtons);
             this.pnlFiles.Controls.Add(this.lstFiles);
             this.pnlFiles.Controls.Add(this.lblFilesTitle);
@@ -243,7 +243,6 @@ namespace Bulk_Editor
             //
             this.lblFilesTitle.AutoSize = true;
             this.lblFilesTitle.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.lblFilesTitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(73)))), ((int)(((byte)(80)))), ((int)(((byte)(87)))));
             this.lblFilesTitle.Location = new System.Drawing.Point(0, 0);
             this.lblFilesTitle.Name = "lblFilesTitle";
             this.lblFilesTitle.Size = new System.Drawing.Size(46, 21);
@@ -302,7 +301,7 @@ namespace Bulk_Editor
             this.btnAddFile.Size = new System.Drawing.Size(233, 21);
             this.btnAddFile.TabIndex = 0;
             this.btnAddFile.Text = "➕ Add File to Selection";
-            this.btnAddFile.UseVisualStyleBackColor = false;
+            this.btnAddFile.UseVisualStyleBackColor = true;
             this.btnAddFile.Click += new System.EventHandler(this.BtnAddFile_Click);
 
             //
@@ -322,7 +321,7 @@ namespace Bulk_Editor
             this.btnRemoveFile.Size = new System.Drawing.Size(234, 21);
             this.btnRemoveFile.TabIndex = 1;
             this.btnRemoveFile.Text = "🗑️ Remove Highlighted Document";
-            this.btnRemoveFile.UseVisualStyleBackColor = false;
+            this.btnRemoveFile.UseVisualStyleBackColor = true;
             this.btnRemoveFile.Click += new System.EventHandler(this.BtnRemoveFile_Click);
 
             //
@@ -342,7 +341,7 @@ namespace Bulk_Editor
             this.btnOpenFileLocation.Size = new System.Drawing.Size(233, 21);
             this.btnOpenFileLocation.TabIndex = 2;
             this.btnOpenFileLocation.Text = "📂 Open Highlighted File Location";
-            this.btnOpenFileLocation.UseVisualStyleBackColor = false;
+            this.btnOpenFileLocation.UseVisualStyleBackColor = true;
             this.btnOpenFileLocation.Click += new System.EventHandler(this.BtnOpenFileLocation_Click);
 
             //
@@ -362,8 +361,25 @@ namespace Bulk_Editor
             this.btnClearFileList.Size = new System.Drawing.Size(234, 21);
             this.btnClearFileList.TabIndex = 3;
             this.btnClearFileList.Text = "🗂️ Clear Document List";
-            this.btnClearFileList.UseVisualStyleBackColor = false;
+            this.btnClearFileList.UseVisualStyleBackColor = true;
             this.btnClearFileList.Click += new System.EventHandler(this.BtnClearFileList_Click);
+
+            //
+            // btnFixHighlightedDocument
+            //
+            this.btnFixHighlightedDocument.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnFixHighlightedDocument.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(193)))), ((int)(((byte)(7)))));
+            this.btnFixHighlightedDocument.FlatAppearance.BorderSize = 0;
+            this.btnFixHighlightedDocument.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnFixHighlightedDocument.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.btnFixHighlightedDocument.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(33)))), ((int)(((byte)(37)))), ((int)(((byte)(41)))));
+            this.btnFixHighlightedDocument.Location = new System.Drawing.Point(295, 0);
+            this.btnFixHighlightedDocument.Name = "btnFixHighlightedDocument";
+            this.btnFixHighlightedDocument.Size = new System.Drawing.Size(180, 25);
+            this.btnFixHighlightedDocument.TabIndex = 3;
+            this.btnFixHighlightedDocument.Text = "🔧 Fix Highlighted Document";
+            this.btnFixHighlightedDocument.UseVisualStyleBackColor = true;
+            this.btnFixHighlightedDocument.Click += new System.EventHandler(this.BtnFixHighlightedDocument_Click);
 
             //
             // pnlChangelog
@@ -383,7 +399,6 @@ namespace Bulk_Editor
             //
             this.lblChangelogTitle.AutoSize = true;
             this.lblChangelogTitle.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.lblChangelogTitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(73)))), ((int)(((byte)(80)))), ((int)(((byte)(87)))));
             this.lblChangelogTitle.Location = new System.Drawing.Point(0, 0);
             this.lblChangelogTitle.Name = "lblChangelogTitle";
             this.lblChangelogTitle.Size = new System.Drawing.Size(85, 21);
@@ -404,9 +419,8 @@ namespace Bulk_Editor
             this.btnExportSingleChangelog.Size = new System.Drawing.Size(180, 25);
             this.btnExportSingleChangelog.TabIndex = 2;
             this.btnExportSingleChangelog.Text = "📄 Export This Changelog";
-            this.btnExportSingleChangelog.UseVisualStyleBackColor = false;
+            this.btnExportSingleChangelog.UseVisualStyleBackColor = true;
             this.btnExportSingleChangelog.Click += new System.EventHandler(this.BtnExportSingleChangelog_Click);
-
 
             //
             // txtChangelog
@@ -427,7 +441,6 @@ namespace Bulk_Editor
             //
             // pnlActions
             //
-            this.pnlActions.BackColor = System.Drawing.Color.White;
             this.pnlActions.Controls.Add(this.tlpActions);
             this.pnlActions.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pnlActions.Location = new System.Drawing.Point(16, 528);
@@ -459,9 +472,8 @@ namespace Bulk_Editor
             this.grpTools.Controls.Add(this.tlpTools);
             this.grpTools.Dock = System.Windows.Forms.DockStyle.Top;
             this.grpTools.AutoSize = true;
-            this.grpTools.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            this.grpTools.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.grpTools.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.grpTools.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(73)))), ((int)(((byte)(80)))), ((int)(((byte)(87)))));
             this.grpTools.Location = new System.Drawing.Point(0, 0);
             this.grpTools.Margin = new System.Windows.Forms.Padding(0, 0, 16, 0);
             this.grpTools.Name = "grpTools";
@@ -474,130 +486,141 @@ namespace Bulk_Editor
             //
             // tlpTools
             //
-            tlpTools.AutoSize = true;
-            tlpTools.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            this.tlpTools.AutoSize = true;
+            this.tlpTools.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.tlpTools.ColumnCount = 3;
             this.tlpTools.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 33.33F));
             this.tlpTools.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 33.33F));
             this.tlpTools.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 33.34F));
             this.tlpTools.Controls.Add(this.chkFixSourceHyperlinks, 0, 0);
             this.tlpTools.Controls.Add(this.chkAppendContentID, 0, 1);
-            this.tlpTools.Controls.Add(this.chkFixTitles, 0, 2);
+            this.tlpTools.Controls.Add(this.chkCheckTitleChanges, 0, 2);
+            this.tlpTools.Controls.Add(this.chkFixTitles, 0, 3);
             this.tlpTools.Controls.Add(this.chkFixInternalHyperlink, 1, 0);
             this.tlpTools.Controls.Add(this.chkFixDoubleSpaces, 1, 1);
             this.tlpTools.Controls.Add(this.chkReplaceHyperlink, 2, 0);
-            this.tlpTools.Controls.Add(this.btnConfigureReplaceHyperlink, 2, 2);
-            this.tlpTools.Controls.Add(this.chkOpenChangelogAfterUpdates, 1, 2);
-            this.chkFixSourceHyperlinks.Margin = new Padding(0, 0, 0, 8);
-            this.chkAppendContentID.Margin = new Padding(0, 8, 0, 8);
-            this.chkFixTitles.Margin = new Padding(0, 8, 0, 8);
-            this.chkFixInternalHyperlink.Margin = new Padding(0, 0, 0, 8);
-            this.chkFixDoubleSpaces.Margin = new Padding(0, 8, 0, 8);
-            this.chkOpenChangelogAfterUpdates.Margin = new Padding(0, 8, 0, 8);
-            this.chkReplaceHyperlink.Margin = new Padding(0, 0, 0, 8);
+            this.tlpTools.Controls.Add(this.btnConfigureReplaceHyperlink, 2, 3);
+            this.tlpTools.Controls.Add(this.chkOpenChangelogAfterUpdates, 1, 3);
             this.tlpTools.Dock = System.Windows.Forms.DockStyle.Top;
             this.tlpTools.Location = new System.Drawing.Point(16, 38);
             this.tlpTools.Name = "tlpTools";
-            this.tlpTools.RowCount = 3;
+            this.tlpTools.RowCount = 4;
             this.tlpTools.RowStyles.Clear();
-            this.tlpTools.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            this.tlpTools.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            this.tlpTools.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            this.tlpTools.Size = new System.Drawing.Size(858, 86);
+            this.tlpTools.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tlpTools.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tlpTools.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tlpTools.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tlpTools.Size = new System.Drawing.Size(858, 114);
             this.tlpTools.TabIndex = 0;
 
             //
             // chkFixSourceHyperlinks
             //
             this.chkFixSourceHyperlinks.AutoSize = true;
+            this.chkFixSourceHyperlinks.BackColor = System.Drawing.Color.Transparent;
             this.chkFixSourceHyperlinks.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.chkFixSourceHyperlinks.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(73)))), ((int)(((byte)(80)))), ((int)(((byte)(87)))));
             this.chkFixSourceHyperlinks.Location = new System.Drawing.Point(3, 3);
             this.chkFixSourceHyperlinks.Name = "chkFixSourceHyperlinks";
             this.chkFixSourceHyperlinks.Size = new System.Drawing.Size(138, 19);
             this.chkFixSourceHyperlinks.TabIndex = 0;
             this.chkFixSourceHyperlinks.Text = "Fix Source Hyperlinks";
-            this.chkFixSourceHyperlinks.UseVisualStyleBackColor = true;
+            this.chkFixSourceHyperlinks.UseVisualStyleBackColor = false;
 
             //
             // chkAppendContentID
             //
             this.chkAppendContentID.AutoSize = true;
+            this.chkAppendContentID.BackColor = System.Drawing.Color.Transparent;
             this.chkAppendContentID.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.chkAppendContentID.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(108)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
             this.chkAppendContentID.Location = new System.Drawing.Point(23, 31);
             this.chkAppendContentID.Margin = new System.Windows.Forms.Padding(23, 3, 3, 3);
             this.chkAppendContentID.Name = "chkAppendContentID";
             this.chkAppendContentID.Size = new System.Drawing.Size(128, 19);
             this.chkAppendContentID.TabIndex = 1;
             this.chkAppendContentID.Text = "Append Content ID";
-            this.chkAppendContentID.UseVisualStyleBackColor = true;
+            this.chkAppendContentID.UseVisualStyleBackColor = false;
+
+            //
+            // chkCheckTitleChanges
+            //
+            this.chkCheckTitleChanges = new System.Windows.Forms.CheckBox();
+            this.chkCheckTitleChanges.AutoSize = true;
+            this.chkCheckTitleChanges.BackColor = System.Drawing.Color.Transparent;
+            this.chkCheckTitleChanges.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.chkCheckTitleChanges.Location = new System.Drawing.Point(23, 59);
+            this.chkCheckTitleChanges.Margin = new System.Windows.Forms.Padding(23, 3, 3, 3);
+            this.chkCheckTitleChanges.Name = "chkCheckTitleChanges";
+            this.chkCheckTitleChanges.Size = new System.Drawing.Size(171, 19);
+            this.chkCheckTitleChanges.TabIndex = 2;
+            this.chkCheckTitleChanges.Text = "Check Possible Title Changes";
+            this.chkCheckTitleChanges.UseVisualStyleBackColor = false;
 
             //
             // chkFixTitles
             //
+            this.chkFixTitles = new System.Windows.Forms.CheckBox();
             this.chkFixTitles.AutoSize = true;
+            this.chkFixTitles.BackColor = System.Drawing.Color.Transparent;
             this.chkFixTitles.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.chkFixTitles.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(108)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
-            this.chkFixTitles.Location = new System.Drawing.Point(23, 59);
+            this.chkFixTitles.Location = new System.Drawing.Point(23, 87);
             this.chkFixTitles.Margin = new System.Windows.Forms.Padding(23, 3, 3, 3);
             this.chkFixTitles.Name = "chkFixTitles";
-            this.chkFixTitles.Size = new System.Drawing.Size(74, 19);
-            this.chkFixTitles.TabIndex = 2;
-            this.chkFixTitles.Text = "Update Titles";
-            this.chkFixTitles.UseVisualStyleBackColor = true;
+            this.chkFixTitles.Size = new System.Drawing.Size(140, 19);
+            this.chkFixTitles.TabIndex = 3;
+            this.chkFixTitles.Text = "Update Incorrect Titles";
+            this.chkFixTitles.UseVisualStyleBackColor = false;
 
             //
             // chkFixInternalHyperlink
             //
             this.chkFixInternalHyperlink.AutoSize = true;
+            this.chkFixInternalHyperlink.BackColor = System.Drawing.Color.Transparent;
             this.chkFixInternalHyperlink.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.chkFixInternalHyperlink.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(73)))), ((int)(((byte)(80)))), ((int)(((byte)(87)))));
             this.chkFixInternalHyperlink.Location = new System.Drawing.Point(289, 3);
             this.chkFixInternalHyperlink.Name = "chkFixInternalHyperlink";
             this.chkFixInternalHyperlink.Size = new System.Drawing.Size(138, 19);
-            this.chkFixInternalHyperlink.TabIndex = 3;
+            this.chkFixInternalHyperlink.TabIndex = 4;
             this.chkFixInternalHyperlink.Text = "Fix Internal Hyperlink";
-            this.chkFixInternalHyperlink.UseVisualStyleBackColor = true;
+            this.chkFixInternalHyperlink.UseVisualStyleBackColor = false;
 
             //
             // chkFixDoubleSpaces
             //
             this.chkFixDoubleSpaces.AutoSize = true;
+            this.chkFixDoubleSpaces.BackColor = System.Drawing.Color.Transparent;
             this.chkFixDoubleSpaces.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.chkFixDoubleSpaces.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(73)))), ((int)(((byte)(80)))), ((int)(((byte)(87)))));
             this.chkFixDoubleSpaces.Location = new System.Drawing.Point(289, 31);
             this.chkFixDoubleSpaces.Name = "chkFixDoubleSpaces";
             this.chkFixDoubleSpaces.Size = new System.Drawing.Size(122, 19);
-            this.chkFixDoubleSpaces.TabIndex = 4;
+            this.chkFixDoubleSpaces.TabIndex = 5;
             this.chkFixDoubleSpaces.Text = "Fix Double Spaces";
-            this.chkFixDoubleSpaces.UseVisualStyleBackColor = true;
+            this.chkFixDoubleSpaces.UseVisualStyleBackColor = false;
 
             //
             // chkReplaceHyperlink
             //
             this.chkReplaceHyperlink.AutoSize = true;
+            this.chkReplaceHyperlink.BackColor = System.Drawing.Color.Transparent;
             this.chkReplaceHyperlink.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.chkReplaceHyperlink.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(73)))), ((int)(((byte)(80)))), ((int)(((byte)(87)))));
             this.chkReplaceHyperlink.Location = new System.Drawing.Point(575, 3);
             this.chkReplaceHyperlink.Name = "chkReplaceHyperlink";
             this.chkReplaceHyperlink.Size = new System.Drawing.Size(126, 19);
-            this.chkReplaceHyperlink.TabIndex = 5;
+            this.chkReplaceHyperlink.TabIndex = 6;
             this.chkReplaceHyperlink.Text = "Replace Hyperlinks";
-            this.chkReplaceHyperlink.UseVisualStyleBackColor = true;
+            this.chkReplaceHyperlink.UseVisualStyleBackColor = false;
 
             //
             // chkOpenChangelogAfterUpdates
             //
             this.chkOpenChangelogAfterUpdates.AutoSize = true;
+            this.chkOpenChangelogAfterUpdates.BackColor = System.Drawing.Color.Transparent;
             this.chkOpenChangelogAfterUpdates.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.chkOpenChangelogAfterUpdates.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(73)))), ((int)(((byte)(80)))), ((int)(((byte)(87)))));
-            this.chkOpenChangelogAfterUpdates.Location = new System.Drawing.Point(289, 59);
+            this.chkOpenChangelogAfterUpdates.Location = new System.Drawing.Point(289, 87);
             this.chkOpenChangelogAfterUpdates.Name = "chkOpenChangelogAfterUpdates";
             this.chkOpenChangelogAfterUpdates.Size = new System.Drawing.Size(181, 19);
-            this.chkOpenChangelogAfterUpdates.TabIndex = 7;
+            this.chkOpenChangelogAfterUpdates.TabIndex = 8;
             this.chkOpenChangelogAfterUpdates.Text = "Open Changelog After Updates";
-            this.chkOpenChangelogAfterUpdates.UseVisualStyleBackColor = true;
+            this.chkOpenChangelogAfterUpdates.UseVisualStyleBackColor = false;
 
             //
             // btnConfigureReplaceHyperlink
@@ -607,15 +630,13 @@ namespace Bulk_Editor
             this.btnConfigureReplaceHyperlink.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnConfigureReplaceHyperlink.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.btnConfigureReplaceHyperlink.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(33)))), ((int)(((byte)(37)))), ((int)(((byte)(41)))));
-            this.btnConfigureReplaceHyperlink.Location = new System.Drawing.Point(575, 31);
+            this.btnConfigureReplaceHyperlink.Location = new System.Drawing.Point(575, 87);
             this.btnConfigureReplaceHyperlink.Name = "btnConfigureReplaceHyperlink";
             this.btnConfigureReplaceHyperlink.Size = new System.Drawing.Size(195, 30);
-            this.btnConfigureReplaceHyperlink.TabIndex = 6;
+            this.btnConfigureReplaceHyperlink.TabIndex = 7;
             this.btnConfigureReplaceHyperlink.Text = "⚙️ Edit Hyperlink Replacements";
-            this.btnConfigureReplaceHyperlink.UseVisualStyleBackColor = false;
+            this.btnConfigureReplaceHyperlink.UseVisualStyleBackColor = true;
             this.btnConfigureReplaceHyperlink.Click += new System.EventHandler(this.BtnConfigureReplaceHyperlink_Click);
-            this.btnConfigureReplaceHyperlink.Margin = new Padding(0, 0, 0, 0);
-            this.btnConfigureReplaceHyperlink.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
 
             //
             // pnlButtons
@@ -645,7 +666,7 @@ namespace Bulk_Editor
             this.btnRunTools.Size = new System.Drawing.Size(282, 50);
             this.btnRunTools.TabIndex = 0;
             this.btnRunTools.Text = "🚀 Fix All Documents";
-            this.btnRunTools.UseVisualStyleBackColor = false;
+            this.btnRunTools.UseVisualStyleBackColor = true;
             this.btnRunTools.Click += new System.EventHandler(this.BtnRunTools_Click);
 
             //
@@ -663,7 +684,7 @@ namespace Bulk_Editor
             this.btnExportChangelog.Size = new System.Drawing.Size(282, 40);
             this.btnExportChangelog.TabIndex = 1;
             this.btnExportChangelog.Text = "📤 Export Batch Changelog";
-            this.btnExportChangelog.UseVisualStyleBackColor = false;
+            this.btnExportChangelog.UseVisualStyleBackColor = true;
             this.btnExportChangelog.Click += new System.EventHandler(this.BtnExportChangelog_Click);
 
             //
@@ -681,13 +702,12 @@ namespace Bulk_Editor
             this.btnOpenChangelogFolder.Size = new System.Drawing.Size(282, 40);
             this.btnOpenChangelogFolder.TabIndex = 2;
             this.btnOpenChangelogFolder.Text = "📁 Open Changelog Folder";
-            this.btnOpenChangelogFolder.UseVisualStyleBackColor = false;
+            this.btnOpenChangelogFolder.UseVisualStyleBackColor = true;
             this.btnOpenChangelogFolder.Click += new System.EventHandler(this.BtnOpenChangelogFolder_Click);
 
             //
             // pnlStatus
             //
-            this.pnlStatus.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(250)))));
             this.pnlStatus.Controls.Add(this.lblStatus);
             this.pnlStatus.Controls.Add(this.progressBar);
             this.pnlStatus.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -702,7 +722,6 @@ namespace Bulk_Editor
             //
             this.lblStatus.AutoSize = true;
             this.lblStatus.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Italic, System.Drawing.GraphicsUnit.Point);
-            this.lblStatus.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(98)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
             this.lblStatus.Location = new System.Drawing.Point(0, 8);
             this.lblStatus.Name = "lblStatus";
             this.lblStatus.Size = new System.Drawing.Size(127, 15);
@@ -726,7 +745,6 @@ namespace Bulk_Editor
             //
             this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
-            this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(250)))));
             this.ClientSize = new System.Drawing.Size(1280, 760);
             this.Controls.Add(this.tlpMain);
             this.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
@@ -779,6 +797,7 @@ namespace Bulk_Editor
         private System.Windows.Forms.TableLayoutPanel tlpTools;
         private System.Windows.Forms.CheckBox chkFixSourceHyperlinks;
         private System.Windows.Forms.CheckBox chkAppendContentID;
+        private System.Windows.Forms.CheckBox chkCheckTitleChanges;
         private System.Windows.Forms.CheckBox chkFixTitles;
         private System.Windows.Forms.CheckBox chkFixInternalHyperlink;
         private System.Windows.Forms.CheckBox chkFixDoubleSpaces;
@@ -798,5 +817,6 @@ namespace Bulk_Editor
         private System.Windows.Forms.Button btnClearFileList;
         private System.Windows.Forms.Button btnOpenChangelogFolder;
         private System.Windows.Forms.Button btnSettings;
+        private System.Windows.Forms.Button btnFixHighlightedDocument;
     }
 }

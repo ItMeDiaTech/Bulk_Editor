@@ -11,7 +11,6 @@ namespace Bulk_Editor
         private System.Windows.Forms.TabPage tabApplication;
         private System.Windows.Forms.TabPage tabProcessing;
         private System.Windows.Forms.TabPage tabInterface;
-        private System.Windows.Forms.TabPage tabLogging;
 
         private System.Windows.Forms.GroupBox grpChangelogSettings;
         private System.Windows.Forms.Label lblBaseStoragePath;
@@ -26,11 +25,9 @@ namespace Bulk_Editor
         private System.Windows.Forms.Label lblAutoCleanupNote;
 
         private System.Windows.Forms.GroupBox grpApplicationSettings;
-        private System.Windows.Forms.CheckBox chkCheckForUpdates;
         private System.Windows.Forms.CheckBox chkRememberWindowPosition;
         private System.Windows.Forms.CheckBox chkConfirmBeforeProcessing;
-        private System.Windows.Forms.CheckBox chkShowProcessingPreview;
-        private System.Windows.Forms.CheckBox chkAutoSaveSettings;
+        private System.Windows.Forms.CheckBox chkRemoveDocumentFilesOnExit;
         private System.Windows.Forms.Label lblMaxBatchSize;
         private System.Windows.Forms.NumericUpDown numMaxBatchSize;
         private System.Windows.Forms.Label lblRecentFiles;
@@ -41,7 +38,6 @@ namespace Bulk_Editor
         private System.Windows.Forms.CheckBox chkValidateDocuments;
         private System.Windows.Forms.CheckBox chkSkipCorrupted;
         private System.Windows.Forms.CheckBox chkPreserveAttributes;
-        private System.Windows.Forms.CheckBox chkCreateProcessingReport;
         private System.Windows.Forms.Label lblMaxFileSize;
         private System.Windows.Forms.NumericUpDown numMaxFileSize;
         private System.Windows.Forms.Label lblConcurrentFiles;
@@ -56,27 +52,11 @@ namespace Bulk_Editor
         private System.Windows.Forms.CheckBox chkShowToolTips;
         private System.Windows.Forms.CheckBox chkConfirmOnExit;
         private System.Windows.Forms.CheckBox chkShowStatusBar;
-        private System.Windows.Forms.CheckBox chkEnableSounds;
-        private System.Windows.Forms.CheckBox chkShowWelcomeScreen;
         private System.Windows.Forms.Label lblTheme;
         private System.Windows.Forms.ComboBox cmbTheme;
         private System.Windows.Forms.Label lblLanguage;
         private System.Windows.Forms.ComboBox cmbLanguage;
 
-        private System.Windows.Forms.GroupBox grpLoggingSettings;
-        private System.Windows.Forms.CheckBox chkEnableFileLogging;
-        private System.Windows.Forms.CheckBox chkEnableConsoleLogging;
-        private System.Windows.Forms.CheckBox chkLogUserActions;
-        private System.Windows.Forms.CheckBox chkLogPerformance;
-        private System.Windows.Forms.CheckBox chkEnableDebugMode;
-        private System.Windows.Forms.CheckBox chkIncludeStackTrace;
-        private System.Windows.Forms.CheckBox chkCompressOldLogs;
-        private System.Windows.Forms.Label lblLogLevel;
-        private System.Windows.Forms.ComboBox cmbLogLevel;
-        private System.Windows.Forms.Label lblMaxLogSize;
-        private System.Windows.Forms.NumericUpDown numMaxLogSize;
-        private System.Windows.Forms.Label lblMaxLogFiles;
-        private System.Windows.Forms.NumericUpDown numMaxLogFiles;
 
         private System.Windows.Forms.Panel pnlButtons;
         private System.Windows.Forms.Button btnSave;
@@ -124,11 +104,9 @@ namespace Bulk_Editor
             this.lblAutoCleanupNote = new System.Windows.Forms.Label();
             this.tabApplication = new System.Windows.Forms.TabPage();
             this.grpApplicationSettings = new System.Windows.Forms.GroupBox();
-            this.chkCheckForUpdates = new System.Windows.Forms.CheckBox();
             this.chkRememberWindowPosition = new System.Windows.Forms.CheckBox();
             this.chkConfirmBeforeProcessing = new System.Windows.Forms.CheckBox();
-            this.chkShowProcessingPreview = new System.Windows.Forms.CheckBox();
-            this.chkAutoSaveSettings = new System.Windows.Forms.CheckBox();
+            this.chkRemoveDocumentFilesOnExit = new System.Windows.Forms.CheckBox();
             this.lblMaxBatchSize = new System.Windows.Forms.Label();
             this.numMaxBatchSize = new System.Windows.Forms.NumericUpDown();
             this.lblRecentFiles = new System.Windows.Forms.Label();
@@ -139,7 +117,6 @@ namespace Bulk_Editor
             this.chkValidateDocuments = new System.Windows.Forms.CheckBox();
             this.chkSkipCorrupted = new System.Windows.Forms.CheckBox();
             this.chkPreserveAttributes = new System.Windows.Forms.CheckBox();
-            this.chkCreateProcessingReport = new System.Windows.Forms.CheckBox();
             this.lblMaxFileSize = new System.Windows.Forms.Label();
             this.numMaxFileSize = new System.Windows.Forms.NumericUpDown();
             this.lblConcurrentFiles = new System.Windows.Forms.Label();
@@ -154,27 +131,10 @@ namespace Bulk_Editor
             this.chkShowToolTips = new System.Windows.Forms.CheckBox();
             this.chkConfirmOnExit = new System.Windows.Forms.CheckBox();
             this.chkShowStatusBar = new System.Windows.Forms.CheckBox();
-            this.chkEnableSounds = new System.Windows.Forms.CheckBox();
-            this.chkShowWelcomeScreen = new System.Windows.Forms.CheckBox();
             this.lblTheme = new System.Windows.Forms.Label();
             this.cmbTheme = new System.Windows.Forms.ComboBox();
             this.lblLanguage = new System.Windows.Forms.Label();
             this.cmbLanguage = new System.Windows.Forms.ComboBox();
-            this.tabLogging = new System.Windows.Forms.TabPage();
-            this.grpLoggingSettings = new System.Windows.Forms.GroupBox();
-            this.chkEnableFileLogging = new System.Windows.Forms.CheckBox();
-            this.chkEnableConsoleLogging = new System.Windows.Forms.CheckBox();
-            this.chkLogUserActions = new System.Windows.Forms.CheckBox();
-            this.chkLogPerformance = new System.Windows.Forms.CheckBox();
-            this.chkEnableDebugMode = new System.Windows.Forms.CheckBox();
-            this.chkIncludeStackTrace = new System.Windows.Forms.CheckBox();
-            this.chkCompressOldLogs = new System.Windows.Forms.CheckBox();
-            this.lblLogLevel = new System.Windows.Forms.Label();
-            this.cmbLogLevel = new System.Windows.Forms.ComboBox();
-            this.lblMaxLogSize = new System.Windows.Forms.Label();
-            this.numMaxLogSize = new System.Windows.Forms.NumericUpDown();
-            this.lblMaxLogFiles = new System.Windows.Forms.Label();
-            this.numMaxLogFiles = new System.Windows.Forms.NumericUpDown();
             this.pnlButtons = new System.Windows.Forms.Panel();
             this.btnSave = new System.Windows.Forms.Button();
             this.btnCancel = new System.Windows.Forms.Button();
@@ -200,10 +160,6 @@ namespace Bulk_Editor
             ((System.ComponentModel.ISupportInitialize)(this.numProcessingTimeout)).BeginInit();
             this.tabInterface.SuspendLayout();
             this.grpInterfaceSettings.SuspendLayout();
-            this.tabLogging.SuspendLayout();
-            this.grpLoggingSettings.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.numMaxLogSize)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numMaxLogFiles)).BeginInit();
             this.pnlButtons.SuspendLayout();
             this.SuspendLayout();
 
@@ -217,7 +173,6 @@ namespace Bulk_Editor
             this.tabControl.Controls.Add(this.tabApplication);
             this.tabControl.Controls.Add(this.tabProcessing);
             this.tabControl.Controls.Add(this.tabInterface);
-            this.tabControl.Controls.Add(this.tabLogging);
             this.tabControl.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.tabControl.Location = new System.Drawing.Point(20, 80);
             this.tabControl.Name = "tabControl";
@@ -243,6 +198,7 @@ namespace Bulk_Editor
             this.grpChangelogSettings.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
             | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.grpChangelogSettings.BackColor = System.Drawing.Color.Transparent;
             this.grpChangelogSettings.Controls.Add(this.lblAutoCleanupNote);
             this.grpChangelogSettings.Controls.Add(this.numAutoCleanupDays);
             this.grpChangelogSettings.Controls.Add(this.lblAutoCleanupDays);
@@ -267,6 +223,7 @@ namespace Bulk_Editor
             // lblBaseStoragePath
             //
             this.lblBaseStoragePath.AutoSize = true;
+            this.lblBaseStoragePath.BackColor = System.Drawing.Color.Transparent;
             this.lblBaseStoragePath.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.lblBaseStoragePath.Location = new System.Drawing.Point(20, 70);
             this.lblBaseStoragePath.Name = "lblBaseStoragePath";
@@ -298,13 +255,16 @@ namespace Bulk_Editor
             this.btnBrowsePath.Size = new System.Drawing.Size(80, 23);
             this.btnBrowsePath.TabIndex = 3;
             this.btnBrowsePath.Text = "Browse...";
-            this.btnBrowsePath.UseVisualStyleBackColor = false;
+            this.btnBrowsePath.UseVisualStyleBackColor = true;
             this.btnBrowsePath.Click += new System.EventHandler(this.BtnBrowsePath_Click);
 
             //
             // chkUseCentralizedStorage
             //
             this.chkUseCentralizedStorage.AutoSize = true;
+            this.chkUseCentralizedStorage.BackColor = System.Drawing.Color.White;
+            this.chkUseCentralizedStorage.FlatAppearance.BorderSize = 0;
+            this.chkUseCentralizedStorage.FlatAppearance.BorderColor = System.Drawing.Color.White;
             this.chkUseCentralizedStorage.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.chkUseCentralizedStorage.Location = new System.Drawing.Point(20, 40);
             this.chkUseCentralizedStorage.Name = "chkUseCentralizedStorage";
@@ -317,6 +277,9 @@ namespace Bulk_Editor
             // chkOrganizeByDate
             //
             this.chkOrganizeByDate.AutoSize = true;
+            this.chkOrganizeByDate.BackColor = System.Drawing.Color.White;
+            this.chkOrganizeByDate.FlatAppearance.BorderSize = 0;
+            this.chkOrganizeByDate.FlatAppearance.BorderColor = System.Drawing.Color.White;
             this.chkOrganizeByDate.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.chkOrganizeByDate.Location = new System.Drawing.Point(40, 130);
             this.chkOrganizeByDate.Name = "chkOrganizeByDate";
@@ -329,6 +292,9 @@ namespace Bulk_Editor
             // chkSeparateIndividualAndCombined
             //
             this.chkSeparateIndividualAndCombined.AutoSize = true;
+            this.chkSeparateIndividualAndCombined.BackColor = System.Drawing.Color.White;
+            this.chkSeparateIndividualAndCombined.FlatAppearance.BorderSize = 0;
+            this.chkSeparateIndividualAndCombined.FlatAppearance.BorderColor = System.Drawing.Color.White;
             this.chkSeparateIndividualAndCombined.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.chkSeparateIndividualAndCombined.Location = new System.Drawing.Point(40, 155);
             this.chkSeparateIndividualAndCombined.Name = "chkSeparateIndividualAndCombined";
@@ -341,18 +307,22 @@ namespace Bulk_Editor
             // chkCentralizeBackups
             //
             this.chkCentralizeBackups.AutoSize = true;
+            this.chkCentralizeBackups.BackColor = System.Drawing.Color.White;
+            this.chkCentralizeBackups.FlatAppearance.BorderSize = 0;
+            this.chkCentralizeBackups.FlatAppearance.BorderColor = System.Drawing.Color.White;
             this.chkCentralizeBackups.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.chkCentralizeBackups.Location = new System.Drawing.Point(40, 180);
             this.chkCentralizeBackups.Name = "chkCentralizeBackups";
             this.chkCentralizeBackups.Size = new System.Drawing.Size(294, 19);
             this.chkCentralizeBackups.TabIndex = 6;
-            this.chkCentralizeBackups.Text = "Store document backups in centralized location too";
+            this.chkCentralizeBackups.Text = "Store backups of files in the centralized location";
             this.chkCentralizeBackups.UseVisualStyleBackColor = true;
 
             //
             // lblAutoCleanupDays
             //
             this.lblAutoCleanupDays.AutoSize = true;
+            this.lblAutoCleanupDays.BackColor = System.Drawing.Color.Transparent;
             this.lblAutoCleanupDays.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.lblAutoCleanupDays.Location = new System.Drawing.Point(40, 220);
             this.lblAutoCleanupDays.Name = "lblAutoCleanupDays";
@@ -375,6 +345,7 @@ namespace Bulk_Editor
             // lblAutoCleanupNote
             //
             this.lblAutoCleanupNote.AutoSize = true;
+            this.lblAutoCleanupNote.BackColor = System.Drawing.Color.Transparent;
             this.lblAutoCleanupNote.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Italic, System.Drawing.GraphicsUnit.Point);
             this.lblAutoCleanupNote.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(108)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
             this.lblAutoCleanupNote.Location = new System.Drawing.Point(296, 222);
@@ -401,15 +372,14 @@ namespace Bulk_Editor
             this.grpApplicationSettings.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
             | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.grpApplicationSettings.BackColor = System.Drawing.Color.Transparent;
             this.grpApplicationSettings.Controls.Add(this.numRecentFiles);
             this.grpApplicationSettings.Controls.Add(this.lblRecentFiles);
             this.grpApplicationSettings.Controls.Add(this.numMaxBatchSize);
             this.grpApplicationSettings.Controls.Add(this.lblMaxBatchSize);
-            this.grpApplicationSettings.Controls.Add(this.chkAutoSaveSettings);
-            this.grpApplicationSettings.Controls.Add(this.chkShowProcessingPreview);
+            this.grpApplicationSettings.Controls.Add(this.chkRemoveDocumentFilesOnExit);
             this.grpApplicationSettings.Controls.Add(this.chkConfirmBeforeProcessing);
             this.grpApplicationSettings.Controls.Add(this.chkRememberWindowPosition);
-            this.grpApplicationSettings.Controls.Add(this.chkCheckForUpdates);
             this.grpApplicationSettings.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.grpApplicationSettings.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(73)))), ((int)(((byte)(80)))), ((int)(((byte)(87)))));
             this.grpApplicationSettings.Location = new System.Drawing.Point(15, 15);
@@ -421,26 +391,17 @@ namespace Bulk_Editor
             this.grpApplicationSettings.Text = "Application Behavior";
 
             //
-            // chkCheckForUpdates
-            //
-            this.chkCheckForUpdates.AutoSize = true;
-            this.chkCheckForUpdates.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.chkCheckForUpdates.Location = new System.Drawing.Point(20, 40);
-            this.chkCheckForUpdates.Name = "chkCheckForUpdates";
-            this.chkCheckForUpdates.Size = new System.Drawing.Size(197, 19);
-            this.chkCheckForUpdates.TabIndex = 0;
-            this.chkCheckForUpdates.Text = "Check for updates automatically";
-            this.chkCheckForUpdates.UseVisualStyleBackColor = true;
-
-            //
             // chkRememberWindowPosition
             //
             this.chkRememberWindowPosition.AutoSize = true;
+            this.chkRememberWindowPosition.BackColor = System.Drawing.Color.White;
+            this.chkRememberWindowPosition.FlatAppearance.BorderSize = 0;
+            this.chkRememberWindowPosition.FlatAppearance.BorderColor = System.Drawing.Color.White;
             this.chkRememberWindowPosition.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.chkRememberWindowPosition.Location = new System.Drawing.Point(20, 65);
+            this.chkRememberWindowPosition.Location = new System.Drawing.Point(20, 40);
             this.chkRememberWindowPosition.Name = "chkRememberWindowPosition";
             this.chkRememberWindowPosition.Size = new System.Drawing.Size(174, 19);
-            this.chkRememberWindowPosition.TabIndex = 1;
+            this.chkRememberWindowPosition.TabIndex = 0;
             this.chkRememberWindowPosition.Text = "Remember window position";
             this.chkRememberWindowPosition.UseVisualStyleBackColor = true;
 
@@ -448,44 +409,39 @@ namespace Bulk_Editor
             // chkConfirmBeforeProcessing
             //
             this.chkConfirmBeforeProcessing.AutoSize = true;
+            this.chkConfirmBeforeProcessing.BackColor = System.Drawing.Color.White;
+            this.chkConfirmBeforeProcessing.FlatAppearance.BorderSize = 0;
+            this.chkConfirmBeforeProcessing.FlatAppearance.BorderColor = System.Drawing.Color.White;
             this.chkConfirmBeforeProcessing.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.chkConfirmBeforeProcessing.Location = new System.Drawing.Point(20, 90);
+            this.chkConfirmBeforeProcessing.Location = new System.Drawing.Point(20, 65);
             this.chkConfirmBeforeProcessing.Name = "chkConfirmBeforeProcessing";
             this.chkConfirmBeforeProcessing.Size = new System.Drawing.Size(176, 19);
-            this.chkConfirmBeforeProcessing.TabIndex = 2;
+            this.chkConfirmBeforeProcessing.TabIndex = 1;
             this.chkConfirmBeforeProcessing.Text = "Confirm before processing";
             this.chkConfirmBeforeProcessing.UseVisualStyleBackColor = true;
 
             //
-            // chkShowProcessingPreview
+            // chkRemoveDocumentFilesOnExit
             //
-            this.chkShowProcessingPreview.AutoSize = true;
-            this.chkShowProcessingPreview.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.chkShowProcessingPreview.Location = new System.Drawing.Point(20, 115);
-            this.chkShowProcessingPreview.Name = "chkShowProcessingPreview";
-            this.chkShowProcessingPreview.Size = new System.Drawing.Size(159, 19);
-            this.chkShowProcessingPreview.TabIndex = 3;
-            this.chkShowProcessingPreview.Text = "Show processing preview";
-            this.chkShowProcessingPreview.UseVisualStyleBackColor = true;
-
-            //
-            // chkAutoSaveSettings
-            //
-            this.chkAutoSaveSettings.AutoSize = true;
-            this.chkAutoSaveSettings.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.chkAutoSaveSettings.Location = new System.Drawing.Point(20, 140);
-            this.chkAutoSaveSettings.Name = "chkAutoSaveSettings";
-            this.chkAutoSaveSettings.Size = new System.Drawing.Size(153, 19);
-            this.chkAutoSaveSettings.TabIndex = 4;
-            this.chkAutoSaveSettings.Text = "Auto-save settings";
-            this.chkAutoSaveSettings.UseVisualStyleBackColor = true;
+            this.chkRemoveDocumentFilesOnExit.AutoSize = true;
+            this.chkRemoveDocumentFilesOnExit.BackColor = System.Drawing.Color.White;
+            this.chkRemoveDocumentFilesOnExit.FlatAppearance.BorderSize = 0;
+            this.chkRemoveDocumentFilesOnExit.FlatAppearance.BorderColor = System.Drawing.Color.White;
+            this.chkRemoveDocumentFilesOnExit.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.chkRemoveDocumentFilesOnExit.Location = new System.Drawing.Point(20, 90);
+            this.chkRemoveDocumentFilesOnExit.Name = "chkRemoveDocumentFilesOnExit";
+            this.chkRemoveDocumentFilesOnExit.Size = new System.Drawing.Size(186, 19);
+            this.chkRemoveDocumentFilesOnExit.TabIndex = 2;
+            this.chkRemoveDocumentFilesOnExit.Text = "Remove document files on exit";
+            this.chkRemoveDocumentFilesOnExit.UseVisualStyleBackColor = true;
 
             //
             // lblMaxBatchSize
             //
             this.lblMaxBatchSize.AutoSize = true;
+            this.lblMaxBatchSize.BackColor = System.Drawing.Color.Transparent;
             this.lblMaxBatchSize.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.lblMaxBatchSize.Location = new System.Drawing.Point(20, 180);
+            this.lblMaxBatchSize.Location = new System.Drawing.Point(20, 130);
             this.lblMaxBatchSize.Name = "lblMaxBatchSize";
             this.lblMaxBatchSize.Size = new System.Drawing.Size(132, 15);
             this.lblMaxBatchSize.TabIndex = 5;
@@ -495,7 +451,7 @@ namespace Bulk_Editor
             // numMaxBatchSize
             //
             this.numMaxBatchSize.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.numMaxBatchSize.Location = new System.Drawing.Point(160, 178);
+            this.numMaxBatchSize.Location = new System.Drawing.Point(160, 128);
             this.numMaxBatchSize.Maximum = new decimal(new int[] { 1000, 0, 0, 0 });
             this.numMaxBatchSize.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
             this.numMaxBatchSize.Name = "numMaxBatchSize";
@@ -507,8 +463,9 @@ namespace Bulk_Editor
             // lblRecentFiles
             //
             this.lblRecentFiles.AutoSize = true;
+            this.lblRecentFiles.BackColor = System.Drawing.Color.Transparent;
             this.lblRecentFiles.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.lblRecentFiles.Location = new System.Drawing.Point(20, 210);
+            this.lblRecentFiles.Location = new System.Drawing.Point(20, 160);
             this.lblRecentFiles.Name = "lblRecentFiles";
             this.lblRecentFiles.Size = new System.Drawing.Size(118, 15);
             this.lblRecentFiles.TabIndex = 7;
@@ -518,7 +475,7 @@ namespace Bulk_Editor
             // numRecentFiles
             //
             this.numRecentFiles.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.numRecentFiles.Location = new System.Drawing.Point(160, 208);
+            this.numRecentFiles.Location = new System.Drawing.Point(160, 158);
             this.numRecentFiles.Maximum = new decimal(new int[] { 20, 0, 0, 0 });
             this.numRecentFiles.Minimum = new decimal(new int[] { 0, 0, 0, 0 });
             this.numRecentFiles.Name = "numRecentFiles";
@@ -544,13 +501,13 @@ namespace Bulk_Editor
             this.grpProcessingSettings.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
             | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.grpProcessingSettings.BackColor = System.Drawing.Color.Transparent;
             this.grpProcessingSettings.Controls.Add(this.numProcessingTimeout);
             this.grpProcessingSettings.Controls.Add(this.lblProcessingTimeout);
             this.grpProcessingSettings.Controls.Add(this.numConcurrentFiles);
             this.grpProcessingSettings.Controls.Add(this.lblConcurrentFiles);
             this.grpProcessingSettings.Controls.Add(this.numMaxFileSize);
             this.grpProcessingSettings.Controls.Add(this.lblMaxFileSize);
-            this.grpProcessingSettings.Controls.Add(this.chkCreateProcessingReport);
             this.grpProcessingSettings.Controls.Add(this.chkPreserveAttributes);
             this.grpProcessingSettings.Controls.Add(this.chkSkipCorrupted);
             this.grpProcessingSettings.Controls.Add(this.chkValidateDocuments);
@@ -569,6 +526,9 @@ namespace Bulk_Editor
             // chkCreateBackups
             //
             this.chkCreateBackups.AutoSize = true;
+            this.chkCreateBackups.BackColor = System.Drawing.Color.White;
+            this.chkCreateBackups.FlatAppearance.BorderSize = 0;
+            this.chkCreateBackups.FlatAppearance.BorderColor = System.Drawing.Color.White;
             this.chkCreateBackups.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.chkCreateBackups.Location = new System.Drawing.Point(20, 40);
             this.chkCreateBackups.Name = "chkCreateBackups";
@@ -581,6 +541,9 @@ namespace Bulk_Editor
             // chkValidateDocuments
             //
             this.chkValidateDocuments.AutoSize = true;
+            this.chkValidateDocuments.BackColor = System.Drawing.Color.White;
+            this.chkValidateDocuments.FlatAppearance.BorderSize = 0;
+            this.chkValidateDocuments.FlatAppearance.BorderColor = System.Drawing.Color.White;
             this.chkValidateDocuments.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.chkValidateDocuments.Location = new System.Drawing.Point(20, 65);
             this.chkValidateDocuments.Name = "chkValidateDocuments";
@@ -593,6 +556,9 @@ namespace Bulk_Editor
             // chkSkipCorrupted
             //
             this.chkSkipCorrupted.AutoSize = true;
+            this.chkSkipCorrupted.BackColor = System.Drawing.Color.White;
+            this.chkSkipCorrupted.FlatAppearance.BorderSize = 0;
+            this.chkSkipCorrupted.FlatAppearance.BorderColor = System.Drawing.Color.White;
             this.chkSkipCorrupted.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.chkSkipCorrupted.Location = new System.Drawing.Point(20, 90);
             this.chkSkipCorrupted.Name = "chkSkipCorrupted";
@@ -605,32 +571,25 @@ namespace Bulk_Editor
             // chkPreserveAttributes
             //
             this.chkPreserveAttributes.AutoSize = true;
+            this.chkPreserveAttributes.BackColor = System.Drawing.Color.White;
+            this.chkPreserveAttributes.FlatAppearance.BorderSize = 0;
+            this.chkPreserveAttributes.FlatAppearance.BorderColor = System.Drawing.Color.White;
             this.chkPreserveAttributes.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.chkPreserveAttributes.Location = new System.Drawing.Point(20, 115);
             this.chkPreserveAttributes.Name = "chkPreserveAttributes";
             this.chkPreserveAttributes.Size = new System.Drawing.Size(151, 19);
             this.chkPreserveAttributes.TabIndex = 3;
-            this.chkPreserveAttributes.Text = "Preserve file attributes";
+            this.chkPreserveAttributes.Text = "Preserve file attributes (timestamps, read-only, etc.)";
             this.chkPreserveAttributes.UseVisualStyleBackColor = true;
 
-            //
-            // chkCreateProcessingReport
-            //
-            this.chkCreateProcessingReport.AutoSize = true;
-            this.chkCreateProcessingReport.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.chkCreateProcessingReport.Location = new System.Drawing.Point(20, 140);
-            this.chkCreateProcessingReport.Name = "chkCreateProcessingReport";
-            this.chkCreateProcessingReport.Size = new System.Drawing.Size(156, 19);
-            this.chkCreateProcessingReport.TabIndex = 4;
-            this.chkCreateProcessingReport.Text = "Create processing report";
-            this.chkCreateProcessingReport.UseVisualStyleBackColor = true;
 
             //
             // lblMaxFileSize
             //
             this.lblMaxFileSize.AutoSize = true;
+            this.lblMaxFileSize.BackColor = System.Drawing.Color.Transparent;
             this.lblMaxFileSize.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.lblMaxFileSize.Location = new System.Drawing.Point(20, 180);
+            this.lblMaxFileSize.Location = new System.Drawing.Point(20, 140);
             this.lblMaxFileSize.Name = "lblMaxFileSize";
             this.lblMaxFileSize.Size = new System.Drawing.Size(120, 15);
             this.lblMaxFileSize.TabIndex = 5;
@@ -640,7 +599,7 @@ namespace Bulk_Editor
             // numMaxFileSize
             //
             this.numMaxFileSize.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.numMaxFileSize.Location = new System.Drawing.Point(150, 178);
+            this.numMaxFileSize.Location = new System.Drawing.Point(150, 138);
             this.numMaxFileSize.Maximum = new decimal(new int[] { 1000, 0, 0, 0 });
             this.numMaxFileSize.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
             this.numMaxFileSize.Name = "numMaxFileSize";
@@ -652,8 +611,9 @@ namespace Bulk_Editor
             // lblConcurrentFiles
             //
             this.lblConcurrentFiles.AutoSize = true;
+            this.lblConcurrentFiles.BackColor = System.Drawing.Color.Transparent;
             this.lblConcurrentFiles.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.lblConcurrentFiles.Location = new System.Drawing.Point(20, 210);
+            this.lblConcurrentFiles.Location = new System.Drawing.Point(20, 170);
             this.lblConcurrentFiles.Name = "lblConcurrentFiles";
             this.lblConcurrentFiles.Size = new System.Drawing.Size(107, 15);
             this.lblConcurrentFiles.TabIndex = 7;
@@ -663,7 +623,7 @@ namespace Bulk_Editor
             // numConcurrentFiles
             //
             this.numConcurrentFiles.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.numConcurrentFiles.Location = new System.Drawing.Point(150, 208);
+            this.numConcurrentFiles.Location = new System.Drawing.Point(150, 168);
             this.numConcurrentFiles.Maximum = new decimal(new int[] { 10, 0, 0, 0 });
             this.numConcurrentFiles.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
             this.numConcurrentFiles.Name = "numConcurrentFiles";
@@ -675,8 +635,9 @@ namespace Bulk_Editor
             // lblProcessingTimeout
             //
             this.lblProcessingTimeout.AutoSize = true;
+            this.lblProcessingTimeout.BackColor = System.Drawing.Color.Transparent;
             this.lblProcessingTimeout.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.lblProcessingTimeout.Location = new System.Drawing.Point(20, 240);
+            this.lblProcessingTimeout.Location = new System.Drawing.Point(20, 200);
             this.lblProcessingTimeout.Name = "lblProcessingTimeout";
             this.lblProcessingTimeout.Size = new System.Drawing.Size(140, 15);
             this.lblProcessingTimeout.TabIndex = 9;
@@ -686,8 +647,8 @@ namespace Bulk_Editor
             // numProcessingTimeout
             //
             this.numProcessingTimeout.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.numProcessingTimeout.Location = new System.Drawing.Point(170, 238);
-            this.numProcessingTimeout.Maximum = new decimal(new int[] { 300, 0, 0, 0 });
+            this.numProcessingTimeout.Location = new System.Drawing.Point(170, 198);
+            this.numProcessingTimeout.Maximum = new decimal(new int[] { 7200, 0, 0, 0 });
             this.numProcessingTimeout.Minimum = new decimal(new int[] { 10, 0, 0, 0 });
             this.numProcessingTimeout.Name = "numProcessingTimeout";
             this.numProcessingTimeout.Size = new System.Drawing.Size(80, 23);
@@ -712,12 +673,11 @@ namespace Bulk_Editor
             this.grpInterfaceSettings.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
             | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.grpInterfaceSettings.BackColor = System.Drawing.Color.Transparent;
             this.grpInterfaceSettings.Controls.Add(this.cmbLanguage);
             this.grpInterfaceSettings.Controls.Add(this.lblLanguage);
             this.grpInterfaceSettings.Controls.Add(this.cmbTheme);
             this.grpInterfaceSettings.Controls.Add(this.lblTheme);
-            this.grpInterfaceSettings.Controls.Add(this.chkShowWelcomeScreen);
-            this.grpInterfaceSettings.Controls.Add(this.chkEnableSounds);
             this.grpInterfaceSettings.Controls.Add(this.chkShowStatusBar);
             this.grpInterfaceSettings.Controls.Add(this.chkConfirmOnExit);
             this.grpInterfaceSettings.Controls.Add(this.chkShowToolTips);
@@ -738,6 +698,9 @@ namespace Bulk_Editor
             // chkRememberWindowSize
             //
             this.chkRememberWindowSize.AutoSize = true;
+            this.chkRememberWindowSize.BackColor = System.Drawing.Color.White;
+            this.chkRememberWindowSize.FlatAppearance.BorderSize = 0;
+            this.chkRememberWindowSize.FlatAppearance.BorderColor = System.Drawing.Color.White;
             this.chkRememberWindowSize.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.chkRememberWindowSize.Location = new System.Drawing.Point(20, 40);
             this.chkRememberWindowSize.Name = "chkRememberWindowSize";
@@ -750,6 +713,9 @@ namespace Bulk_Editor
             // chkShowProgressDetails
             //
             this.chkShowProgressDetails.AutoSize = true;
+            this.chkShowProgressDetails.BackColor = System.Drawing.Color.White;
+            this.chkShowProgressDetails.FlatAppearance.BorderSize = 0;
+            this.chkShowProgressDetails.FlatAppearance.BorderColor = System.Drawing.Color.White;
             this.chkShowProgressDetails.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.chkShowProgressDetails.Location = new System.Drawing.Point(20, 65);
             this.chkShowProgressDetails.Name = "chkShowProgressDetails";
@@ -762,6 +728,9 @@ namespace Bulk_Editor
             // chkAutoSelectFirstFile
             //
             this.chkAutoSelectFirstFile.AutoSize = true;
+            this.chkAutoSelectFirstFile.BackColor = System.Drawing.Color.White;
+            this.chkAutoSelectFirstFile.FlatAppearance.BorderSize = 0;
+            this.chkAutoSelectFirstFile.FlatAppearance.BorderColor = System.Drawing.Color.White;
             this.chkAutoSelectFirstFile.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.chkAutoSelectFirstFile.Location = new System.Drawing.Point(20, 90);
             this.chkAutoSelectFirstFile.Name = "chkAutoSelectFirstFile";
@@ -774,6 +743,9 @@ namespace Bulk_Editor
             // chkShowToolTips
             //
             this.chkShowToolTips.AutoSize = true;
+            this.chkShowToolTips.BackColor = System.Drawing.Color.White;
+            this.chkShowToolTips.FlatAppearance.BorderSize = 0;
+            this.chkShowToolTips.FlatAppearance.BorderColor = System.Drawing.Color.White;
             this.chkShowToolTips.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.chkShowToolTips.Location = new System.Drawing.Point(20, 115);
             this.chkShowToolTips.Name = "chkShowToolTips";
@@ -786,6 +758,9 @@ namespace Bulk_Editor
             // chkConfirmOnExit
             //
             this.chkConfirmOnExit.AutoSize = true;
+            this.chkConfirmOnExit.BackColor = System.Drawing.Color.White;
+            this.chkConfirmOnExit.FlatAppearance.BorderSize = 0;
+            this.chkConfirmOnExit.FlatAppearance.BorderColor = System.Drawing.Color.White;
             this.chkConfirmOnExit.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.chkConfirmOnExit.Location = new System.Drawing.Point(20, 140);
             this.chkConfirmOnExit.Name = "chkConfirmOnExit";
@@ -798,6 +773,9 @@ namespace Bulk_Editor
             // chkShowStatusBar
             //
             this.chkShowStatusBar.AutoSize = true;
+            this.chkShowStatusBar.BackColor = System.Drawing.Color.White;
+            this.chkShowStatusBar.FlatAppearance.BorderSize = 0;
+            this.chkShowStatusBar.FlatAppearance.BorderColor = System.Drawing.Color.White;
             this.chkShowStatusBar.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.chkShowStatusBar.Location = new System.Drawing.Point(20, 165);
             this.chkShowStatusBar.Name = "chkShowStatusBar";
@@ -806,34 +784,12 @@ namespace Bulk_Editor
             this.chkShowStatusBar.Text = "Show status bar";
             this.chkShowStatusBar.UseVisualStyleBackColor = true;
 
-            //
-            // chkEnableSounds
-            //
-            this.chkEnableSounds.AutoSize = true;
-            this.chkEnableSounds.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.chkEnableSounds.Location = new System.Drawing.Point(20, 190);
-            this.chkEnableSounds.Name = "chkEnableSounds";
-            this.chkEnableSounds.Size = new System.Drawing.Size(100, 19);
-            this.chkEnableSounds.TabIndex = 6;
-            this.chkEnableSounds.Text = "Enable sounds";
-            this.chkEnableSounds.UseVisualStyleBackColor = true;
-
-            //
-            // chkShowWelcomeScreen
-            //
-            this.chkShowWelcomeScreen.AutoSize = true;
-            this.chkShowWelcomeScreen.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.chkShowWelcomeScreen.Location = new System.Drawing.Point(20, 215);
-            this.chkShowWelcomeScreen.Name = "chkShowWelcomeScreen";
-            this.chkShowWelcomeScreen.Size = new System.Drawing.Size(145, 19);
-            this.chkShowWelcomeScreen.TabIndex = 7;
-            this.chkShowWelcomeScreen.Text = "Show welcome screen";
-            this.chkShowWelcomeScreen.UseVisualStyleBackColor = true;
 
             //
             // lblTheme
             //
             this.lblTheme.AutoSize = true;
+            this.lblTheme.BackColor = System.Drawing.Color.Transparent;
             this.lblTheme.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.lblTheme.Location = new System.Drawing.Point(20, 255);
             this.lblTheme.Name = "lblTheme";
@@ -857,6 +813,7 @@ namespace Bulk_Editor
             // lblLanguage
             //
             this.lblLanguage.AutoSize = true;
+            this.lblLanguage.BackColor = System.Drawing.Color.Transparent;
             this.lblLanguage.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.lblLanguage.Location = new System.Drawing.Point(220, 255);
             this.lblLanguage.Name = "lblLanguage";
@@ -876,199 +833,6 @@ namespace Bulk_Editor
             this.cmbLanguage.Size = new System.Drawing.Size(120, 23);
             this.cmbLanguage.TabIndex = 11;
 
-            //
-            // tabLogging
-            //
-            this.tabLogging.Controls.Add(this.grpLoggingSettings);
-            this.tabLogging.Location = new System.Drawing.Point(4, 24);
-            this.tabLogging.Name = "tabLogging";
-            this.tabLogging.Padding = new System.Windows.Forms.Padding(15);
-            this.tabLogging.Size = new System.Drawing.Size(752, 392);
-            this.tabLogging.TabIndex = 4;
-            this.tabLogging.Text = "📊 Logging";
-            this.tabLogging.UseVisualStyleBackColor = true;
-
-            //
-            // grpLoggingSettings
-            //
-            this.grpLoggingSettings.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
-            | System.Windows.Forms.AnchorStyles.Left)
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.grpLoggingSettings.Controls.Add(this.numMaxLogFiles);
-            this.grpLoggingSettings.Controls.Add(this.lblMaxLogFiles);
-            this.grpLoggingSettings.Controls.Add(this.numMaxLogSize);
-            this.grpLoggingSettings.Controls.Add(this.lblMaxLogSize);
-            this.grpLoggingSettings.Controls.Add(this.cmbLogLevel);
-            this.grpLoggingSettings.Controls.Add(this.lblLogLevel);
-            this.grpLoggingSettings.Controls.Add(this.chkCompressOldLogs);
-            this.grpLoggingSettings.Controls.Add(this.chkIncludeStackTrace);
-            this.grpLoggingSettings.Controls.Add(this.chkEnableDebugMode);
-            this.grpLoggingSettings.Controls.Add(this.chkLogPerformance);
-            this.grpLoggingSettings.Controls.Add(this.chkLogUserActions);
-            this.grpLoggingSettings.Controls.Add(this.chkEnableConsoleLogging);
-            this.grpLoggingSettings.Controls.Add(this.chkEnableFileLogging);
-            this.grpLoggingSettings.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
-            this.grpLoggingSettings.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(73)))), ((int)(((byte)(80)))), ((int)(((byte)(87)))));
-            this.grpLoggingSettings.Location = new System.Drawing.Point(15, 15);
-            this.grpLoggingSettings.Name = "grpLoggingSettings";
-            this.grpLoggingSettings.Padding = new System.Windows.Forms.Padding(20);
-            this.grpLoggingSettings.Size = new System.Drawing.Size(722, 362);
-            this.grpLoggingSettings.TabIndex = 0;
-            this.grpLoggingSettings.TabStop = false;
-            this.grpLoggingSettings.Text = "Logging Configuration";
-
-            //
-            // chkEnableFileLogging
-            //
-            this.chkEnableFileLogging.AutoSize = true;
-            this.chkEnableFileLogging.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.chkEnableFileLogging.Location = new System.Drawing.Point(20, 40);
-            this.chkEnableFileLogging.Name = "chkEnableFileLogging";
-            this.chkEnableFileLogging.Size = new System.Drawing.Size(132, 19);
-            this.chkEnableFileLogging.TabIndex = 0;
-            this.chkEnableFileLogging.Text = "Enable file logging";
-            this.chkEnableFileLogging.UseVisualStyleBackColor = true;
-
-            //
-            // chkEnableConsoleLogging
-            //
-            this.chkEnableConsoleLogging.AutoSize = true;
-            this.chkEnableConsoleLogging.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.chkEnableConsoleLogging.Location = new System.Drawing.Point(20, 65);
-            this.chkEnableConsoleLogging.Name = "chkEnableConsoleLogging";
-            this.chkEnableConsoleLogging.Size = new System.Drawing.Size(151, 19);
-            this.chkEnableConsoleLogging.TabIndex = 1;
-            this.chkEnableConsoleLogging.Text = "Enable console logging";
-            this.chkEnableConsoleLogging.UseVisualStyleBackColor = true;
-
-            //
-            // chkLogUserActions
-            //
-            this.chkLogUserActions.AutoSize = true;
-            this.chkLogUserActions.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.chkLogUserActions.Location = new System.Drawing.Point(20, 90);
-            this.chkLogUserActions.Name = "chkLogUserActions";
-            this.chkLogUserActions.Size = new System.Drawing.Size(116, 19);
-            this.chkLogUserActions.TabIndex = 2;
-            this.chkLogUserActions.Text = "Log user actions";
-            this.chkLogUserActions.UseVisualStyleBackColor = true;
-
-            //
-            // chkLogPerformance
-            //
-            this.chkLogPerformance.AutoSize = true;
-            this.chkLogPerformance.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.chkLogPerformance.Location = new System.Drawing.Point(20, 115);
-            this.chkLogPerformance.Name = "chkLogPerformance";
-            this.chkLogPerformance.Size = new System.Drawing.Size(134, 19);
-            this.chkLogPerformance.TabIndex = 3;
-            this.chkLogPerformance.Text = "Log performance metrics";
-            this.chkLogPerformance.UseVisualStyleBackColor = true;
-
-            //
-            // chkEnableDebugMode
-            //
-            this.chkEnableDebugMode.AutoSize = true;
-            this.chkEnableDebugMode.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.chkEnableDebugMode.Location = new System.Drawing.Point(20, 140);
-            this.chkEnableDebugMode.Name = "chkEnableDebugMode";
-            this.chkEnableDebugMode.Size = new System.Drawing.Size(128, 19);
-            this.chkEnableDebugMode.TabIndex = 4;
-            this.chkEnableDebugMode.Text = "Enable debug mode";
-            this.chkEnableDebugMode.UseVisualStyleBackColor = true;
-
-            //
-            // chkIncludeStackTrace
-            //
-            this.chkIncludeStackTrace.AutoSize = true;
-            this.chkIncludeStackTrace.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.chkIncludeStackTrace.Location = new System.Drawing.Point(20, 165);
-            this.chkIncludeStackTrace.Name = "chkIncludeStackTrace";
-            this.chkIncludeStackTrace.Size = new System.Drawing.Size(129, 19);
-            this.chkIncludeStackTrace.TabIndex = 5;
-            this.chkIncludeStackTrace.Text = "Include stack trace";
-            this.chkIncludeStackTrace.UseVisualStyleBackColor = true;
-
-            //
-            // chkCompressOldLogs
-            //
-            this.chkCompressOldLogs.AutoSize = true;
-            this.chkCompressOldLogs.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.chkCompressOldLogs.Location = new System.Drawing.Point(20, 190);
-            this.chkCompressOldLogs.Name = "chkCompressOldLogs";
-            this.chkCompressOldLogs.Size = new System.Drawing.Size(127, 19);
-            this.chkCompressOldLogs.TabIndex = 6;
-            this.chkCompressOldLogs.Text = "Compress old logs";
-            this.chkCompressOldLogs.UseVisualStyleBackColor = true;
-
-            //
-            // lblLogLevel
-            //
-            this.lblLogLevel.AutoSize = true;
-            this.lblLogLevel.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.lblLogLevel.Location = new System.Drawing.Point(20, 230);
-            this.lblLogLevel.Name = "lblLogLevel";
-            this.lblLogLevel.Size = new System.Drawing.Size(62, 15);
-            this.lblLogLevel.TabIndex = 7;
-            this.lblLogLevel.Text = "Log level:";
-
-            //
-            // cmbLogLevel
-            //
-            this.cmbLogLevel.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.cmbLogLevel.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.cmbLogLevel.FormattingEnabled = true;
-            this.cmbLogLevel.Items.AddRange(new object[] { "Error", "Warning", "Information", "Debug", "Trace" });
-            this.cmbLogLevel.Location = new System.Drawing.Point(90, 227);
-            this.cmbLogLevel.Name = "cmbLogLevel";
-            this.cmbLogLevel.Size = new System.Drawing.Size(120, 23);
-            this.cmbLogLevel.TabIndex = 8;
-
-            //
-            // lblMaxLogSize
-            //
-            this.lblMaxLogSize.AutoSize = true;
-            this.lblMaxLogSize.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.lblMaxLogSize.Location = new System.Drawing.Point(20, 260);
-            this.lblMaxLogSize.Name = "lblMaxLogSize";
-            this.lblMaxLogSize.Size = new System.Drawing.Size(108, 15);
-            this.lblMaxLogSize.TabIndex = 9;
-            this.lblMaxLogSize.Text = "Max log size (MB):";
-
-            //
-            // numMaxLogSize
-            //
-            this.numMaxLogSize.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.numMaxLogSize.Location = new System.Drawing.Point(135, 258);
-            this.numMaxLogSize.Maximum = new decimal(new int[] { 100, 0, 0, 0 });
-            this.numMaxLogSize.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
-            this.numMaxLogSize.Name = "numMaxLogSize";
-            this.numMaxLogSize.Size = new System.Drawing.Size(75, 23);
-            this.numMaxLogSize.TabIndex = 10;
-            this.numMaxLogSize.Value = new decimal(new int[] { 10, 0, 0, 0 });
-
-            //
-            // lblMaxLogFiles
-            //
-            this.lblMaxLogFiles.AutoSize = true;
-            this.lblMaxLogFiles.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.lblMaxLogFiles.Location = new System.Drawing.Point(20, 290);
-            this.lblMaxLogFiles.Name = "lblMaxLogFiles";
-            this.lblMaxLogFiles.Size = new System.Drawing.Size(81, 15);
-            this.lblMaxLogFiles.TabIndex = 11;
-            this.lblMaxLogFiles.Text = "Max log files:";
-
-            //
-            // numMaxLogFiles
-            //
-            this.numMaxLogFiles.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.numMaxLogFiles.Location = new System.Drawing.Point(110, 288);
-            this.numMaxLogFiles.Maximum = new decimal(new int[] { 50, 0, 0, 0 });
-            this.numMaxLogFiles.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
-            this.numMaxLogFiles.Name = "numMaxLogFiles";
-            this.numMaxLogFiles.Size = new System.Drawing.Size(75, 23);
-            this.numMaxLogFiles.TabIndex = 12;
-            this.numMaxLogFiles.Value = new decimal(new int[] { 5, 0, 0, 0 });
 
             //
             // pnlButtons
@@ -1100,7 +864,7 @@ namespace Bulk_Editor
             this.btnSave.Size = new System.Drawing.Size(90, 35);
             this.btnSave.TabIndex = 2;
             this.btnSave.Text = "💾 Save";
-            this.btnSave.UseVisualStyleBackColor = false;
+            this.btnSave.UseVisualStyleBackColor = true;
             this.btnSave.Click += new System.EventHandler(this.BtnSave_Click);
 
             //
@@ -1117,7 +881,7 @@ namespace Bulk_Editor
             this.btnCancel.Size = new System.Drawing.Size(90, 35);
             this.btnCancel.TabIndex = 3;
             this.btnCancel.Text = "❌ Cancel";
-            this.btnCancel.UseVisualStyleBackColor = false;
+            this.btnCancel.UseVisualStyleBackColor = true;
             this.btnCancel.Click += new System.EventHandler(this.BtnCancel_Click);
 
             //
@@ -1133,7 +897,7 @@ namespace Bulk_Editor
             this.btnResetToDefaults.Size = new System.Drawing.Size(120, 45);
             this.btnResetToDefaults.TabIndex = 1;
             this.btnResetToDefaults.Text = "🔄 Reset to Defaults";
-            this.btnResetToDefaults.UseVisualStyleBackColor = false;
+            this.btnResetToDefaults.UseVisualStyleBackColor = true;
             this.btnResetToDefaults.Click += new System.EventHandler(this.BtnResetToDefaults_Click);
 
             //
@@ -1149,7 +913,7 @@ namespace Bulk_Editor
             this.btnOpenCurrentFolder.Size = new System.Drawing.Size(120, 35);
             this.btnOpenCurrentFolder.TabIndex = 0;
             this.btnOpenCurrentFolder.Text = "📁 Open Folder";
-            this.btnOpenCurrentFolder.UseVisualStyleBackColor = false;
+            this.btnOpenCurrentFolder.UseVisualStyleBackColor = true;
             this.btnOpenCurrentFolder.Click += new System.EventHandler(this.BtnOpenCurrentFolder_Click);
 
             //
@@ -1165,7 +929,8 @@ namespace Bulk_Editor
             this.btnImportSettings.Size = new System.Drawing.Size(80, 35);
             this.btnImportSettings.TabIndex = 4;
             this.btnImportSettings.Text = "📥 Import";
-            this.btnImportSettings.UseVisualStyleBackColor = false;
+            this.btnImportSettings.UseVisualStyleBackColor = true;
+            this.btnImportSettings.Click += new System.EventHandler(this.BtnImportSettings_Click);
 
             //
             // btnExportSettings
@@ -1180,12 +945,14 @@ namespace Bulk_Editor
             this.btnExportSettings.Size = new System.Drawing.Size(80, 35);
             this.btnExportSettings.TabIndex = 5;
             this.btnExportSettings.Text = "📤 Export";
-            this.btnExportSettings.UseVisualStyleBackColor = false;
+            this.btnExportSettings.UseVisualStyleBackColor = true;
+            this.btnExportSettings.Click += new System.EventHandler(this.BtnExportSettings_Click);
 
             //
             // lblTitle
             //
             this.lblTitle.AutoSize = true;
+            this.lblTitle.BackColor = System.Drawing.Color.Transparent;
             this.lblTitle.Font = new System.Drawing.Font("Segoe UI", 16F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.lblTitle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(33)))), ((int)(((byte)(37)))), ((int)(((byte)(41)))));
             this.lblTitle.Location = new System.Drawing.Point(20, 20);
@@ -1198,6 +965,7 @@ namespace Bulk_Editor
             // lblDescription
             //
             this.lblDescription.AutoSize = true;
+            this.lblDescription.BackColor = System.Drawing.Color.Transparent;
             this.lblDescription.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.lblDescription.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(108)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
             this.lblDescription.Location = new System.Drawing.Point(20, 50);
@@ -1241,10 +1009,6 @@ namespace Bulk_Editor
             ((System.ComponentModel.ISupportInitialize)(this.numProcessingTimeout)).EndInit();
             this.tabInterface.ResumeLayout(false);
             this.grpInterfaceSettings.ResumeLayout(false);
-            this.tabLogging.ResumeLayout(false);
-            this.grpLoggingSettings.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.numMaxLogSize)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.numMaxLogFiles)).EndInit();
             this.pnlButtons.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();

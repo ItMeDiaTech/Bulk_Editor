@@ -1,12 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Bulk_Editor.Configuration;
 using Bulk_Editor.Models;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace Bulk_Editor.Services
 {
@@ -15,14 +20,15 @@ namespace Bulk_Editor.Services
     /// </summary>
     public partial class WordDocumentProcessor
     {
-        [GeneratedRegex(@"<a[^>]*href=""([^""]*)""[^>]*>([^<]*)</a>", RegexOptions.IgnoreCase)]
-        private static partial Regex HyperlinkPatternRegex();
-
         [GeneratedRegex(@"(TSRC-[^-]+-[0-9]{6}|CMS-[^-]+-[0-9]{6})", RegexOptions.IgnoreCase)]
         private static partial Regex IdPatternRegex();
 
         [GeneratedRegex(@"docid=([^&]*)", RegexOptions.IgnoreCase)]
         private static partial Regex DocIdPatternRegex();
+
+        // Configuration settings
+        private readonly ApiSettings _apiSettings;
+        private readonly RetrySettings _retrySettings;
 
         // Version checking functionality
         public const string CurrentVersion = "2.1";
@@ -30,8 +36,14 @@ namespace Bulk_Editor.Services
         public string FlowVersion { get; private set; } = string.Empty;
         public string UpdateNotes { get; private set; } = string.Empty;
 
+        public WordDocumentProcessor(ApiSettings apiSettings = null, RetrySettings retrySettings = null)
+        {
+            _apiSettings = apiSettings ?? new ApiSettings();
+            _retrySettings = retrySettings ?? new RetrySettings();
+        }
+
         /// <summary>
-        /// Extracts hyperlinks from a document file (placeholder implementation)
+        /// Extracts hyperlinks from a Word document file
         /// </summary>
         public static List<HyperlinkData> ExtractHyperlinks(string filePath)
         {
@@ -39,34 +51,62 @@ namespace Bulk_Editor.Services
 
             try
             {
-                // TODO: Replace with actual .docx processing using DocumentFormat.OpenXml
-                // For now, we'll simulate hyperlink extraction
-                string content = File.ReadAllText(filePath);
-
-                // Simple regex to find hyperlinks in the text content
-                var matches = HyperlinkPatternRegex().Matches(content);
-
-                int index = 0;
-                foreach (Match match in matches)
+                using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(filePath, false))
                 {
-                    var hyperlink = new HyperlinkData
-                    {
-                        Address = match.Groups[1].Value,
-                        TextToDisplay = match.Groups[2].Value,
-                        PageNumber = 1, // Placeholder
-                        LineNumber = index + 1 // Placeholder
-                    };
+                    var body = wordDoc.MainDocumentPart.Document.Body;
+                    int pageNumber = 1;
+                    int lineNumber = 1;
 
-                    // Extract sub-address if present
-                    if (hyperlink.Address.Contains('#'))
+                    // Find all hyperlinks in the document
+                    var hyperlinkElements = body.Descendants<Hyperlink>().ToList();
+
+                    foreach (var hyperlinkElement in hyperlinkElements)
                     {
-                        var parts = hyperlink.Address.Split('#');
-                        hyperlink.Address = parts[0];
-                        hyperlink.SubAddress = parts.Length > 1 ? parts[1] : string.Empty;
+                        var hyperlink = new HyperlinkData();
+
+                        // Get the hyperlink relationship
+                        if (!string.IsNullOrEmpty(hyperlinkElement.Id))
+                        {
+                            var hyperlinkRelationship = wordDoc.MainDocumentPart
+                                .HyperlinkRelationships
+                                .FirstOrDefault(r => r.Id == hyperlinkElement.Id);
+
+                            if (hyperlinkRelationship != null)
+                            {
+                                hyperlink.Address = hyperlinkRelationship.Uri.ToString();
+                            }
+                        }
+
+                        // Get the anchor (internal link)
+                        if (!string.IsNullOrEmpty(hyperlinkElement.Anchor))
+                        {
+                            hyperlink.SubAddress = hyperlinkElement.Anchor;
+                        }
+
+                        // Get the display text
+                        var textElements = hyperlinkElement.Descendants<Text>();
+                        hyperlink.TextToDisplay = string.Join("", textElements.Select(t => t.Text));
+
+                        // Extract sub-address if present in the address
+                        if (!string.IsNullOrEmpty(hyperlink.Address) && hyperlink.Address.Contains('#'))
+                        {
+                            var parts = hyperlink.Address.Split('#');
+                            hyperlink.Address = parts[0];
+                            if (string.IsNullOrEmpty(hyperlink.SubAddress))
+                            {
+                                hyperlink.SubAddress = parts.Length > 1 ? parts[1] : string.Empty;
+                            }
+                        }
+
+                        // Set position information (approximation)
+                        hyperlink.PageNumber = pageNumber;
+                        hyperlink.LineNumber = lineNumber++;
+
+                        // Store the hyperlink element reference for later updates
+                        hyperlink.ElementId = hyperlinkElement.Id;
+
+                        hyperlinks.Add(hyperlink);
                     }
-
-                    hyperlinks.Add(hyperlink);
-                    index++;
                 }
             }
             catch (Exception ex)
@@ -75,6 +115,79 @@ namespace Bulk_Editor.Services
             }
 
             return hyperlinks;
+        }
+
+        /// <summary>
+        /// Updates hyperlinks in a Word document
+        /// </summary>
+        public static void UpdateHyperlinksInDocument(string filePath, List<HyperlinkData> updatedHyperlinks)
+        {
+            try
+            {
+                using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(filePath, true))
+                {
+                    var body = wordDoc.MainDocumentPart.Document.Body;
+                    var hyperlinkElements = body.Descendants<Hyperlink>().ToList();
+
+                    foreach (var updatedHyperlink in updatedHyperlinks)
+                    {
+                        // Find the corresponding hyperlink element
+                        var hyperlinkElement = hyperlinkElements.FirstOrDefault(h => h.Id == updatedHyperlink.ElementId);
+
+                        if (hyperlinkElement != null)
+                        {
+                            // Update the display text
+                            var textElements = hyperlinkElement.Descendants<Text>().ToList();
+                            if (textElements.Any())
+                            {
+                                // Clear existing text
+                                foreach (var text in textElements.Skip(1))
+                                {
+                                    text.Remove();
+                                }
+                                // Update first text element
+                                textElements.First().Text = updatedHyperlink.TextToDisplay;
+                            }
+
+                            // Update the hyperlink URL if needed
+                            if (!string.IsNullOrEmpty(hyperlinkElement.Id))
+                            {
+                                var hyperlinkRelationship = wordDoc.MainDocumentPart
+                                    .HyperlinkRelationships
+                                    .FirstOrDefault(r => r.Id == hyperlinkElement.Id);
+
+                                if (hyperlinkRelationship != null)
+                                {
+                                    // Build the new URI
+                                    string newUri = updatedHyperlink.Address;
+                                    if (!string.IsNullOrEmpty(updatedHyperlink.SubAddress))
+                                    {
+                                        newUri += "#" + updatedHyperlink.SubAddress;
+                                    }
+
+                                    // Remove old relationship and add new one
+                                    var relationshipId = hyperlinkRelationship.Id;
+                                    wordDoc.MainDocumentPart.DeleteReferenceRelationship(hyperlinkRelationship);
+                                    wordDoc.MainDocumentPart.AddHyperlinkRelationship(new Uri(newUri), true, relationshipId);
+                                }
+                            }
+
+                            // Update anchor if it's an internal link
+                            if (!string.IsNullOrEmpty(updatedHyperlink.SubAddress) && string.IsNullOrEmpty(updatedHyperlink.Address))
+                            {
+                                hyperlinkElement.Anchor = updatedHyperlink.SubAddress;
+                            }
+                        }
+                    }
+
+                    // Save the document
+                    wordDoc.MainDocumentPart.Document.Save();
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Error updating hyperlinks in document: {ex.Message}", ex);
+            }
         }
 
         /// <summary>
@@ -127,38 +240,97 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Sends lookup IDs to Power Automate Flow for processing
         /// </summary>
-        public async Task<string> SendToPowerAutomateFlow(List<string> lookupIds, string flowUrl)
+        public async Task<string> SendToPowerAutomateFlow(List<string> lookupIds, string flowUrl = null)
         {
-            try
+            // Use configured flow URL if not provided
+            string targetUrl = flowUrl ?? _apiSettings.PowerAutomateFlowUrl;
+
+            for (int attempt = 0; attempt <= _retrySettings.MaxRetryAttempts; attempt++)
             {
-                // Create JSON payload in the format expected by the API
-                var jsonPayload = new
+                try
                 {
-                    Lookup_ID = lookupIds
-                };
+                    // Create JSON payload in the format expected by the API
+                    var jsonPayload = new
+                    {
+                        Lookup_ID = lookupIds
+                    };
 
-                string jsonBody = JsonSerializer.Serialize(jsonPayload);
+                    string jsonBody = JsonSerializer.Serialize(jsonPayload);
 
-                // Create HTTP request with timeout
-                using var client = new HttpClient();
-                client.Timeout = TimeSpan.FromSeconds(30);
-                var content = new StringContent(jsonBody, System.Text.Encoding.UTF8, "application/json");
+                    // Create HTTP request with configured settings
+                    using var client = new HttpClient();
+                    client.Timeout = TimeSpan.FromSeconds(_apiSettings.TimeoutSeconds);
+                    client.DefaultRequestHeaders.Add("User-Agent", _apiSettings.UserAgent);
 
-                // Send request to Power Automate Flow
-                var response = await client.PostAsync(flowUrl, content);
+                    var content = new StringContent(jsonBody, System.Text.Encoding.UTF8, "application/json");
 
-                if (response.IsSuccessStatusCode)
-                {
-                    return await response.Content.ReadAsStringAsync();
+                    // Send request to Power Automate Flow
+                    var response = await client.PostAsync(targetUrl, content);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        return await response.Content.ReadAsStringAsync();
+                    }
+                    else
+                    {
+                        string errorMessage = $"Error: {response.StatusCode} - {response.ReasonPhrase}";
+
+                        // Only retry on server errors (5xx) and some client errors
+                        if (attempt < _retrySettings.MaxRetryAttempts && ShouldRetry(response.StatusCode))
+                        {
+                            await DelayBeforeRetry(attempt);
+                            continue;
+                        }
+
+                        return errorMessage;
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    return $"Error: {response.StatusCode} - {response.ReasonPhrase}";
+                    // Retry on network exceptions
+                    if (attempt < _retrySettings.MaxRetryAttempts)
+                    {
+                        await DelayBeforeRetry(attempt);
+                        continue;
+                    }
+
+                    return $"Exception: {ex.Message}";
                 }
             }
-            catch (Exception ex)
+
+            return "Failed after maximum retry attempts";
+        }
+
+        /// <summary>
+        /// Determines if an HTTP status code should trigger a retry
+        /// </summary>
+        private static bool ShouldRetry(System.Net.HttpStatusCode statusCode)
+        {
+            return statusCode == System.Net.HttpStatusCode.InternalServerError ||
+                   statusCode == System.Net.HttpStatusCode.BadGateway ||
+                   statusCode == System.Net.HttpStatusCode.ServiceUnavailable ||
+                   statusCode == System.Net.HttpStatusCode.GatewayTimeout ||
+                   statusCode == System.Net.HttpStatusCode.TooManyRequests;
+        }
+
+        /// <summary>
+        /// Calculates delay before retry using exponential backoff
+        /// </summary>
+        private async Task DelayBeforeRetry(int attemptNumber)
+        {
+            if (_retrySettings.UseExponentialBackoff)
             {
-                return $"Exception: {ex.Message}";
+                // Calculate exponential backoff delay
+                int delay = Math.Min(
+                    _retrySettings.BaseDelayMs * (int)Math.Pow(2, attemptNumber),
+                    _retrySettings.MaxDelayMs
+                );
+                await Task.Delay(delay);
+            }
+            else
+            {
+                // Use fixed base delay
+                await Task.Delay(_retrySettings.BaseDelayMs);
             }
         }
 
@@ -222,7 +394,9 @@ namespace Bulk_Editor.Services
                 if (!string.IsNullOrEmpty(lookupId) && resultsDict.TryGetValue(lookupId, out var result))
                 {
                     // Update the hyperlink address and sub-address based on API response
-                    string targetAddress = "https://beginningofhyperlinkurladdress.com/";
+                    // TODO: Pass ApiSettings to this method to use configured URLs
+                    // For now using placeholder URL that should be replaced with actual configuration
+                    string targetAddress = "https://thesource.cvshealth.com/nuxeo/thesource/";
                     string targetSubAddress = "!/view?docid=" + result.Document_ID;
 
                     bool urlChanged = hyperlink.Address != targetAddress || hyperlink.SubAddress != targetSubAddress;

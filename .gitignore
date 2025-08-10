@@ -16,3 +16,7 @@ obj/
 *.sln.ide
 *.vs/
 *.vscode/
+
+# Miscellaneous files (documentation, scripts, examples)
+Misc/
+Publish/

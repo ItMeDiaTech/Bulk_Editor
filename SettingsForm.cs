@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using Bulk_Editor.Configuration;
 
@@ -29,11 +32,9 @@ namespace Bulk_Editor
             chkCentralizeBackups.Checked = _settings.ChangelogSettings.CentralizeBackups;
 
             // Application Settings
-            chkCheckForUpdates.Checked = _settings.ApplicationSettings.CheckForUpdatesOnStartup;
             chkRememberWindowPosition.Checked = _settings.ApplicationSettings.RememberWindowPosition;
             chkConfirmBeforeProcessing.Checked = _settings.ApplicationSettings.ConfirmBeforeProcessing;
-            chkShowProcessingPreview.Checked = _settings.ApplicationSettings.ShowProcessingPreview;
-            chkAutoSaveSettings.Checked = _settings.ApplicationSettings.AutoSaveSettings;
+            chkRemoveDocumentFilesOnExit.Checked = _settings.ApplicationSettings.RemoveDocumentFilesOnExit;
             numMaxBatchSize.Value = _settings.ApplicationSettings.MaxFileBatchSize;
             numRecentFiles.Value = _settings.ApplicationSettings.RecentFilesCount;
 
@@ -42,7 +43,6 @@ namespace Bulk_Editor
             chkValidateDocuments.Checked = _settings.Processing.ValidateDocuments;
             chkSkipCorrupted.Checked = _settings.Processing.SkipCorruptedFiles;
             chkPreserveAttributes.Checked = _settings.Processing.PreserveFileAttributes;
-            chkCreateProcessingReport.Checked = _settings.Processing.CreateProcessingReport;
             numMaxFileSize.Value = _settings.Processing.MaxFileSizeBytes / (1024 * 1024); // Convert bytes to MB
             numConcurrentFiles.Value = _settings.Processing.MaxConcurrentFiles;
             numProcessingTimeout.Value = _settings.Processing.ProcessingTimeoutMinutes * 60; // Convert minutes to seconds
@@ -54,22 +54,8 @@ namespace Bulk_Editor
             chkShowToolTips.Checked = _settings.UI.ShowToolTips;
             chkConfirmOnExit.Checked = _settings.UI.ConfirmOnExit;
             chkShowStatusBar.Checked = _settings.UI.ShowStatusBar;
-            chkEnableSounds.Checked = _settings.UI.EnableSounds;
-            chkShowWelcomeScreen.Checked = _settings.UI.ShowWelcomeScreen;
             cmbTheme.Text = _settings.UI.Theme;
             cmbLanguage.Text = _settings.UI.Language;
-
-            // Logging Settings
-            chkEnableFileLogging.Checked = _settings.Logging.EnableFileLogging;
-            chkEnableConsoleLogging.Checked = _settings.Logging.EnableConsoleLogging;
-            chkLogUserActions.Checked = _settings.Logging.LogUserActions;
-            chkLogPerformance.Checked = _settings.Logging.LogPerformanceMetrics;
-            chkEnableDebugMode.Checked = _settings.Logging.EnableDebugMode;
-            chkIncludeStackTrace.Checked = _settings.Logging.IncludeStackTrace;
-            chkCompressOldLogs.Checked = _settings.Logging.CompressOldLogs;
-            cmbLogLevel.Text = _settings.Logging.LogLevel;
-            numMaxLogSize.Value = _settings.Logging.MaxLogFileSizeMB;
-            numMaxLogFiles.Value = _settings.Logging.MaxLogFiles;
 
             // Update dependent controls
             UpdateDependentControls();
@@ -86,11 +72,9 @@ namespace Bulk_Editor
             chkCentralizeBackups.CheckedChanged += (s, e) => _hasChanges = true;
 
             // Track changes for Application Settings
-            chkCheckForUpdates.CheckedChanged += (s, e) => _hasChanges = true;
             chkRememberWindowPosition.CheckedChanged += (s, e) => _hasChanges = true;
             chkConfirmBeforeProcessing.CheckedChanged += (s, e) => _hasChanges = true;
-            chkShowProcessingPreview.CheckedChanged += (s, e) => _hasChanges = true;
-            chkAutoSaveSettings.CheckedChanged += (s, e) => _hasChanges = true;
+            chkRemoveDocumentFilesOnExit.CheckedChanged += (s, e) => _hasChanges = true;
             numMaxBatchSize.ValueChanged += (s, e) => _hasChanges = true;
             numRecentFiles.ValueChanged += (s, e) => _hasChanges = true;
 
@@ -99,7 +83,6 @@ namespace Bulk_Editor
             chkValidateDocuments.CheckedChanged += (s, e) => _hasChanges = true;
             chkSkipCorrupted.CheckedChanged += (s, e) => _hasChanges = true;
             chkPreserveAttributes.CheckedChanged += (s, e) => _hasChanges = true;
-            chkCreateProcessingReport.CheckedChanged += (s, e) => _hasChanges = true;
             numMaxFileSize.ValueChanged += (s, e) => _hasChanges = true;
             numConcurrentFiles.ValueChanged += (s, e) => _hasChanges = true;
             numProcessingTimeout.ValueChanged += (s, e) => _hasChanges = true;
@@ -111,22 +94,8 @@ namespace Bulk_Editor
             chkShowToolTips.CheckedChanged += (s, e) => _hasChanges = true;
             chkConfirmOnExit.CheckedChanged += (s, e) => _hasChanges = true;
             chkShowStatusBar.CheckedChanged += (s, e) => _hasChanges = true;
-            chkEnableSounds.CheckedChanged += (s, e) => _hasChanges = true;
-            chkShowWelcomeScreen.CheckedChanged += (s, e) => _hasChanges = true;
             cmbTheme.SelectedIndexChanged += (s, e) => _hasChanges = true;
             cmbLanguage.SelectedIndexChanged += (s, e) => _hasChanges = true;
-
-            // Track changes for Logging Settings
-            chkEnableFileLogging.CheckedChanged += (s, e) => _hasChanges = true;
-            chkEnableConsoleLogging.CheckedChanged += (s, e) => _hasChanges = true;
-            chkLogUserActions.CheckedChanged += (s, e) => _hasChanges = true;
-            chkLogPerformance.CheckedChanged += (s, e) => _hasChanges = true;
-            chkEnableDebugMode.CheckedChanged += (s, e) => _hasChanges = true;
-            chkIncludeStackTrace.CheckedChanged += (s, e) => _hasChanges = true;
-            chkCompressOldLogs.CheckedChanged += (s, e) => _hasChanges = true;
-            cmbLogLevel.SelectedIndexChanged += (s, e) => _hasChanges = true;
-            numMaxLogSize.ValueChanged += (s, e) => _hasChanges = true;
-            numMaxLogFiles.ValueChanged += (s, e) => _hasChanges = true;
         }
 
         private void UpdateDependentControls()
@@ -183,11 +152,9 @@ namespace Bulk_Editor
                 chkCentralizeBackups.Checked = defaultAppSettings.ChangelogSettings.CentralizeBackups;
 
                 // Reset Application Settings
-                chkCheckForUpdates.Checked = defaultAppSettings.ApplicationSettings.CheckForUpdatesOnStartup;
                 chkRememberWindowPosition.Checked = defaultAppSettings.ApplicationSettings.RememberWindowPosition;
                 chkConfirmBeforeProcessing.Checked = defaultAppSettings.ApplicationSettings.ConfirmBeforeProcessing;
-                chkShowProcessingPreview.Checked = defaultAppSettings.ApplicationSettings.ShowProcessingPreview;
-                chkAutoSaveSettings.Checked = defaultAppSettings.ApplicationSettings.AutoSaveSettings;
+                chkRemoveDocumentFilesOnExit.Checked = defaultAppSettings.ApplicationSettings.RemoveDocumentFilesOnExit;
                 numMaxBatchSize.Value = defaultAppSettings.ApplicationSettings.MaxFileBatchSize;
                 numRecentFiles.Value = defaultAppSettings.ApplicationSettings.RecentFilesCount;
 
@@ -196,7 +163,6 @@ namespace Bulk_Editor
                 chkValidateDocuments.Checked = defaultAppSettings.Processing.ValidateDocuments;
                 chkSkipCorrupted.Checked = defaultAppSettings.Processing.SkipCorruptedFiles;
                 chkPreserveAttributes.Checked = defaultAppSettings.Processing.PreserveFileAttributes;
-                chkCreateProcessingReport.Checked = defaultAppSettings.Processing.CreateProcessingReport;
                 numMaxFileSize.Value = defaultAppSettings.Processing.MaxFileSizeBytes / (1024 * 1024);
                 numConcurrentFiles.Value = defaultAppSettings.Processing.MaxConcurrentFiles;
                 numProcessingTimeout.Value = defaultAppSettings.Processing.ProcessingTimeoutMinutes * 60;
@@ -208,22 +174,8 @@ namespace Bulk_Editor
                 chkShowToolTips.Checked = defaultAppSettings.UI.ShowToolTips;
                 chkConfirmOnExit.Checked = defaultAppSettings.UI.ConfirmOnExit;
                 chkShowStatusBar.Checked = defaultAppSettings.UI.ShowStatusBar;
-                chkEnableSounds.Checked = defaultAppSettings.UI.EnableSounds;
-                chkShowWelcomeScreen.Checked = defaultAppSettings.UI.ShowWelcomeScreen;
                 cmbTheme.Text = defaultAppSettings.UI.Theme;
                 cmbLanguage.Text = defaultAppSettings.UI.Language;
-
-                // Reset Logging Settings
-                chkEnableFileLogging.Checked = defaultAppSettings.Logging.EnableFileLogging;
-                chkEnableConsoleLogging.Checked = defaultAppSettings.Logging.EnableConsoleLogging;
-                chkLogUserActions.Checked = defaultAppSettings.Logging.LogUserActions;
-                chkLogPerformance.Checked = defaultAppSettings.Logging.LogPerformanceMetrics;
-                chkEnableDebugMode.Checked = defaultAppSettings.Logging.EnableDebugMode;
-                chkIncludeStackTrace.Checked = defaultAppSettings.Logging.IncludeStackTrace;
-                chkCompressOldLogs.Checked = defaultAppSettings.Logging.CompressOldLogs;
-                cmbLogLevel.Text = defaultAppSettings.Logging.LogLevel;
-                numMaxLogSize.Value = defaultAppSettings.Logging.MaxLogFileSizeMB;
-                numMaxLogFiles.Value = defaultAppSettings.Logging.MaxLogFiles;
 
                 _hasChanges = true;
                 UpdateDependentControls();
@@ -232,16 +184,31 @@ namespace Bulk_Editor
 
         private async void BtnSave_Click(object sender, EventArgs e)
         {
+            string originalStoragePath = _settings.ChangelogSettings.BaseStoragePath;
+            string newStoragePath = txtBaseStoragePath.Text.Trim();
+
             try
             {
-                // Validate base storage path
-                if (chkUseCentralizedStorage.Checked && !string.IsNullOrWhiteSpace(txtBaseStoragePath.Text))
+                // Handle storage path migration if changed
+                if (chkUseCentralizedStorage.Checked &&
+                    !string.IsNullOrWhiteSpace(newStoragePath) &&
+                    !newStoragePath.Equals(originalStoragePath, StringComparison.OrdinalIgnoreCase))
                 {
+                    if (!await MigrateStorageDirectory(originalStoragePath, newStoragePath))
+                    {
+                        // Migration failed, revert the path in UI
+                        txtBaseStoragePath.Text = originalStoragePath;
+                        return;
+                    }
+                }
+                else if (chkUseCentralizedStorage.Checked && !string.IsNullOrWhiteSpace(newStoragePath))
+                {
+                    // Just validate/create the path if no migration needed
                     try
                     {
-                        if (!Directory.Exists(txtBaseStoragePath.Text))
+                        if (!Directory.Exists(newStoragePath))
                         {
-                            Directory.CreateDirectory(txtBaseStoragePath.Text);
+                            Directory.CreateDirectory(newStoragePath);
                         }
                     }
                     catch (Exception ex)
@@ -261,11 +228,9 @@ namespace Bulk_Editor
                 _settings.ChangelogSettings.CentralizeBackups = chkCentralizeBackups.Checked;
 
                 // Save Application Settings
-                _settings.ApplicationSettings.CheckForUpdatesOnStartup = chkCheckForUpdates.Checked;
                 _settings.ApplicationSettings.RememberWindowPosition = chkRememberWindowPosition.Checked;
                 _settings.ApplicationSettings.ConfirmBeforeProcessing = chkConfirmBeforeProcessing.Checked;
-                _settings.ApplicationSettings.ShowProcessingPreview = chkShowProcessingPreview.Checked;
-                _settings.ApplicationSettings.AutoSaveSettings = chkAutoSaveSettings.Checked;
+                _settings.ApplicationSettings.RemoveDocumentFilesOnExit = chkRemoveDocumentFilesOnExit.Checked;
                 _settings.ApplicationSettings.MaxFileBatchSize = (int)numMaxBatchSize.Value;
                 _settings.ApplicationSettings.RecentFilesCount = (int)numRecentFiles.Value;
 
@@ -274,7 +239,6 @@ namespace Bulk_Editor
                 _settings.Processing.ValidateDocuments = chkValidateDocuments.Checked;
                 _settings.Processing.SkipCorruptedFiles = chkSkipCorrupted.Checked;
                 _settings.Processing.PreserveFileAttributes = chkPreserveAttributes.Checked;
-                _settings.Processing.CreateProcessingReport = chkCreateProcessingReport.Checked;
                 _settings.Processing.MaxFileSizeBytes = (long)numMaxFileSize.Value * 1024 * 1024; // Convert MB to bytes
                 _settings.Processing.MaxConcurrentFiles = (int)numConcurrentFiles.Value;
                 _settings.Processing.ProcessingTimeoutMinutes = (int)numProcessingTimeout.Value / 60; // Convert seconds to minutes
@@ -286,22 +250,8 @@ namespace Bulk_Editor
                 _settings.UI.ShowToolTips = chkShowToolTips.Checked;
                 _settings.UI.ConfirmOnExit = chkConfirmOnExit.Checked;
                 _settings.UI.ShowStatusBar = chkShowStatusBar.Checked;
-                _settings.UI.EnableSounds = chkEnableSounds.Checked;
-                _settings.UI.ShowWelcomeScreen = chkShowWelcomeScreen.Checked;
                 _settings.UI.Theme = cmbTheme.Text;
                 _settings.UI.Language = cmbLanguage.Text;
-
-                // Save Logging Settings
-                _settings.Logging.EnableFileLogging = chkEnableFileLogging.Checked;
-                _settings.Logging.EnableConsoleLogging = chkEnableConsoleLogging.Checked;
-                _settings.Logging.LogUserActions = chkLogUserActions.Checked;
-                _settings.Logging.LogPerformanceMetrics = chkLogPerformance.Checked;
-                _settings.Logging.EnableDebugMode = chkEnableDebugMode.Checked;
-                _settings.Logging.IncludeStackTrace = chkIncludeStackTrace.Checked;
-                _settings.Logging.CompressOldLogs = chkCompressOldLogs.Checked;
-                _settings.Logging.LogLevel = cmbLogLevel.Text;
-                _settings.Logging.MaxLogFileSizeMB = (int)numMaxLogSize.Value;
-                _settings.Logging.MaxLogFiles = (int)numMaxLogFiles.Value;
 
                 await _settings.SaveAsync();
 
@@ -422,6 +372,168 @@ namespace Bulk_Editor
                     MessageBox.Show($"Error exporting settings: {ex.Message}", "Export Error",
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Migrates the entire BulkEditor storage directory to a new location
+        /// </summary>
+        private async Task<bool> MigrateStorageDirectory(string originalPath, string newPath)
+        {
+            try
+            {
+                // Skip migration if original path doesn't exist or is the same as new path
+                if (!Directory.Exists(originalPath) || originalPath.Equals(newPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                // Confirm migration with user
+                var result = MessageBox.Show(
+                    $"This will move all BulkEditor data from:\n{originalPath}\n\nTo:\n{newPath}\n\nDo you want to continue?",
+                    "Migrate Storage Location",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+
+                if (result != DialogResult.Yes)
+                {
+                    return false;
+                }
+
+                // Create new directory if it doesn't exist
+                if (!Directory.Exists(newPath))
+                {
+                    Directory.CreateDirectory(newPath);
+                }
+
+                // Check if new directory is empty (to avoid conflicts)
+                if (Directory.GetFileSystemEntries(newPath).Length > 0)
+                {
+                    MessageBox.Show(
+                        $"The destination directory is not empty:\n{newPath}\n\nPlease choose an empty directory or manually merge the contents.",
+                        "Migration Error",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                    return false;
+                }
+
+                // Get all subdirectories and files in the original location
+                var directories = Directory.GetDirectories(originalPath, "*", SearchOption.AllDirectories);
+                var files = Directory.GetFiles(originalPath, "*", SearchOption.AllDirectories);
+
+                // Create a backup list of what we're moving (for rollback if needed)
+                var movedItems = new List<(string source, string destination)>();
+
+                try
+                {
+                    // Create all subdirectories in the new location
+                    foreach (var dir in directories)
+                    {
+                        var relativePath = Path.GetRelativePath(originalPath, dir);
+                        var newDir = Path.Combine(newPath, relativePath);
+                        Directory.CreateDirectory(newDir);
+                    }
+
+                    // Move all files
+                    foreach (var file in files)
+                    {
+                        var relativePath = Path.GetRelativePath(originalPath, file);
+                        var newFile = Path.Combine(newPath, relativePath);
+
+                        File.Move(file, newFile);
+                        movedItems.Add((file, newFile));
+                    }
+
+                    // Remove the original empty directories (from deepest to shallowest)
+                    var sortedDirs = directories.OrderByDescending(d => d.Length).ToArray();
+                    foreach (var dir in sortedDirs)
+                    {
+                        if (Directory.Exists(dir) && !Directory.GetFileSystemEntries(dir).Any())
+                        {
+                            Directory.Delete(dir);
+                        }
+                    }
+
+                    // Finally remove the original base directory if it's empty
+                    if (Directory.Exists(originalPath) && !Directory.GetFileSystemEntries(originalPath).Any())
+                    {
+                        Directory.Delete(originalPath);
+                    }
+
+                    MessageBox.Show(
+                        $"Successfully migrated BulkEditor data to:\n{newPath}",
+                        "Migration Complete",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    // Migration failed - attempt to roll back
+                    MessageBox.Show(
+                        $"Error during migration: {ex.Message}\n\nAttempting to restore files to original location...",
+                        "Migration Error",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+
+                    await RollbackMigration(movedItems, originalPath);
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Error preparing migration: {ex.Message}",
+                    "Migration Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Attempts to roll back a failed migration
+        /// </summary>
+        private async Task RollbackMigration(List<(string source, string destination)> movedItems, string originalPath)
+        {
+            try
+            {
+                // Ensure original directory exists
+                if (!Directory.Exists(originalPath))
+                {
+                    Directory.CreateDirectory(originalPath);
+                }
+
+                // Move files back to original location
+                foreach (var (source, destination) in movedItems)
+                {
+                    if (File.Exists(destination))
+                    {
+                        // Ensure source directory exists
+                        var sourceDir = Path.GetDirectoryName(source);
+                        if (!Directory.Exists(sourceDir))
+                        {
+                            Directory.CreateDirectory(sourceDir);
+                        }
+
+                        File.Move(destination, source);
+                    }
+                }
+
+                MessageBox.Show(
+                    "Files have been restored to their original location.",
+                    "Rollback Complete",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Error during rollback: {ex.Message}\n\nSome files may be in an inconsistent state. Please check both directories manually.",
+                    "Rollback Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
             }
         }
     }
