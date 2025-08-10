@@ -161,8 +161,7 @@ namespace Bulk_Editor
 
                         // Filter out document separator lines from UI display
                         if (line.Trim() == "================================================================================" ||
-                            line.Trim() == "__________" ||
-                            line.Trim().All(c => c == '=' || c == '_'))
+                            line.Trim() == "__________")
                         {
                             continue; // Skip separator lines in UI display
                         }
@@ -592,6 +591,7 @@ namespace Bulk_Editor
                 logWriter.WriteLine();
                 logWriter.WriteLine("__________");
                 logWriter.WriteLine();
+
 
                 System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Finished processing file: {filePath}");
             }
