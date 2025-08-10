@@ -87,7 +87,7 @@ namespace Bulk_Editor
             //
             // tlpMain
             //
-            this.tlpMain.BackColor = System.Drawing.Color.White; // Set to this value for light separation: System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(250)))));
+            this.tlpMain.BackColor = System.Drawing.Color.Black; // Set to this value for light separation: System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(250)))));
             this.tlpMain.ColumnCount = 1;
             this.tlpMain.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tlpMain.Controls.Add(this.pnlHeader, 0, 0);
@@ -101,9 +101,9 @@ namespace Bulk_Editor
             this.tlpMain.RowCount = 4;
             this.tlpMain.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 120F));
             this.tlpMain.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tlpMain.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 200F));
+            this.tlpMain.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 250F));
             this.tlpMain.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 60F));
-            this.tlpMain.Size = new System.Drawing.Size(1280, 720);
+            this.tlpMain.Size = new System.Drawing.Size(1280, 770);
             this.tlpMain.TabIndex = 0;
 
             //
@@ -436,7 +436,7 @@ namespace Bulk_Editor
             this.pnlActions.Margin = new System.Windows.Forms.Padding(0, 0, 0, 8);
             this.pnlActions.Name = "pnlActions";
             this.pnlActions.Padding = new System.Windows.Forms.Padding(20);
-            this.pnlActions.Size = new System.Drawing.Size(1248, 200);
+            this.pnlActions.Size = new System.Drawing.Size(1248, 250);
             this.pnlActions.TabIndex = 2;
 
             //
@@ -452,7 +452,7 @@ namespace Bulk_Editor
             this.tlpActions.Name = "tlpActions";
             this.tlpActions.RowCount = 1;
             this.tlpActions.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tlpActions.Size = new System.Drawing.Size(1208, 160);
+            this.tlpActions.Size = new System.Drawing.Size(1208, 210);
             this.tlpActions.TabIndex = 0;
 
             //
@@ -466,7 +466,7 @@ namespace Bulk_Editor
             this.grpTools.Margin = new System.Windows.Forms.Padding(0, 0, 16, 0);
             this.grpTools.Name = "grpTools";
             this.grpTools.Padding = new System.Windows.Forms.Padding(16);
-            this.grpTools.Size = new System.Drawing.Size(890, 160);
+            this.grpTools.Size = new System.Drawing.Size(890, 210);
             this.grpTools.TabIndex = 0;
             this.grpTools.TabStop = false;
             this.grpTools.Text = "Processing Tools";
@@ -615,7 +615,7 @@ namespace Bulk_Editor
             this.pnlButtons.Location = new System.Drawing.Point(916, 10);
             this.pnlButtons.Margin = new System.Windows.Forms.Padding(10);
             this.pnlButtons.Name = "pnlButtons";
-            this.pnlButtons.Size = new System.Drawing.Size(282, 140);
+            this.pnlButtons.Size = new System.Drawing.Size(282, 190);
             this.pnlButtons.TabIndex = 1;
 
             //
@@ -630,7 +630,7 @@ namespace Bulk_Editor
             this.btnRunTools.ForeColor = System.Drawing.Color.White;
             this.btnRunTools.Location = new System.Drawing.Point(0, 0);
             this.btnRunTools.Name = "btnRunTools";
-            this.btnRunTools.Size = new System.Drawing.Size(282, 40);
+            this.btnRunTools.Size = new System.Drawing.Size(282, 50);
             this.btnRunTools.TabIndex = 0;
             this.btnRunTools.Text = "🚀 Fix All Documents";
             this.btnRunTools.UseVisualStyleBackColor = false;
@@ -646,9 +646,9 @@ namespace Bulk_Editor
             this.btnExportChangelog.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnExportChangelog.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.btnExportChangelog.ForeColor = System.Drawing.Color.White;
-            this.btnExportChangelog.Location = new System.Drawing.Point(0, 60);
+            this.btnExportChangelog.Location = new System.Drawing.Point(0, 65);
             this.btnExportChangelog.Name = "btnExportChangelog";
-            this.btnExportChangelog.Size = new System.Drawing.Size(282, 30);
+            this.btnExportChangelog.Size = new System.Drawing.Size(282, 45);
             this.btnExportChangelog.TabIndex = 1;
             this.btnExportChangelog.Text = "📤 Export Batch Changelog";
             this.btnExportChangelog.UseVisualStyleBackColor = false;
@@ -664,9 +664,9 @@ namespace Bulk_Editor
             this.btnOpenChangelogFolder.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnOpenChangelogFolder.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.btnOpenChangelogFolder.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(33)))), ((int)(((byte)(37)))), ((int)(((byte)(41)))));
-            this.btnOpenChangelogFolder.Location = new System.Drawing.Point(0, 110);
+            this.btnOpenChangelogFolder.Location = new System.Drawing.Point(0, 125);
             this.btnOpenChangelogFolder.Name = "btnOpenChangelogFolder";
-            this.btnOpenChangelogFolder.Size = new System.Drawing.Size(282, 30);
+            this.btnOpenChangelogFolder.Size = new System.Drawing.Size(282, 45);
             this.btnOpenChangelogFolder.TabIndex = 2;
             this.btnOpenChangelogFolder.Text = "📁 Open Changelog Folder";
             this.btnOpenChangelogFolder.UseVisualStyleBackColor = false;
@@ -679,7 +679,7 @@ namespace Bulk_Editor
             this.pnlStatus.Controls.Add(this.lblStatus);
             this.pnlStatus.Controls.Add(this.progressBar);
             this.pnlStatus.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pnlStatus.Location = new System.Drawing.Point(16, 676);
+            this.pnlStatus.Location = new System.Drawing.Point(16, 726);
             this.pnlStatus.Name = "pnlStatus";
             this.pnlStatus.Padding = new System.Windows.Forms.Padding(0, 8, 0, 0);
             this.pnlStatus.Size = new System.Drawing.Size(1248, 28);
@@ -715,7 +715,7 @@ namespace Bulk_Editor
             this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(250)))));
-            this.ClientSize = new System.Drawing.Size(1280, 720);
+            this.ClientSize = new System.Drawing.Size(1280, 770);
             this.Controls.Add(this.tlpMain);
             this.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.MinimumSize = new System.Drawing.Size(1000, 600);
