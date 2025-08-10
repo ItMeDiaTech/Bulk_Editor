@@ -159,6 +159,14 @@ namespace Bulk_Editor
                             continue; // Skip this line in UI display
                         }
 
+                        // Filter out document separator lines from UI display
+                        if (line.Trim() == "================================================================================" ||
+                            line.Trim() == "__________" ||
+                            line.Trim().All(c => c == '=' || c == '_'))
+                        {
+                            continue; // Skip separator lines in UI display
+                        }
+
                         // Include all other content for this file
                         fileChangelog.AppendLine(line);
                     }
@@ -579,7 +587,7 @@ namespace Bulk_Editor
                 WriteDetailedChangelogToDownloads(updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, replacedHyperlinks, _processor);
 
                 logWriter.WriteLine();
-                logWriter.WriteLine("================================================================================");
+                logWriter.WriteLine("__________");
                 logWriter.WriteLine();
 
                 System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Finished processing file: {filePath}");
