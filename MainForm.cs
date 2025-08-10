@@ -152,7 +152,13 @@ namespace Bulk_Editor
                             break;
                         }
 
-                        // Include all content for this file
+                        // Filter out summary line that should only appear in exported files
+                        if (line.StartsWith("Processed ") && line.EndsWith(" files."))
+                        {
+                            continue; // Skip this line in UI display
+                        }
+
+                        // Include all other content for this file
                         fileChangelog.AppendLine(line);
                     }
                 }
