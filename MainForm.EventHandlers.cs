@@ -86,12 +86,6 @@ namespace Bulk_Editor
         private void ChkFixSourceHyperlinks_CheckedChanged(object sender, EventArgs e)
         {
             UpdateSubCheckboxStates();
-
-            // Reapply theme to update text color based on checked state
-            if (_themeService != null && sender is CheckBox checkBox)
-            {
-                _themeService.ApplyTheme(this);
-            }
         }
 
         private async void BtnSettings_Click(object sender, EventArgs e)
