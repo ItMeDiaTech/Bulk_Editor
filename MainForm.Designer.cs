@@ -186,16 +186,14 @@ namespace Bulk_Editor
             // btnSettings
             //
             this.btnSettings.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnSettings.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(108)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
+            this.btnSettings.BackColor = System.Drawing.Color.Transparent;
             this.btnSettings.FlatAppearance.BorderSize = 0;
             this.btnSettings.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnSettings.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.btnSettings.ForeColor = System.Drawing.Color.White;
+            this.btnSettings.Image = System.Drawing.Image.FromFile("Settings_Icon.png");
             this.btnSettings.Location = new System.Drawing.Point(1188, 10);
             this.btnSettings.Name = "btnSettings";
             this.btnSettings.Size = new System.Drawing.Size(40, 40);
             this.btnSettings.TabIndex = 4;
-            this.btnSettings.Text = "⚙️";
             this.btnSettings.UseVisualStyleBackColor = false;
             this.btnSettings.Click += new System.EventHandler(this.BtnSettings_Click);
 
@@ -402,14 +400,13 @@ namespace Bulk_Editor
             this.btnExportSingleChangelog.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnExportSingleChangelog.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.btnExportSingleChangelog.ForeColor = System.Drawing.Color.White;
-            this.btnExportSingleChangelog.Location = new System.Drawing.Point(517, 0);
+            this.btnExportSingleChangelog.Location = new System.Drawing.Point(500, 0);
             this.btnExportSingleChangelog.Name = "btnExportSingleChangelog";
             this.btnExportSingleChangelog.Size = new System.Drawing.Size(200, 25);
             this.btnExportSingleChangelog.TabIndex = 2;
             this.btnExportSingleChangelog.Text = "📄 Export This Changelog";
             this.btnExportSingleChangelog.UseVisualStyleBackColor = false;
             this.btnExportSingleChangelog.Click += new System.EventHandler(this.BtnExportSingleChangelog_Click);
-            this.btnExportSingleChangelog.Margin = new Padding(0, 0, 8, 0);
 
 
             //
