@@ -13,6 +13,7 @@ namespace Bulk_Editor.Configuration
         public ApiSettings ApiSettings { get; set; } = new();
         public RetrySettings RetrySettings { get; set; } = new();
         public ApplicationSettings ApplicationSettings { get; set; } = new();
+        public ChangelogSettings ChangelogSettings { get; set; } = new();
 
         // Keep existing settings for backward compatibility
         public ProcessingSettings Processing { get; set; } = new();
@@ -183,5 +184,83 @@ namespace Bulk_Editor.Configuration
         public string LogFilePath { get; set; } = "logs/bulk-editor.log";
         public int MaxLogFileSizeMB { get; set; } = 10;
         public int MaxLogFiles { get; set; } = 5;
+    }
+
+    /// <summary>
+    /// Changelog storage and organization settings
+    /// </summary>
+    public class ChangelogSettings
+    {
+        /// <summary>
+        /// Base directory for all changelog storage. Defaults to %APPDATA%\BulkEditor
+        /// </summary>
+        public string BaseStoragePath { get; set; } = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "BulkEditor");
+
+        /// <summary>
+        /// Whether to use centralized storage (true) or document folders (false)
+        /// </summary>
+        public bool UseCentralizedStorage { get; set; } = true;
+
+        /// <summary>
+        /// Whether to organize changelogs by date
+        /// </summary>
+        public bool OrganizeByDate { get; set; } = true;
+
+        /// <summary>
+        /// Number of days to keep changelogs before auto-cleanup (0 = disabled)
+        /// </summary>
+        public int AutoCleanupDays { get; set; } = 30;
+
+        /// <summary>
+        /// Whether to create separate folders for individual vs combined changelogs
+        /// </summary>
+        public bool SeparateIndividualAndCombined { get; set; } = true;
+
+        /// <summary>
+        /// Whether to create backups in the centralized location
+        /// </summary>
+        public bool CentralizeBackups { get; set; } = false;
+
+        /// <summary>
+        /// Get the individual changelogs folder path
+        /// </summary>
+        public string GetIndividualChangelogsPath()
+        {
+            var basePath = Path.Combine(BaseStoragePath, "Changelogs");
+            return SeparateIndividualAndCombined
+                ? Path.Combine(basePath, "Individual")
+                : basePath;
+        }
+
+        /// <summary>
+        /// Get the combined changelogs folder path
+        /// </summary>
+        public string GetCombinedChangelogsPath()
+        {
+            var basePath = Path.Combine(BaseStoragePath, "Changelogs");
+            return SeparateIndividualAndCombined
+                ? Path.Combine(basePath, "Combined")
+                : basePath;
+        }
+
+        /// <summary>
+        /// Get the dated subfolder path for organizing by date
+        /// </summary>
+        public string GetDateBasedPath(string baseFolder)
+        {
+            return OrganizeByDate
+                ? Path.Combine(baseFolder, DateTime.Now.ToString("MM-dd-yyyy"))
+                : baseFolder;
+        }
+
+        /// <summary>
+        /// Get the centralized backups folder path
+        /// </summary>
+        public string GetBackupsPath()
+        {
+            return Path.Combine(BaseStoragePath, "Backups");
+        }
     }
 }

@@ -27,6 +27,7 @@ namespace Bulk_Editor
         private HyperlinkReplacementRules _hyperlinkReplacementRules;
         private readonly WordDocumentProcessor _processor;
         private AppSettings _appSettings;
+        private ChangelogManager _changelogManager;
 
         // Progress reporting and cancellation
         private CancellationTokenSource _cancellationTokenSource;
@@ -60,6 +61,13 @@ namespace Bulk_Editor
         {
             _appSettings = await AppSettings.LoadAsync();
             _hyperlinkReplacementRules = await HyperlinkReplacementRules.LoadAsync();
+
+            // Initialize changelog manager
+            _changelogManager = new ChangelogManager(_appSettings.ChangelogSettings);
+            await _changelogManager.InitializeStorageAsync();
+
+            // Perform cleanup if needed
+            await _changelogManager.CleanupOldChangelogsAsync();
         }
 
         private void SetupFileListHandlers()
@@ -75,7 +83,7 @@ namespace Bulk_Editor
                 string selectedItem = lstFiles.SelectedItem.ToString();
                 string fileName = selectedItem.Split('(')[0].Trim();
 
-                string changelogPath = FindLatestChangelog();
+                string changelogPath = _changelogManager?.FindLatestChangelog(txtFolderPath.Text) ?? FindLatestChangelog();
 
                 if (File.Exists(changelogPath))
                 {
@@ -333,16 +341,45 @@ namespace Bulk_Editor
                 string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
                 string changelogPath;
 
-                // Use document filename for single file processing
-                if (!isFolder && File.Exists(path))
+                // Use centralized storage if configured, otherwise use legacy behavior
+                if (_changelogManager != null && _appSettings.ChangelogSettings.UseCentralizedStorage)
                 {
-                    string docName = Path.GetFileNameWithoutExtension(path);
-                    string dateFormat = DateTime.Now.ToString("MMddyyyy");
-                    changelogPath = Path.Combine(basePath, $"{docName}_Changelog_{dateFormat}.txt");
+                    if (!isFolder && File.Exists(path))
+                    {
+                        // Single file processing - use individual changelog path
+                        changelogPath = _changelogManager.GetIndividualChangelogPath(Path.GetFileName(path));
+                        if (string.IsNullOrEmpty(changelogPath))
+                        {
+                            // Fallback to legacy behavior
+                            string docName = Path.GetFileNameWithoutExtension(path);
+                            string dateFormat = DateTime.Now.ToString("MMddyyyy");
+                            changelogPath = Path.Combine(basePath, $"{docName}_Changelog_{dateFormat}.txt");
+                        }
+                    }
+                    else
+                    {
+                        // Multiple files processing - use combined changelog path
+                        changelogPath = _changelogManager.GetCombinedChangelogPath();
+                        if (string.IsNullOrEmpty(changelogPath))
+                        {
+                            // Fallback to legacy behavior
+                            changelogPath = Path.Combine(basePath, $"BulkEditor_Changelog_{timestamp}.txt");
+                        }
+                    }
                 }
                 else
                 {
-                    changelogPath = Path.Combine(basePath, $"BulkEditor_Changelog_{timestamp}.txt");
+                    // Legacy behavior for backward compatibility
+                    if (!isFolder && File.Exists(path))
+                    {
+                        string docName = Path.GetFileNameWithoutExtension(path);
+                        string dateFormat = DateTime.Now.ToString("MMddyyyy");
+                        changelogPath = Path.Combine(basePath, $"{docName}_Changelog_{dateFormat}.txt");
+                    }
+                    else
+                    {
+                        changelogPath = Path.Combine(basePath, $"BulkEditor_Changelog_{timestamp}.txt");
+                    }
                 }
 
                 ShowProgress(true);
@@ -859,6 +896,13 @@ namespace Bulk_Editor
 
         private string FindLatestChangelog()
         {
+            // Legacy method - use ChangelogManager if available
+            if (_changelogManager != null)
+            {
+                return _changelogManager.FindLatestChangelog(txtFolderPath.Text);
+            }
+
+            // Fallback to original logic
             if (!string.IsNullOrEmpty(txtFolderPath.Text))
             {
                 bool isFolder = Directory.Exists(txtFolderPath.Text);
@@ -890,6 +934,42 @@ namespace Bulk_Editor
             }
 
             return string.Empty;
+        }
+
+        private void BtnOpenChangelogFolder_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string changelogFolderPath;
+
+                if (_changelogManager != null)
+                {
+                    changelogFolderPath = _changelogManager.GetMainChangelogsFolder();
+                }
+                else
+                {
+                    // Fallback to Downloads folder
+                    changelogFolderPath = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                        "Downloads");
+                }
+
+                // Ensure the directory exists
+                if (!Directory.Exists(changelogFolderPath))
+                {
+                    Directory.CreateDirectory(changelogFolderPath);
+                }
+
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = changelogFolderPath,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error opening changelog folder: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private async void BtnConfigureReplaceHyperlink_Click(object sender, EventArgs e)
@@ -1191,6 +1271,16 @@ namespace Bulk_Editor
             else
             {
                 MessageBox.Show("File list is already empty.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private void BtnSettings_Click(object sender, EventArgs e)
+        {
+            using var settingsForm = new SettingsForm(_appSettings);
+            if (settingsForm.ShowDialog() == DialogResult.OK)
+            {
+                // Reload settings and reinitialize changelog manager
+                LoadConfigurationAsync();
             }
         }
     }

@@ -61,11 +61,13 @@ namespace Bulk_Editor
             this.chkOpenChangelogAfterUpdates = new System.Windows.Forms.CheckBox();
             this.btnConfigureReplaceHyperlink = new System.Windows.Forms.Button();
             this.pnlButtons = new System.Windows.Forms.Panel();
+            this.btnOpenChangelogFolder = new System.Windows.Forms.Button();
             this.btnExportChangelog = new System.Windows.Forms.Button();
             this.btnRunTools = new System.Windows.Forms.Button();
             this.pnlStatus = new System.Windows.Forms.Panel();
             this.progressBar = new System.Windows.Forms.ProgressBar();
             this.lblStatus = new System.Windows.Forms.Label();
+            this.btnSettings = new System.Windows.Forms.Button();
 
             this.tlpMain.SuspendLayout();
             this.pnlHeader.SuspendLayout();
@@ -99,7 +101,7 @@ namespace Bulk_Editor
             this.tlpMain.RowCount = 4;
             this.tlpMain.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 120F));
             this.tlpMain.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tlpMain.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 180F));
+            this.tlpMain.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 200F));
             this.tlpMain.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 60F));
             this.tlpMain.Size = new System.Drawing.Size(1280, 720);
             this.tlpMain.TabIndex = 0;
@@ -108,6 +110,7 @@ namespace Bulk_Editor
             // pnlHeader
             //
             this.pnlHeader.BackColor = System.Drawing.Color.White;
+            this.pnlHeader.Controls.Add(this.btnSettings);
             this.pnlHeader.Controls.Add(this.lblTitle);
             this.pnlHeader.Controls.Add(this.txtFolderPath);
             this.pnlHeader.Controls.Add(this.btnSelectFolder);
@@ -176,8 +179,25 @@ namespace Bulk_Editor
             this.txtFolderPath.Location = new System.Drawing.Point(320, 62);
             this.txtFolderPath.Name = "txtFolderPath";
             this.txtFolderPath.ReadOnly = true;
-            this.txtFolderPath.Size = new System.Drawing.Size(908, 25);
+            this.txtFolderPath.Size = new System.Drawing.Size(858, 25);
             this.txtFolderPath.TabIndex = 3;
+
+            //
+            // btnSettings
+            //
+            this.btnSettings.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnSettings.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(108)))), ((int)(((byte)(117)))), ((int)(((byte)(125)))));
+            this.btnSettings.FlatAppearance.BorderSize = 0;
+            this.btnSettings.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnSettings.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.btnSettings.ForeColor = System.Drawing.Color.White;
+            this.btnSettings.Location = new System.Drawing.Point(1188, 10);
+            this.btnSettings.Name = "btnSettings";
+            this.btnSettings.Size = new System.Drawing.Size(40, 40);
+            this.btnSettings.TabIndex = 4;
+            this.btnSettings.Text = "⚙️";
+            this.btnSettings.UseVisualStyleBackColor = false;
+            this.btnSettings.Click += new System.EventHandler(this.BtnSettings_Click);
 
             //
             // pnlContent
@@ -416,7 +436,7 @@ namespace Bulk_Editor
             this.pnlActions.Margin = new System.Windows.Forms.Padding(0, 0, 0, 8);
             this.pnlActions.Name = "pnlActions";
             this.pnlActions.Padding = new System.Windows.Forms.Padding(20);
-            this.pnlActions.Size = new System.Drawing.Size(1248, 180);
+            this.pnlActions.Size = new System.Drawing.Size(1248, 200);
             this.pnlActions.TabIndex = 2;
 
             //
@@ -432,7 +452,7 @@ namespace Bulk_Editor
             this.tlpActions.Name = "tlpActions";
             this.tlpActions.RowCount = 1;
             this.tlpActions.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tlpActions.Size = new System.Drawing.Size(1208, 140);
+            this.tlpActions.Size = new System.Drawing.Size(1208, 160);
             this.tlpActions.TabIndex = 0;
 
             //
@@ -446,7 +466,7 @@ namespace Bulk_Editor
             this.grpTools.Margin = new System.Windows.Forms.Padding(0, 0, 16, 0);
             this.grpTools.Name = "grpTools";
             this.grpTools.Padding = new System.Windows.Forms.Padding(16);
-            this.grpTools.Size = new System.Drawing.Size(890, 140);
+            this.grpTools.Size = new System.Drawing.Size(890, 160);
             this.grpTools.TabIndex = 0;
             this.grpTools.TabStop = false;
             this.grpTools.Text = "Processing Tools";
@@ -588,13 +608,14 @@ namespace Bulk_Editor
             //
             // pnlButtons
             //
+            this.pnlButtons.Controls.Add(this.btnOpenChangelogFolder);
             this.pnlButtons.Controls.Add(this.btnExportChangelog);
             this.pnlButtons.Controls.Add(this.btnRunTools);
             this.pnlButtons.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pnlButtons.Location = new System.Drawing.Point(916, 10);
             this.pnlButtons.Margin = new System.Windows.Forms.Padding(10);
             this.pnlButtons.Name = "pnlButtons";
-            this.pnlButtons.Size = new System.Drawing.Size(282, 120);
+            this.pnlButtons.Size = new System.Drawing.Size(282, 140);
             this.pnlButtons.TabIndex = 1;
 
             //
@@ -609,7 +630,7 @@ namespace Bulk_Editor
             this.btnRunTools.ForeColor = System.Drawing.Color.White;
             this.btnRunTools.Location = new System.Drawing.Point(0, 0);
             this.btnRunTools.Name = "btnRunTools";
-            this.btnRunTools.Size = new System.Drawing.Size(282, 50);
+            this.btnRunTools.Size = new System.Drawing.Size(282, 40);
             this.btnRunTools.TabIndex = 0;
             this.btnRunTools.Text = "🚀 Fix All Documents";
             this.btnRunTools.UseVisualStyleBackColor = false;
@@ -627,11 +648,29 @@ namespace Bulk_Editor
             this.btnExportChangelog.ForeColor = System.Drawing.Color.White;
             this.btnExportChangelog.Location = new System.Drawing.Point(0, 60);
             this.btnExportChangelog.Name = "btnExportChangelog";
-            this.btnExportChangelog.Size = new System.Drawing.Size(282, 40);
+            this.btnExportChangelog.Size = new System.Drawing.Size(282, 30);
             this.btnExportChangelog.TabIndex = 1;
             this.btnExportChangelog.Text = "📤 Export Batch Changelog";
             this.btnExportChangelog.UseVisualStyleBackColor = false;
             this.btnExportChangelog.Click += new System.EventHandler(this.BtnExportChangelog_Click);
+
+            //
+            // btnOpenChangelogFolder
+            //
+            this.btnOpenChangelogFolder.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnOpenChangelogFolder.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(193)))), ((int)(((byte)(7)))));
+            this.btnOpenChangelogFolder.FlatAppearance.BorderSize = 0;
+            this.btnOpenChangelogFolder.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnOpenChangelogFolder.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.btnOpenChangelogFolder.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(33)))), ((int)(((byte)(37)))), ((int)(((byte)(41)))));
+            this.btnOpenChangelogFolder.Location = new System.Drawing.Point(0, 110);
+            this.btnOpenChangelogFolder.Name = "btnOpenChangelogFolder";
+            this.btnOpenChangelogFolder.Size = new System.Drawing.Size(282, 30);
+            this.btnOpenChangelogFolder.TabIndex = 2;
+            this.btnOpenChangelogFolder.Text = "📁 Open Changelog Folder";
+            this.btnOpenChangelogFolder.UseVisualStyleBackColor = false;
+            this.btnOpenChangelogFolder.Click += new System.EventHandler(this.BtnOpenChangelogFolder_Click);
 
             //
             // pnlStatus
@@ -745,5 +784,7 @@ namespace Bulk_Editor
         private System.Windows.Forms.Button btnRemoveFile;
         private System.Windows.Forms.Button btnOpenFileLocation;
         private System.Windows.Forms.Button btnClearFileList;
+        private System.Windows.Forms.Button btnOpenChangelogFolder;
+        private System.Windows.Forms.Button btnSettings;
     }
 }
