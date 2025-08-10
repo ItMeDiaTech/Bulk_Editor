@@ -126,6 +126,9 @@ namespace Bulk_Editor
                 Color enabledColor = SystemColors.ControlText;
                 Color disabledColor = SystemColors.ControlDark;
 
+                // Fix Source Hyperlinks should always use enabled color
+                chkFixSourceHyperlinks.ForeColor = enabledColor;
+
                 chkAppendContentID.ForeColor = chkFixSourceHyperlinks.Checked ? enabledColor : disabledColor;
                 chkCheckTitleChanges.ForeColor = chkFixSourceHyperlinks.Checked ? enabledColor : disabledColor;
                 chkFixTitles.ForeColor = chkFixSourceHyperlinks.Checked ? enabledColor : disabledColor;
@@ -138,7 +141,7 @@ namespace Bulk_Editor
             var theme = _themeService?.GetCurrentTheme();
             if (theme != null)
             {
-                // Apply colors directly to avoid the recursive ApplyTheme call
+                // Fix Source Hyperlinks should always remain visible with normal color
                 chkFixSourceHyperlinks.ForeColor = theme.PrimaryCheckBoxForeground;
 
                 if (chkFixSourceHyperlinks.Checked)

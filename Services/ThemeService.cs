@@ -552,14 +552,9 @@ namespace Bulk_Editor.Services
 
         private static void UpdatePrimaryCheckBoxColor(CheckBox checkBox, ThemeConfiguration theme)
         {
-            if (!checkBox.Checked && IsLightTheme(theme))
-            {
-                checkBox.ForeColor = theme.DisabledCheckBoxForeground;
-            }
-            else
-            {
-                checkBox.ForeColor = theme.PrimaryCheckBoxForeground;
-            }
+            // Primary checkbox (Fix Source Hyperlinks) should always remain visible
+            // regardless of its checked state
+            checkBox.ForeColor = theme.PrimaryCheckBoxForeground;
         }
 
         private static void UpdateSubCheckBoxColor(CheckBox checkBox, ThemeConfiguration theme)
@@ -574,7 +569,7 @@ namespace Bulk_Editor.Services
         {
             if (form == null) return;
 
-            var subCheckBoxNames = new[] { "chkAppendContentID", "chkFixTitles" };
+            var subCheckBoxNames = new[] { "chkAppendContentID", "chkCheckTitleChanges", "chkFixTitles" };
             foreach (var name in subCheckBoxNames)
             {
                 var subCheckBox = form.Controls.Find(name, true).FirstOrDefault() as CheckBox;
@@ -596,7 +591,9 @@ namespace Bulk_Editor.Services
         private static bool IsSubCheckBox(CheckBox checkBox)
         {
             // Check if this is a sub-checkbox based on naming convention
-            return checkBox.Name == "chkAppendContentID" || checkBox.Name == "chkFixTitles";
+            return checkBox.Name == "chkAppendContentID" ||
+                   checkBox.Name == "chkCheckTitleChanges" ||
+                   checkBox.Name == "chkFixTitles";
         }
 
         private static CheckBox GetParentCheckBox(CheckBox subCheckBox)
