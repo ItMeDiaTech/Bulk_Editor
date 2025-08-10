@@ -142,7 +142,7 @@ namespace Bulk_Editor
             this.btnSelectFolder.ForeColor = System.Drawing.Color.White;
             this.btnSelectFolder.Location = new System.Drawing.Point(20, 60);
             this.btnSelectFolder.Name = "btnSelectFolder";
-            this.btnSelectFolder.Size = new System.Drawing.Size(120, 40);
+            this.btnSelectFolder.Size = new System.Drawing.Size(140, 40);
             this.btnSelectFolder.TabIndex = 1;
             this.btnSelectFolder.Text = "📁 Select Folder";
             this.btnSelectFolder.UseVisualStyleBackColor = false;
@@ -156,7 +156,7 @@ namespace Bulk_Editor
             this.btnSelectFile.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnSelectFile.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.btnSelectFile.ForeColor = System.Drawing.Color.White;
-            this.btnSelectFile.Location = new System.Drawing.Point(150, 60);
+            this.btnSelectFile.Location = new System.Drawing.Point(170, 60);
             this.btnSelectFile.Name = "btnSelectFile";
             this.btnSelectFile.Size = new System.Drawing.Size(120, 40);
             this.btnSelectFile.TabIndex = 2;
@@ -171,10 +171,10 @@ namespace Bulk_Editor
             | System.Windows.Forms.AnchorStyles.Right)));
             this.txtFolderPath.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.txtFolderPath.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.txtFolderPath.Location = new System.Drawing.Point(280, 60);
+            this.txtFolderPath.Location = new System.Drawing.Point(300, 60);
             this.txtFolderPath.Name = "txtFolderPath";
             this.txtFolderPath.ReadOnly = true;
-            this.txtFolderPath.Size = new System.Drawing.Size(948, 25);
+            this.txtFolderPath.Size = new System.Drawing.Size(928, 25);
             this.txtFolderPath.TabIndex = 3;
 
             //
