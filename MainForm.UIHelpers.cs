@@ -115,49 +115,41 @@ namespace Bulk_Editor
                 chkFixTitles.Checked = false;
             }
 
-            // Update checkbox colors through theme service if available
-            if (_themeService != null)
+            // Force color updates directly - don't rely on theme service
+            var theme = _themeService?.GetCurrentTheme();
+
+            // Always keep Fix Source Hyperlinks visible
+            if (theme != null)
             {
-                UpdateCheckboxColors();
+                chkFixSourceHyperlinks.ForeColor = theme.PrimaryCheckBoxForeground;
             }
             else
             {
-                // Fallback to system colors if theme service not available
-                Color enabledColor = SystemColors.ControlText;
-                Color disabledColor = SystemColors.ControlDark;
-
-                // Fix Source Hyperlinks should always use enabled color
-                chkFixSourceHyperlinks.ForeColor = enabledColor;
-
-                chkAppendContentID.ForeColor = chkFixSourceHyperlinks.Checked ? enabledColor : disabledColor;
-                chkCheckTitleChanges.ForeColor = chkFixSourceHyperlinks.Checked ? enabledColor : disabledColor;
-                chkFixTitles.ForeColor = chkFixSourceHyperlinks.Checked ? enabledColor : disabledColor;
+                chkFixSourceHyperlinks.ForeColor = SystemColors.ControlText;
             }
-        }
 
-        private void UpdateCheckboxColors()
-        {
-            // Manually apply theme colors to just the checkboxes to avoid recursive theme application
-            var theme = _themeService?.GetCurrentTheme();
-            if (theme != null)
+            // Set sub-checkbox colors based on parent state
+            Color subColor;
+            if (chkFixSourceHyperlinks.Checked)
             {
-                // Fix Source Hyperlinks should always remain visible with normal color
-                chkFixSourceHyperlinks.ForeColor = theme.PrimaryCheckBoxForeground;
-
-                if (chkFixSourceHyperlinks.Checked)
-                {
-                    chkAppendContentID.ForeColor = theme.SubCheckBoxForeground;
-                    chkCheckTitleChanges.ForeColor = theme.SubCheckBoxForeground;
-                    chkFixTitles.ForeColor = theme.SubCheckBoxForeground;
-                }
-                else
-                {
-                    chkAppendContentID.ForeColor = theme.DisabledCheckBoxForeground;
-                    chkCheckTitleChanges.ForeColor = theme.DisabledCheckBoxForeground;
-                    chkFixTitles.ForeColor = theme.DisabledCheckBoxForeground;
-                }
+                subColor = theme?.SubCheckBoxForeground ?? SystemColors.ControlText;
             }
+            else
+            {
+                subColor = theme?.DisabledCheckBoxForeground ?? SystemColors.ControlDark;
+            }
+
+            // Force the color update on all sub-checkboxes
+            chkAppendContentID.ForeColor = subColor;
+            chkCheckTitleChanges.ForeColor = subColor;
+            chkFixTitles.ForeColor = subColor;
+
+            // Force a refresh to ensure colors are applied
+            chkAppendContentID.Invalidate();
+            chkCheckTitleChanges.Invalidate();
+            chkFixTitles.Invalidate();
         }
+
 
         private void ShowFileList()
         {
