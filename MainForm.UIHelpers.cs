@@ -115,23 +115,28 @@ namespace Bulk_Editor
                 chkFixTitles.Checked = false;
             }
 
-            // Always keep Fix Source Hyperlinks in normal color
-            chkFixSourceHyperlinks.ForeColor = Color.Black;
+            // Get theme colors
+            var theme = _themeService?.GetCurrentTheme();
 
-            // Use very obvious colors to test if color changes work
+            // Always keep Fix Source Hyperlinks in normal theme color
+            chkFixSourceHyperlinks.ForeColor = theme?.PrimaryCheckBoxForeground ?? SystemColors.ControlText;
+
+            // Set sub-checkbox colors based on parent state using proper theme colors
             if (chkFixSourceHyperlinks.Checked)
             {
-                // When enabled - use normal black text
-                chkAppendContentID.ForeColor = Color.Black;
-                chkCheckTitleChanges.ForeColor = Color.Black;
-                chkFixTitles.ForeColor = Color.Black;
+                // When enabled - use normal theme color
+                Color enabledColor = theme?.SubCheckBoxForeground ?? SystemColors.ControlText;
+                chkAppendContentID.ForeColor = enabledColor;
+                chkCheckTitleChanges.ForeColor = enabledColor;
+                chkFixTitles.ForeColor = enabledColor;
             }
             else
             {
-                // When disabled - use light gray text (very obvious difference)
-                chkAppendContentID.ForeColor = Color.LightGray;
-                chkCheckTitleChanges.ForeColor = Color.LightGray;
-                chkFixTitles.ForeColor = Color.LightGray;
+                // When disabled - use disabled theme color
+                Color disabledColor = theme?.DisabledCheckBoxForeground ?? SystemColors.ControlDark;
+                chkAppendContentID.ForeColor = disabledColor;
+                chkCheckTitleChanges.ForeColor = disabledColor;
+                chkFixTitles.ForeColor = disabledColor;
             }
 
             // Force visual refresh
