@@ -175,7 +175,7 @@ namespace Bulk_Editor
                 if (fileChangelog.Length > 0)
                 {
                     lblChangelogTitle.Text = $"Changelog - {fileName}";
-                    txtChangelog.Text = fileChangelog.ToString().Trim();
+                    txtChangelog.Text = fileChangelog.ToString().TrimEnd();
                     ShowChangelog();
                 }
                 else
