@@ -101,9 +101,9 @@ namespace Bulk_Editor
             this.tlpMain.RowCount = 4;
             this.tlpMain.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 120F));
             this.tlpMain.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tlpMain.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 170F));
+            this.tlpMain.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 210F));
             this.tlpMain.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 90F));
-            this.tlpMain.Size = new System.Drawing.Size(1280, 680);
+            this.tlpMain.Size = new System.Drawing.Size(1280, 720);
             this.tlpMain.TabIndex = 0;
 
             //
@@ -436,7 +436,7 @@ namespace Bulk_Editor
             this.pnlActions.Margin = new System.Windows.Forms.Padding(0, 0, 0, 8);
             this.pnlActions.Name = "pnlActions";
             this.pnlActions.Padding = new System.Windows.Forms.Padding(20);
-            this.pnlActions.Size = new System.Drawing.Size(1248, 170);
+            this.pnlActions.Size = new System.Drawing.Size(1248, 210);
             this.pnlActions.TabIndex = 2;
 
             //
@@ -452,7 +452,7 @@ namespace Bulk_Editor
             this.tlpActions.Name = "tlpActions";
             this.tlpActions.RowCount = 1;
             this.tlpActions.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tlpActions.Size = new System.Drawing.Size(1208, 130);
+            this.tlpActions.Size = new System.Drawing.Size(1208, 170);
             this.tlpActions.TabIndex = 0;
 
             //
@@ -627,7 +627,7 @@ namespace Bulk_Editor
             this.pnlButtons.Location = new System.Drawing.Point(916, 10);
             this.pnlButtons.Margin = new System.Windows.Forms.Padding(10);
             this.pnlButtons.Name = "pnlButtons";
-            this.pnlButtons.Size = new System.Drawing.Size(282, 110);
+            this.pnlButtons.Size = new System.Drawing.Size(282, 150);
             this.pnlButtons.TabIndex = 1;
 
             //
@@ -691,7 +691,7 @@ namespace Bulk_Editor
             this.pnlStatus.Controls.Add(this.lblStatus);
             this.pnlStatus.Controls.Add(this.progressBar);
             this.pnlStatus.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pnlStatus.Location = new System.Drawing.Point(16, 618);
+            this.pnlStatus.Location = new System.Drawing.Point(16, 658);
             this.pnlStatus.Name = "pnlStatus";
             this.pnlStatus.Padding = new System.Windows.Forms.Padding(0, 8, 0, 0);
             this.pnlStatus.Size = new System.Drawing.Size(1248, 58);
@@ -727,7 +727,7 @@ namespace Bulk_Editor
             this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(248)))), ((int)(((byte)(249)))), ((int)(((byte)(250)))));
-            this.ClientSize = new System.Drawing.Size(1280, 680);
+            this.ClientSize = new System.Drawing.Size(1280, 720);
             this.Controls.Add(this.tlpMain);
             this.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.MinimumSize = new System.Drawing.Size(1000, 600);
