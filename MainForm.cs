@@ -513,7 +513,6 @@ namespace Bulk_Editor
 
                 string backupPath = Path.Combine(Path.GetDirectoryName(filePath), "Backup", Path.GetFileName(filePath));
                 File.Copy(filePath, backupPath, true);
-                logWriter.WriteLine($"Backup created: {Path.GetFileName(backupPath)}");
 
                 string fileContent = File.ReadAllText(filePath);
                 string originalContent = fileContent;
