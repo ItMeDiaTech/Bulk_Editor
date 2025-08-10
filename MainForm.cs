@@ -579,6 +579,8 @@ namespace Bulk_Editor
                 WriteDetailedChangelogToDownloads(updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, replacedHyperlinks, _processor);
 
                 logWriter.WriteLine();
+                logWriter.WriteLine("================================================================================");
+                logWriter.WriteLine();
 
                 System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Finished processing file: {filePath}");
             }
