@@ -39,19 +39,10 @@
     <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
   </PropertyGroup>
 
-  <!-- Choose which appsettings to use -->
-  <PropertyGroup>
-    <AppSettingsSource>appsettings.json</AppSettingsSource>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <AppSettingsSource>Publish\appsettings.json</AppSettingsSource>
-  </PropertyGroup>
-
-  <!-- Include both files in the project; we'll copy the chosen one below -->
+  <!-- Copy appsettings to output -->
   <ItemGroup>
-    <None Include="appsettings.json" />
-    <None Include="Publish\appsettings.json" />
-    <None Include="appsettings.Development.json" Condition="Exists('appsettings.Development.json')" />
+    <None Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="appsettings.Development.json" Condition="Exists('appsettings.Development.json')" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
@@ -83,21 +74,6 @@
     <PackageReference Include="DocumentFormat.OpenXml" Version="3.0.2" />
   </ItemGroup>
 
-  <!-- Copy the resolved appsettings to build output -->
-  <Target Name="CopyResolvedAppSettingsToBuild" AfterTargets="Build">
-    <Copy SourceFiles="$(AppSettingsSource)"
-          DestinationFiles="$(OutDir)appsettings.json"
-          OverwriteReadOnlyFiles="true"
-          SkipUnchangedFiles="false" />
-  </Target>
-
-  <!-- Copy the resolved appsettings to publish output -->
-  <Target Name="CopyResolvedAppSettingsToPublish" AfterTargets="Publish">
-    <Copy SourceFiles="$(AppSettingsSource)"
-          DestinationFiles="$(PublishDir)appsettings.json"
-          OverwriteReadOnlyFiles="true"
-          SkipUnchangedFiles="false" />
-  </Target>
 
   <!-- Standalone deployment targets -->
   <Target Name="PublishStandalone" DependsOnTargets="Publish">
