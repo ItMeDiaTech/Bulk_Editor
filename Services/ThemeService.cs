@@ -1,7 +1,3 @@
-using System;
-using System.Drawing;
-using System.Linq;
-using System.Windows.Forms;
 using Bulk_Editor.Configuration;
 
 namespace Bulk_Editor.Services
@@ -23,16 +19,23 @@ namespace Bulk_Editor.Services
         /// </summary>
         public void ApplyTheme(Form form)
         {
+            if (form == null || form.IsDisposed) return;
+
+            // Get theme before try block so it's accessible in deferred callbacks
+            var theme = GetCurrentTheme();
+
             try
             {
                 // Suspend layout to prevent flicker and improve performance
                 form.SuspendLayout();
 
-                var theme = GetCurrentTheme();
                 ApplyThemeToControl(form, theme);
 
                 // Apply theme-appropriate icons
                 ApplyThemeIcons(form, theme);
+
+                // Ensure sub-checkbox colors stay in sync with parent in all themes (initial pass)
+                WireSubCheckboxColors(form, theme);
             }
             catch (Exception ex)
             {
@@ -41,16 +44,52 @@ namespace Bulk_Editor.Services
             finally
             {
                 // Always resume layout
+                try { form.ResumeLayout(true); }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Error resuming layout: {ex.Message}"); }
+            }
+
+            // ---- SAFE FINAL PASS ----
+            void FinalPass()
+            {
                 try
                 {
-                    form.ResumeLayout(true);
+                    // Run after the form is fully initialized & ready to paint
+                    WireSubCheckboxColors(form, theme);
+
+                    foreach (var n in new[] { "chkAppendContentID", "chkCheckTitleChanges", "chkFixTitles" })
+                    {
+                        if (form.Controls.Find(n, true).FirstOrDefault() is CheckBox c && !c.IsDisposed)
+                        {
+                            ApplyCheckBoxTheme(c, theme);
+                            c.Invalidate();
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error resuming layout: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Error in FinalPass: {ex.Message}");
                 }
             }
+
+            // If handle exists now, queue via BeginInvoke; otherwise, defer to HandleCreated.
+            if (form.IsHandleCreated)
+            {
+                form.BeginInvoke((Action)FinalPass);
+            }
+            else
+            {
+                // HandleCreated fires once when the native handle is ready.
+                EventHandler handler = null;
+                handler = (s, e) =>
+                {
+                    form.HandleCreated -= handler;
+                    // Now it's safe to BeginInvoke
+                    form.BeginInvoke((Action)FinalPass);
+                };
+                form.HandleCreated += handler;
+            }
         }
+
 
         private void ApplySettingsButtonTheme(Button b, ThemeConfiguration theme)
         {
@@ -237,7 +276,7 @@ namespace Bulk_Editor.Services
             // Check if the form background is closer to white (light theme) or dark
             var formBg = theme.FormBackground;
             var brightness = (formBg.R + formBg.G + formBg.B) / 3.0;
-            return brightness > 127; // Threshold for light vs dark
+            return brightness > 80; // Threshold for light vs dark
         }
 
         /// <summary>
@@ -266,7 +305,6 @@ namespace Bulk_Editor.Services
                 ApplyControlTheme(control, theme);
 
                 // Use a copy of the controls collection to avoid modification issues
-                // Check if control is still valid before accessing its Controls collection
                 if (control.IsDisposed)
                     return;
 
@@ -324,13 +362,17 @@ namespace Bulk_Editor.Services
                         return;
 
                     var backgroundColor = GetBackgroundColor(control, theme);
-                    var foregroundColor = GetForegroundColor(control, theme);
-
-                    // Only set colors if they're different from current to avoid flicker
                     if (!control.IsDisposed && control.BackColor != backgroundColor)
                         control.BackColor = backgroundColor;
-                    if (!control.IsDisposed && control.ForeColor != foregroundColor)
-                        control.ForeColor = foregroundColor;
+
+                    // Important: do NOT set ForeColor generically for CheckBox.
+                    // Let ApplyCheckBoxTheme own it completely.
+                    if (!(control is CheckBox))
+                    {
+                        var foregroundColor = GetForegroundColor(control, theme);
+                        if (!control.IsDisposed && control.ForeColor != foregroundColor)
+                            control.ForeColor = foregroundColor;
+                    }
                 }
                 catch (ObjectDisposedException)
                 {
@@ -393,23 +435,8 @@ namespace Bulk_Editor.Services
             finally
             {
                 // Always end update for controls that support it, even if an exception occurred
-                try
-                {
-                    listBoxToEndUpdate?.EndUpdate();
-                }
-                catch (ObjectDisposedException)
-                {
-                    // Control disposed - ignore
-                }
-
-                try
-                {
-                    comboBoxToEndUpdate?.EndUpdate();
-                }
-                catch (ObjectDisposedException)
-                {
-                    // Control disposed - ignore
-                }
+                try { listBoxToEndUpdate?.EndUpdate(); } catch (ObjectDisposedException) { }
+                try { comboBoxToEndUpdate?.EndUpdate(); } catch (ObjectDisposedException) { }
             }
         }
 
@@ -473,7 +500,6 @@ namespace Bulk_Editor.Services
                 _ => theme.ControlBackground
             };
         }
-
         private Color GetForegroundColor(Control control, ThemeConfiguration theme)
         {
             return control switch
@@ -482,7 +508,6 @@ namespace Bulk_Editor.Services
                 Label label when label.Name == "lblStatus" => theme.StatusForeground,
                 LinkLabel => theme.LabelForeground,
                 Label => theme.LabelForeground,
-                CheckBox => theme.CheckBoxForeground,
                 RadioButton => theme.CheckBoxForeground,
                 _ => theme.ControlForeground
             };
@@ -501,53 +526,34 @@ namespace Bulk_Editor.Services
             }
         }
 
+        // AUTHORITATIVE checkbox theming
         private void ApplyCheckBoxTheme(CheckBox checkBox, ThemeConfiguration theme)
         {
-            // Use OS visual styles and let parent surface show through
-            checkBox.UseVisualStyleBackColor = true;
-            checkBox.FlatStyle = FlatStyle.Standard; // or FlatStyle.System
+            // Transparent surface, no OS background override
+            checkBox.UseVisualStyleBackColor = false;
+            checkBox.FlatStyle = FlatStyle.Standard;
             checkBox.BackColor = Color.Transparent;
 
-            // For the main checkbox and its sub-checkboxes, let MainForm.UIHelpers handle the coloring
-            // to avoid conflicts between theme service and UI helpers
-            if (checkBox.Name == "chkFixSourceHyperlinks" || IsSubCheckBox(checkBox))
+            if (checkBox.Name == "chkFixSourceHyperlinks")
             {
-                // Don't set colors here - UIHelpers will handle it
+                // Primary: always visible
+                checkBox.ForeColor = theme.PrimaryCheckBoxForeground;
                 return;
             }
 
-            // For other checkboxes, apply standard theme coloring
-            checkBox.ForeColor = theme.CheckBoxForeground;
-        }
-
-        private static void UpdatePrimaryCheckBoxColor(CheckBox checkBox, ThemeConfiguration theme)
-        {
-            // Primary checkbox (Fix Source Hyperlinks) should always remain visible
-            // regardless of its checked state
-            checkBox.ForeColor = theme.PrimaryCheckBoxForeground;
-        }
-
-        private static void UpdateSubCheckBoxColor(CheckBox checkBox, ThemeConfiguration theme)
-        {
-            var parentCheckBox = GetParentCheckBox(checkBox);
-            checkBox.ForeColor = (parentCheckBox != null && !parentCheckBox.Checked)
-                ? theme.DisabledCheckBoxForeground
-                : theme.SubCheckBoxForeground;
-        }
-
-        private static void UpdateSubCheckBoxColors(Form form, ThemeConfiguration theme)
-        {
-            if (form == null) return;
-
-            var subCheckBoxNames = new[] { "chkAppendContentID", "chkCheckTitleChanges", "chkFixTitles" };
-            foreach (var name in subCheckBoxNames)
+            if (IsSubCheckBox(checkBox))
             {
-                var subCheckBox = form.Controls.Find(name, true).FirstOrDefault() as CheckBox;
-                if (subCheckBox != null)
-                {
-                    UpdateSubCheckBoxColor(subCheckBox, theme);
-                }
+                var parent = GetParentCheckBox(checkBox);
+                bool parentOn = parent != null && parent.Checked;
+
+                // Sub: fade when parent is off
+                checkBox.ForeColor = parentOn ? theme.SubCheckBoxForeground
+                                              : theme.DisabledCheckBoxForeground;
+                return;
             }
+
+            // All other checkboxes
+            checkBox.ForeColor = theme.CheckBoxForeground;
         }
 
         private static void ApplyRadioButtonTheme(RadioButton radio, ThemeConfiguration theme)
@@ -571,6 +577,55 @@ namespace Bulk_Editor.Services
             // Find the parent form and locate the Fix Source Hyperlinks checkbox
             var form = subCheckBox.FindForm();
             return form?.Controls.Find("chkFixSourceHyperlinks", true).FirstOrDefault() as CheckBox;
+        }
+
+        private void WireSubCheckboxColors(Form form, ThemeConfiguration theme)
+        {
+            if (form == null || form.IsDisposed) return;
+
+            var parent = form.Controls.Find("chkFixSourceHyperlinks", true).FirstOrDefault() as CheckBox;
+            if (parent == null) return;
+
+            var names = new[] { "chkAppendContentID", "chkCheckTitleChanges", "chkFixTitles" };
+
+            void sync()
+            {
+                bool parentOn = parent.Checked;
+
+                foreach (var n in names)
+                {
+                    if (form.Controls.Find(n, true).FirstOrDefault() is CheckBox c && !c.IsDisposed)
+                    {
+                        // Always enable – we control the visual with ForeColor, not OS disabled paint
+                        c.Enabled = true;
+
+                        // Prevent interaction when parent is off, without changing OS paint
+                        c.AutoCheck = parentOn;
+                        if (!parentOn && c.Checked) c.Checked = false;
+
+                        // Ensure OS theming doesn't override our colors
+                        c.UseVisualStyleBackColor = false;
+                        c.FlatStyle = FlatStyle.Standard;
+                        c.BackColor = Color.Transparent;
+
+                        // Fade vs normal
+                        c.ForeColor = parentOn ? theme.SubCheckBoxForeground
+                                            : theme.DisabledCheckBoxForeground;
+
+                        c.Invalidate();
+                    }
+                }
+            }
+
+            // Wire once
+            if (!Equals(parent.Tag, "wired-subcolors"))
+            {
+                parent.CheckedChanged += (s, e) => sync();
+                parent.Tag = "wired-subcolors";
+            }
+
+            // Initial apply
+            sync();
         }
 
         private static void ApplyTextBoxTheme(TextBox textBox, ThemeConfiguration theme)
@@ -692,8 +747,8 @@ namespace Bulk_Editor.Services
                 GroupBoxBackground = Color.Transparent,
                 CheckBoxForeground = Color.FromArgb(73, 80, 87),
                 PrimaryCheckBoxForeground = Color.FromArgb(73, 80, 87),
-                SubCheckBoxForeground = Color.FromArgb(73, 80, 87),
-                DisabledCheckBoxForeground = Color.FromArgb(173, 181, 189)
+                SubCheckBoxForeground = Color.FromArgb(73, 80, 87),    // stays the same
+                DisabledCheckBoxForeground = Color.FromArgb(173, 181, 189), // #ADB5BD (clearer fade)
             };
         }
 
