@@ -25,9 +25,6 @@ namespace Bulk_Editor
             // Add external configuration files (higher priority)
             cfgBuilder
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-#if !DEBUG
-                .AddJsonFile("Publish/appsettings.json", optional: true, reloadOnChange: true)
-#endif
                 .AddEnvironmentVariables();
 
             Configuration = cfgBuilder.Build();
