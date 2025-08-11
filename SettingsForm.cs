@@ -497,44 +497,49 @@ namespace Bulk_Editor
         /// </summary>
         private async Task RollbackMigration(List<(string source, string destination)> movedItems, string originalPath)
         {
-            try
-            {
-                // Ensure original directory exists
-                if (!Directory.Exists(originalPath))
-                {
-                    Directory.CreateDirectory(originalPath);
-                }
 
-                // Move files back to original location
-                foreach (var (source, destination) in movedItems)
+            await Task.Run(() =>
+            {
+
+                try
                 {
-                    if (File.Exists(destination))
+                    // Ensure original directory exists
+                    if (!Directory.Exists(originalPath))
                     {
-                        // Ensure source directory exists
-                        var sourceDir = Path.GetDirectoryName(source);
-                        if (!Directory.Exists(sourceDir))
-                        {
-                            Directory.CreateDirectory(sourceDir);
-                        }
-
-                        File.Move(destination, source);
+                        Directory.CreateDirectory(originalPath);
                     }
-                }
 
-                MessageBox.Show(
-                    "Files have been restored to their original location.",
-                    "Rollback Complete",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    $"Error during rollback: {ex.Message}\n\nSome files may be in an inconsistent state. Please check both directories manually.",
-                    "Rollback Error",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
-            }
+                    // Move files back to original location
+                    foreach (var (source, destination) in movedItems)
+                    {
+                        if (File.Exists(destination))
+                        {
+                            // Ensure source directory exists
+                            var sourceDir = Path.GetDirectoryName(source);
+                            if (!Directory.Exists(sourceDir))
+                            {
+                                Directory.CreateDirectory(sourceDir);
+                            }
+
+                            File.Move(destination, source);
+                        }
+                    }
+
+                    MessageBox.Show(
+                        "Files have been restored to their original location.",
+                        "Rollback Complete",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(
+                        $"Error during rollback: {ex.Message}\n\nSome files may be in an inconsistent state. Please check both directories manually.",
+                        "Rollback Error",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                }
+            });
         }
     }
 }
