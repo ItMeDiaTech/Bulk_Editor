@@ -12,7 +12,31 @@
     <AssemblyCompany>DiaTech</AssemblyCompany>
     <AssemblyProduct>Bulk Editor</AssemblyProduct>
     <Copyright>Copyright © 2024 DiaTech</Copyright>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <!-- <RestoreSources>https://api.nuget.org/v3/index.json</RestoreSources> -->
+  </PropertyGroup>
+
+  <!-- Standalone deployment configuration -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishTrimmed>false</PublishTrimmed>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <PublishReadyToRun>true</PublishReadyToRun>
+  </PropertyGroup>
+
+  <!-- Debug standalone configuration (optional) -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug' AND '$(PublishStandalone)' == 'true'">
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishTrimmed>false</PublishTrimmed>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
   </PropertyGroup>
 
   <!-- Choose which appsettings to use -->
@@ -33,6 +57,10 @@
   <ItemGroup>
     <EmbeddedResource Include="Settings_Icon.png" />
     <EmbeddedResource Include="White_Settings_Icon_25x25.png" />
+    <!-- Embed default configuration as fallback -->
+    <EmbeddedResource Include="appsettings.json">
+      <LogicalName>appsettings.default.json</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>
@@ -69,6 +97,23 @@
           DestinationFiles="$(PublishDir)appsettings.json"
           OverwriteReadOnlyFiles="true"
           SkipUnchangedFiles="false" />
+  </Target>
+
+  <!-- Standalone deployment targets -->
+  <Target Name="PublishStandalone" DependsOnTargets="Publish">
+    <Message Text="Creating standalone executable for Windows x64..." Importance="high" />
+  </Target>
+
+  <!-- Ensure all native dependencies are included for single-file deployment -->
+  <Target Name="IncludeNativeDependencies" BeforeTargets="PublishAssemblies">
+    <ItemGroup>
+      <NativeLibrary Include="$(OutDir)**/*.dll" Condition="'$(PublishSingleFile)' == 'true'" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Custom publish profiles can be added here -->
+  <Target Name="PublishStandaloneWindows" DependsOnTargets="Publish" Condition="'$(RuntimeIdentifier)' == 'win-x64'">
+    <Message Text="Windows x64 standalone build completed at: $(PublishDir)" Importance="high" />
   </Target>
 
 </Project>

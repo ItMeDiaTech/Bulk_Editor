@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Reflection;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -29,12 +30,13 @@ namespace Bulk_Editor.Configuration
         );
 
         /// <summary>
-        /// Load configuration from file or create default
+        /// Load configuration from file, embedded resource, or create default
         /// </summary>
         public static async Task<AppSettings> LoadAsync()
         {
             try
             {
+                // Try loading from external file first (highest priority)
                 if (File.Exists(ConfigPath))
                 {
                     var json = await File.ReadAllTextAsync(ConfigPath);
@@ -50,17 +52,63 @@ namespace Bulk_Editor.Configuration
                         return settings;
                     }
                 }
+
+                // Try loading from embedded resource as fallback
+                var embeddedSettings = await LoadFromEmbeddedResourceAsync();
+                if (embeddedSettings != null)
+                {
+                    embeddedSettings.ValidateSettings();
+                    // Save the embedded configuration as external file for future customization
+                    await embeddedSettings.SaveAsync();
+                    return embeddedSettings;
+                }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error loading configuration: {ex.Message}");
             }
 
-            // Return default configuration and save it
+            // Return default configuration and save it (last resort)
             var defaultSettings = new AppSettings();
             defaultSettings.ValidateSettings();
             await defaultSettings.SaveAsync();
             return defaultSettings;
+        }
+
+        /// <summary>
+        /// Load configuration from embedded resource
+        /// </summary>
+        private static async Task<AppSettings?> LoadFromEmbeddedResourceAsync()
+        {
+            try
+            {
+                var assembly = Assembly.GetExecutingAssembly();
+                var resourceName = "Bulk_Editor.appsettings.default.json";
+
+                using var stream = assembly.GetManifestResourceStream(resourceName);
+                if (stream == null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Embedded resource not found: {resourceName}");
+                    return null;
+                }
+
+                using var reader = new StreamReader(stream);
+                var json = await reader.ReadToEndAsync();
+
+                var settings = JsonSerializer.Deserialize<AppSettings>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true,
+                    WriteIndented = true
+                });
+
+                System.Diagnostics.Debug.WriteLine("Successfully loaded configuration from embedded resource");
+                return settings;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading embedded configuration: {ex.Message}");
+                return null;
+            }
         }
 
         /// <summary>
