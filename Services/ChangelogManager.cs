@@ -127,12 +127,12 @@ namespace Bulk_Editor.Services
                 return allChangelogFiles[0];
             }
 
-            // Fallback to desktop if nothing found
-            string desktopChangelogPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+            // Fallback to application directory if nothing found
+            string appChangelogPath = Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory,
                 "BulkEditor_Changelog.txt");
 
-            return File.Exists(desktopChangelogPath) ? desktopChangelogPath : string.Empty;
+            return File.Exists(appChangelogPath) ? appChangelogPath : string.Empty;
         }
 
         /// <summary>
@@ -203,10 +203,10 @@ namespace Bulk_Editor.Services
         {
             if (!_settings.UseCentralizedStorage)
             {
-                // Return downloads folder as fallback
+                // Return application directory as fallback
                 return Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                    "Downloads");
+                    AppDomain.CurrentDomain.BaseDirectory,
+                    "Changelogs");
             }
 
             return Path.Combine(_settings.BaseStoragePath, "Changelogs");
