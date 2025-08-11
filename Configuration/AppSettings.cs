@@ -332,11 +332,11 @@ namespace Bulk_Editor.Configuration
     public class ChangelogSettings
     {
         /// <summary>
-        /// Base directory for all changelog storage. Defaults to %APPDATA%\BulkEditor
+        /// Base directory for all changelog storage. Defaults to application directory
         /// </summary>
         public string BaseStoragePath { get; set; } = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "BulkEditor");
+            AppDomain.CurrentDomain.BaseDirectory,
+            "Data");
 
         /// <summary>
         /// Whether to use centralized storage (true) or document folders (false)
