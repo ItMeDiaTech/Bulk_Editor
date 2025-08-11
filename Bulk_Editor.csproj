@@ -13,6 +13,7 @@
     <AssemblyProduct>Bulk Editor</AssemblyProduct>
     <Copyright>Copyright © 2024 DiaTech</Copyright>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <PublishSingleFile Condition="'$(Configuration)' == 'Standalone'">true</PublishSingleFile>
     <!-- <RestoreSources>https://api.nuget.org/v3/index.json</RestoreSources> -->
   </PropertyGroup>
 
