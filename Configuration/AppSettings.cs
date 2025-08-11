@@ -137,6 +137,29 @@ namespace Bulk_Editor.Configuration
             {
                 RetrySettings.MaxDelayMs = RetrySettings.BaseDelayMs * 8;
             }
+
+            // Convert relative paths to absolute paths
+            ValidatePaths();
+        }
+
+        /// <summary>
+        /// Convert relative paths to absolute paths based on application directory
+        /// </summary>
+        private void ValidatePaths()
+        {
+            var appBaseDir = AppDomain.CurrentDomain.BaseDirectory;
+
+            // Handle ChangelogSettings.BaseStoragePath
+            if (!Path.IsPathRooted(ChangelogSettings.BaseStoragePath))
+            {
+                ChangelogSettings.BaseStoragePath = Path.Combine(appBaseDir, ChangelogSettings.BaseStoragePath);
+            }
+
+            // Handle ProcessingSettings.TempFolderPath
+            if (!Path.IsPathRooted(Processing.TempFolderPath))
+            {
+                Processing.TempFolderPath = Path.Combine(appBaseDir, Processing.TempFolderPath);
+            }
         }
 
         /// <summary>
@@ -286,7 +309,7 @@ namespace Bulk_Editor.Configuration
         public bool PreserveFileAttributes { get; set; } = true;
         public int ProcessingTimeoutMinutes { get; set; } = 30;
         public bool EnableFileComparison { get; set; } = false;
-        public string TempFolderPath { get; set; } = Path.GetTempPath();
+        public string TempFolderPath { get; set; } = "Temp";
     }
 
     /// <summary>
@@ -334,9 +357,7 @@ namespace Bulk_Editor.Configuration
         /// <summary>
         /// Base directory for all changelog storage. Defaults to application directory
         /// </summary>
-        public string BaseStoragePath { get; set; } = Path.Combine(
-            AppDomain.CurrentDomain.BaseDirectory,
-            "Data");
+        public string BaseStoragePath { get; set; } = "Data";
 
         /// <summary>
         /// Whether to use centralized storage (true) or document folders (false)
