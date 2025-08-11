@@ -20,3 +20,6 @@ obj/
 # Miscellaneous files (documentation, scripts, examples)
 Misc/
 Publish/
+
+# Roo files
+.roo/

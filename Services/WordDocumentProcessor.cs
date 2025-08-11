@@ -341,11 +341,38 @@ namespace Bulk_Editor.Services
         {
             try
             {
-                var response = JsonSerializer.Deserialize<ApiResponse>(jsonResponse) ?? new();
+                var response = JsonSerializer.Deserialize<ApiResponse>(jsonResponse, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? new();
 
-                // Check for version updates
-                FlowVersion = response.Version;
-                UpdateNotes = response.Changes;
+                // Validate response structure
+                if (string.IsNullOrEmpty(response.StatusCode))
+                {
+                    throw new InvalidOperationException("Invalid API response: missing statusCode");
+                }
+
+                // Check HTTP status code
+                if (!response.StatusCode.StartsWith("2")) // Not a 2xx success code
+                {
+                    throw new InvalidOperationException($"API returned error status: {response.StatusCode}");
+                }
+
+                // Validate headers
+                if (response.Headers?.ContentType != "application/json")
+                {
+                    throw new InvalidOperationException("Invalid API response: expected JSON content type");
+                }
+
+                // Validate body structure
+                if (response.Body == null)
+                {
+                    throw new InvalidOperationException("Invalid API response: missing body");
+                }
+
+                // Check for version updates using the new structure
+                FlowVersion = response.Body.Version;
+                UpdateNotes = response.Body.Changes;
                 NeedsUpdate = !string.IsNullOrEmpty(FlowVersion) && FlowVersion != CurrentVersion;
 
                 return response;
@@ -360,7 +387,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Updates hyperlinks based on API response
         /// </summary>
-        public static List<HyperlinkData> UpdateHyperlinksFromApiResponse(List<HyperlinkData> hyperlinks, ApiResponse apiResponse, List<string> changes)
+        public static List<HyperlinkData> UpdateHyperlinksFromApiResponse(List<HyperlinkData> hyperlinks, ApiResponse apiResponse, List<string> changes, ApiSettings apiSettings = null)
         {
             var updatedHyperlinks = new List<HyperlinkData>();
             var resultsDict = new Dictionary<string, ApiResult>();
@@ -394,10 +421,10 @@ namespace Bulk_Editor.Services
                 if (!string.IsNullOrEmpty(lookupId) && resultsDict.TryGetValue(lookupId, out var result))
                 {
                     // Update the hyperlink address and sub-address based on API response
-                    // TODO: Pass ApiSettings to this method to use configured URLs
-                    // For now using placeholder URL that should be replaced with actual configuration
-                    string targetAddress = "https://thesource.cvshealth.com/nuxeo/thesource/";
-                    string targetSubAddress = "!/view?docid=" + result.Document_ID;
+                    // Use configured URLs from ApiSettings instead of hard-coded values
+                    var settings = apiSettings ?? new ApiSettings();
+                    string targetAddress = settings.HyperlinkBaseUrl;
+                    string targetSubAddress = settings.HyperlinkViewPath + result.Document_ID;
 
                     bool urlChanged = hyperlink.Address != targetAddress || hyperlink.SubAddress != targetSubAddress;
 
@@ -536,13 +563,44 @@ namespace Bulk_Editor.Services
     }
 
     /// <summary>
-    /// API response structure
+    /// Complete API response structure matching the new schema
     /// </summary>
     public class ApiResponse
     {
+        public string StatusCode { get; set; } = string.Empty;
+        public ApiHeaders Headers { get; set; } = new();
+        public ApiBody Body { get; set; } = new();
+
+        // Legacy properties for backward compatibility
+        public string Version => Body?.Version ?? string.Empty;
+        public string Changes => Body?.Changes ?? string.Empty;
+        public List<ApiResult> Results => Body?.Results ?? new();
+    }
+
+    /// <summary>
+    /// API response headers
+    /// </summary>
+    public class ApiHeaders
+    {
+        public string ContentType { get; set; } = "application/json";
+
+        // Map property name for JSON deserialization
+        [System.Text.Json.Serialization.JsonPropertyName("Content-Type")]
+        public string ContentTypeJson
+        {
+            get => ContentType;
+            set => ContentType = value;
+        }
+    }
+
+    /// <summary>
+    /// API response body containing the actual data
+    /// </summary>
+    public class ApiBody
+    {
+        public List<ApiResult> Results { get; set; } = new();
         public string Version { get; set; } = string.Empty;
         public string Changes { get; set; } = string.Empty;
-        public List<ApiResult> Results { get; set; } = new();
     }
 
     /// <summary>

@@ -240,7 +240,6 @@ namespace Bulk_Editor.Configuration
         public int MaxConcurrentRequests { get; set; } = 5;
 
         // Keep existing properties for backward compatibility
-        public string BaseUrl { get; set; } = "https://prod-00.eastus.logic.azure.com:443/workflows/";
         public int RetryCount { get; set; } = 3;
         public string UserAgent { get; set; } = "Bulk-Editor/2.1";
         public bool ValidateSsl { get; set; } = true;
