@@ -28,7 +28,7 @@ namespace Bulk_Editor.Services
             WordDocumentProcessor processor, List<string> changes,
             Collection<string> updatedLinks, Collection<string> notFoundLinks,
             Collection<string> expiredLinks, Collection<string> errorLinks,
-            Collection<string> updatedUrls)
+            Collection<string> updatedUrls, Configuration.ApiSettings apiSettings = null)
         {
             System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Starting FixSourceHyperlinks");
 
@@ -59,116 +59,17 @@ namespace Bulk_Editor.Services
             {
                 changes.Add($"Found {uniqueIds.Count} unique lookup IDs that would be updated via API");
 
-                // Send to API (simulated)
-                string apiResponse = await processor.SendToPowerAutomateFlow(uniqueIds.ToList(), "https://prod-00.eastus.logic.azure.com:443/workflows/...");
+                // Send to API using configured endpoint
+                string apiResponse = await processor.SendToPowerAutomateFlow(uniqueIds.ToList());
                 var response = processor.ParseApiResponse(apiResponse);
 
-                // Create a dictionary for faster lookup
-                var resultDict = new Dictionary<string, ApiResult>();
-                foreach (var result in response.Results)
+                // Use the new centralized method to update hyperlinks
+                var updatedHyperlinks = WordDocumentProcessor.UpdateHyperlinksFromApiResponse(hyperlinks, response, changes, apiSettings);
+
+                // Copy the updated hyperlinks back to the original list
+                for (int i = 0; i < hyperlinks.Count && i < updatedHyperlinks.Count; i++)
                 {
-                    if (!resultDict.ContainsKey(result.Document_ID))
-                        resultDict.Add(result.Document_ID, result);
-                    if (!resultDict.ContainsKey(result.Content_ID))
-                        resultDict.Add(result.Content_ID, result);
-                }
-
-                // Update hyperlinks based on API response
-                int processedCount = 0;
-                foreach (var hyperlink in hyperlinks)
-                {
-                    string lookupId = WordDocumentProcessor.ExtractLookupID(hyperlink.Address, hyperlink.SubAddress);
-                    if (!string.IsNullOrEmpty(lookupId))
-                    {
-                        if (resultDict.TryGetValue(lookupId, out var result))
-                        {
-                            // Update hyperlink address and sub-address using configuration
-                            // TODO: Pass ApiSettings to this method to use configured URLs
-                            string targetAddress = "https://thesource.cvshealth.com/nuxeo/thesource/";
-                            string targetSub = "!/view?docid=" + result.Document_ID;
-
-                            bool changedURL = (hyperlink.Address != targetAddress) || (hyperlink.SubAddress != targetSub);
-                            if (changedURL)
-                            {
-                                hyperlink.Address = targetAddress;
-                                hyperlink.SubAddress = targetSub;
-                                updatedLinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | URL Updated, {result.Title}");
-                            }
-
-                            // Check for status and update display text
-                            bool alreadyExpired = hyperlink.TextToDisplay.Contains(" - Expired");
-                            bool alreadyNotFound = hyperlink.TextToDisplay.Contains(" - Not Found");
-
-                            if (!alreadyExpired && !alreadyNotFound)
-                            {
-                                // Append content ID if needed
-                                string last6 = result.Content_ID.Length >= 6 ? result.Content_ID.Substring(result.Content_ID.Length - 6) : result.Content_ID;
-                                string last5 = last6.Length >= 5 ? last6.Substring(last6.Length - 5) : last6;
-                                bool appended = false;
-
-                                // Check if we need to update the content ID
-                                if (hyperlink.TextToDisplay.EndsWith($" ({last5})") && !hyperlink.TextToDisplay.EndsWith($" ({last6})"))
-                                {
-                                    hyperlink.TextToDisplay = hyperlink.TextToDisplay.Substring(0, hyperlink.TextToDisplay.Length - $" ({last5})".Length) + $" ({last6})";
-                                    appended = true;
-                                }
-                                else if (!hyperlink.TextToDisplay.Contains($" ({last6})"))
-                                {
-                                    hyperlink.TextToDisplay = hyperlink.TextToDisplay.Trim() + $" ({last6})";
-                                    appended = true;
-                                }
-
-                                // Check for title changes
-                                string currentTitle = hyperlink.TextToDisplay;
-                                string expectedTitle = result.Title.Trim();
-                                if (!string.IsNullOrEmpty(expectedTitle) &&
-                                    currentTitle.Length > $" ({last6})".Length &&
-                                    !currentTitle.Substring(0, currentTitle.Length - $" ({last6})".Length).Equals(expectedTitle))
-                                {
-                                    updatedUrls.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Possible Title Change\n" +
-                                        $"        Current Title: {currentTitle.Substring(0, currentTitle.Length - $" ({last6})".Length)}\n" +
-                                        $"        New Title:     {expectedTitle}\n" +
-                                        $"        Content ID:    {result.Content_ID}");
-                                }
-
-                                if (appended || changedURL)
-                                {
-                                    string updateType = "";
-                                    if (changedURL) updateType = "URL Updated";
-                                    if (appended) updateType += (string.IsNullOrEmpty(updateType) ? "" : ", ") + "Appended Content ID";
-
-                                    updatedLinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | {updateType}, {result.Title}");
-                                }
-                            }
-
-                            // Handle expired status
-                            if (result.Status == "Expired" && !alreadyExpired)
-                            {
-                                hyperlink.TextToDisplay += " - Expired";
-                                expiredLinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Expired, {result.Title}\n        {result.Content_ID}");
-                            }
-                        }
-                        else
-                        {
-                            // Mark as not found if not already marked
-                            bool alreadyExpired = hyperlink.TextToDisplay.Contains(" - Expired");
-                            bool alreadyNotFound = hyperlink.TextToDisplay.Contains(" - Not Found");
-
-                            if (!alreadyNotFound && !alreadyExpired)
-                            {
-                                hyperlink.TextToDisplay += " - Not Found";
-                                notFoundLinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Not Found\n        {hyperlink.TextToDisplay}");
-                            }
-                        }
-                    }
-
-                    // Update progress every 10 hyperlinks processed
-                    processedCount++;
-                    if (processedCount % 10 == 0)
-                    {
-                        // Removed Application.DoEvents() - now using proper Progress<T> pattern
-                        await Task.Yield(); // Allow UI thread to update
-                    }
+                    hyperlinks[i] = updatedHyperlinks[i];
                 }
             }
 
@@ -185,7 +86,7 @@ namespace Bulk_Editor.Services
             Collection<string> updatedLinks, Collection<string> notFoundLinks,
             Collection<string> expiredLinks, Collection<string> errorLinks,
             Collection<string> updatedUrls, RetryPolicyService retryService,
-            IProgress<ProgressReport> progress, CancellationToken cancellationToken)
+            IProgress<ProgressReport> progress, CancellationToken cancellationToken, Configuration.ApiSettings apiSettings = null)
         {
             System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Starting FixSourceHyperlinks with progress");
 
@@ -219,123 +120,28 @@ namespace Bulk_Editor.Services
                 // Report API call progress
                 progress?.Report(ProgressReport.CreateStatus($"Calling API for {uniqueIds.Count} items..."));
 
-                // Send to API with retry policy
+                // Send to API with retry policy using configured endpoint
                 string apiResponse = await retryService.ExecuteWithRetryAsync(async (ct) =>
                 {
-                    return await processor.SendToPowerAutomateFlow(uniqueIds.ToList(),
-                        "https://prod-00.eastus.logic.azure.com:443/workflows/...");
+                    return await processor.SendToPowerAutomateFlow(uniqueIds.ToList());
                 }, cancellationToken);
 
                 var response = processor.ParseApiResponse(apiResponse);
 
-                // Create a dictionary for faster lookup
-                var resultDict = new Dictionary<string, ApiResult>();
-                foreach (var result in response.Results)
-                {
-                    if (!resultDict.ContainsKey(result.Document_ID))
-                        resultDict.Add(result.Document_ID, result);
-                    if (!resultDict.ContainsKey(result.Content_ID))
-                        resultDict.Add(result.Content_ID, result);
-                }
-
-                // Update hyperlinks based on API response
-                int processedCount = 0;
+                // Use the new centralized method to update hyperlinks
                 progress?.Report(ProgressReport.CreateStatus($"Processing {hyperlinks.Count} hyperlinks..."));
+                var updatedHyperlinks = WordDocumentProcessor.UpdateHyperlinksFromApiResponse(hyperlinks, response, changes, apiSettings);
 
-                foreach (var hyperlink in hyperlinks)
+                // Copy the updated hyperlinks back to the original list with progress reporting
+                for (int i = 0; i < hyperlinks.Count && i < updatedHyperlinks.Count; i++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-
-                    string lookupId = WordDocumentProcessor.ExtractLookupID(hyperlink.Address, hyperlink.SubAddress);
-                    if (!string.IsNullOrEmpty(lookupId))
-                    {
-                        if (resultDict.TryGetValue(lookupId, out var result))
-                        {
-                            // Update hyperlink address and sub-address using configuration
-                            // TODO: Pass ApiSettings to this method to use configured URLs
-                            string targetAddress = "https://thesource.cvshealth.com/nuxeo/thesource/";
-                            string targetSub = "!/view?docid=" + result.Document_ID;
-
-                            bool changedURL = (hyperlink.Address != targetAddress) || (hyperlink.SubAddress != targetSub);
-                            if (changedURL)
-                            {
-                                hyperlink.Address = targetAddress;
-                                hyperlink.SubAddress = targetSub;
-                                updatedLinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | URL Updated, {result.Title}");
-                            }
-
-                            // Check for status and update display text
-                            bool alreadyExpired = hyperlink.TextToDisplay.Contains(" - Expired");
-                            bool alreadyNotFound = hyperlink.TextToDisplay.Contains(" - Not Found");
-
-                            if (!alreadyExpired && !alreadyNotFound)
-                            {
-                                // Append content ID if needed
-                                string last6 = result.Content_ID.Length >= 6 ? result.Content_ID.Substring(result.Content_ID.Length - 6) : result.Content_ID;
-                                string last5 = last6.Length >= 5 ? last6.Substring(last6.Length - 5) : last6;
-                                bool appended = false;
-
-                                // Check if we need to update the content ID
-                                if (hyperlink.TextToDisplay.EndsWith($" ({last5})") && !hyperlink.TextToDisplay.EndsWith($" ({last6})"))
-                                {
-                                    hyperlink.TextToDisplay = hyperlink.TextToDisplay.Substring(0, hyperlink.TextToDisplay.Length - $" ({last5})".Length) + $" ({last6})";
-                                    appended = true;
-                                }
-                                else if (!hyperlink.TextToDisplay.Contains($" ({last6})"))
-                                {
-                                    hyperlink.TextToDisplay = hyperlink.TextToDisplay.Trim() + $" ({last6})";
-                                    appended = true;
-                                }
-
-                                // Check for title changes
-                                string currentTitle = hyperlink.TextToDisplay;
-                                string expectedTitle = result.Title.Trim();
-                                if (!string.IsNullOrEmpty(expectedTitle) &&
-                                    currentTitle.Length > $" ({last6})".Length &&
-                                    !currentTitle.Substring(0, currentTitle.Length - $" ({last6})".Length).Equals(expectedTitle))
-                                {
-                                    updatedUrls.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Possible Title Change\n" +
-                                        $"        Current Title: {currentTitle.Substring(0, currentTitle.Length - $" ({last6})".Length)}\n" +
-                                        $"        New Title:     {expectedTitle}\n" +
-                                        $"        Content ID:    {result.Content_ID}");
-                                }
-
-                                if (appended || changedURL)
-                                {
-                                    string updateType = "";
-                                    if (changedURL) updateType = "URL Updated";
-                                    if (appended) updateType += (string.IsNullOrEmpty(updateType) ? "" : ", ") + "Appended Content ID";
-
-                                    updatedLinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | {updateType}, {result.Title}");
-                                }
-                            }
-
-                            // Handle expired status
-                            if (result.Status == "Expired" && !alreadyExpired)
-                            {
-                                hyperlink.TextToDisplay += " - Expired";
-                                expiredLinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Expired, {result.Title}\n        {result.Content_ID}");
-                            }
-                        }
-                        else
-                        {
-                            // Mark as not found if not already marked
-                            bool alreadyExpired = hyperlink.TextToDisplay.Contains(" - Expired");
-                            bool alreadyNotFound = hyperlink.TextToDisplay.Contains(" - Not Found");
-
-                            if (!alreadyNotFound && !alreadyExpired)
-                            {
-                                hyperlink.TextToDisplay += " - Not Found";
-                                notFoundLinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Not Found\n        {hyperlink.TextToDisplay}");
-                            }
-                        }
-                    }
+                    hyperlinks[i] = updatedHyperlinks[i];
 
                     // Update progress every 10 hyperlinks processed
-                    processedCount++;
-                    if (processedCount % 10 == 0)
+                    if ((i + 1) % 10 == 0)
                     {
-                        progress?.Report(ProgressReport.CreateStatus($"Processed {processedCount} of {hyperlinks.Count} hyperlinks"));
+                        progress?.Report(ProgressReport.CreateStatus($"Processed {i + 1} of {hyperlinks.Count} hyperlinks"));
                         await Task.Yield(); // Allow UI thread to update
                     }
                 }
@@ -721,9 +527,10 @@ namespace Bulk_Editor.Services
                         hyperlink.TextToDisplay = $"{newTitle} ({newContentIdLast6})";
 
                         // Update the hyperlink address based on the new content ID
-                        // TODO: Pass ApiSettings to this method to use configured URLs
-                        hyperlink.Address = "https://thesource.cvshealth.com/nuxeo/thesource/";
-                        hyperlink.SubAddress = $"!/view?docid={rule.NewFullContentID}";
+                        // Use configured URLs from ApiSettings instead of hard-coded values
+                        var settings = new Configuration.ApiSettings(); // Use default if none provided
+                        hyperlink.Address = settings.HyperlinkBaseUrl;
+                        hyperlink.SubAddress = settings.HyperlinkViewPath + rule.NewFullContentID;
 
                         // Add to changelog
                         replacedHyperlinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | {oldTitle} -> {newTitle}\n        Content ID: {rule.NewFullContentID}");
