@@ -121,23 +121,9 @@ namespace Bulk_Editor
             // Always keep Fix Source Hyperlinks in normal theme color
             chkFixSourceHyperlinks.ForeColor = theme?.PrimaryCheckBoxForeground ?? SystemColors.ControlText;
 
-            // Set sub-checkbox colors based on parent state using proper theme colors
-            if (chkFixSourceHyperlinks.Checked)
-            {
-                // When enabled - use normal theme color
-                Color enabledColor = theme?.SubCheckBoxForeground ?? SystemColors.ControlText;
-                chkAppendContentID.ForeColor = enabledColor;
-                chkCheckTitleChanges.ForeColor = enabledColor;
-                chkFixTitles.ForeColor = enabledColor;
-            }
-            else
-            {
-                // When disabled - use disabled theme color
-                Color disabledColor = theme?.DisabledCheckBoxForeground ?? SystemColors.ControlDark;
-                chkAppendContentID.ForeColor = disabledColor;
-                chkCheckTitleChanges.ForeColor = disabledColor;
-                chkFixTitles.ForeColor = disabledColor;
-            }
+            // Let ThemeService handle the sub-checkbox colors entirely
+            // Force theme reapplication to update colors
+            _themeService?.ApplyTheme(this.FindForm());
 
             // Force visual refresh
             chkAppendContentID.Refresh();

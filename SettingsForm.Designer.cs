@@ -924,9 +924,9 @@ namespace Bulk_Editor
             this.btnImportSettings.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnImportSettings.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.btnImportSettings.ForeColor = System.Drawing.Color.White;
-            this.btnImportSettings.Location = new System.Drawing.Point(295, 10);
+            this.btnImportSettings.Location = new System.Drawing.Point(310, 10);
             this.btnImportSettings.Name = "btnImportSettings";
-            this.btnImportSettings.Size = new System.Drawing.Size(40, 35);
+            this.btnImportSettings.Size = new System.Drawing.Size(80, 35);
             this.btnImportSettings.TabIndex = 4;
             this.btnImportSettings.Text = "📥 Import";
             this.btnImportSettings.UseVisualStyleBackColor = true;
@@ -940,7 +940,7 @@ namespace Bulk_Editor
             this.btnExportSettings.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnExportSettings.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
             this.btnExportSettings.ForeColor = System.Drawing.Color.White;
-            this.btnExportSettings.Location = new System.Drawing.Point(380, 10);
+            this.btnExportSettings.Location = new System.Drawing.Point(400, 10);
             this.btnExportSettings.Name = "btnExportSettings";
             this.btnExportSettings.Size = new System.Drawing.Size(80, 35);
             this.btnExportSettings.TabIndex = 5;
