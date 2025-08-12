@@ -588,7 +588,7 @@ namespace Bulk_Editor
                         if (doubleSpaceCount > 0)
                         {
                             changes.Add($"Fixed {doubleSpaceCount} instances of multiple spaces");
-                            logWriter.WriteLine($"  Fixed {doubleSpaceCount} instances of multiple spaces in document text");
+                            // In case I need value in future, going to comment it out. logWriter.WriteLine($"  Fixed {doubleSpaceCount} instances of multiple spaces in document text");
                             _loggingService.LogProcessingStep("Fix Double Spaces Complete", $"Fixed {doubleSpaceCount} instances in {fileName}");
                         }
                         else
