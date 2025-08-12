@@ -629,7 +629,15 @@ namespace Bulk_Editor
         {
             var content = new System.Text.StringBuilder();
 
-            // Updated Links section
+            // Parse updatedUrls for different categories
+            var internalHyperlinkIssues = updatedUrls.Where(u =>
+                u.Contains("Fixed, No Review Necessary") ||
+                u.Contains("Attempted Fix, Please Review") ||
+                u.Contains("Broken Internal Hyperlink")).ToList();
+            var titleMismatchDetections = updatedUrls.Where(u => u.Contains("Title Mismatch, Please Review")).ToList();
+            var fixedMismatchedTitles = updatedLinks.Where(u => u.Contains("Updated URL")).ToList();
+
+            // 1. Updated Links section
             content.AppendLine($"Updated Links ({updatedLinks.Count}):");
             if (updatedLinks.Count > 0)
             {
@@ -640,7 +648,7 @@ namespace Bulk_Editor
             }
             content.AppendLine();
 
-            // Found Expired section
+            // 2. Found Expired section
             content.AppendLine($"Found Expired ({expiredLinks.Count}):");
             if (expiredLinks.Count > 0)
             {
@@ -651,7 +659,7 @@ namespace Bulk_Editor
             }
             content.AppendLine();
 
-            // Not Found section
+            // 3. Not Found section
             content.AppendLine($"Not Found ({notFoundLinks.Count}):");
             if (notFoundLinks.Count > 0)
             {
@@ -662,7 +670,7 @@ namespace Bulk_Editor
             }
             content.AppendLine();
 
-            // Found Error section
+            // 4. Found Error section
             content.AppendLine($"Found Error ({errorLinks.Count}):");
             if (errorLinks.Count > 0)
             {
@@ -673,21 +681,29 @@ namespace Bulk_Editor
             }
             content.AppendLine();
 
-            // Internal Hyperlink Issues section (using updatedUrls for internal hyperlink results)
-            var internalHyperlinkIssues = updatedUrls.Where(u => u.Contains("Internal Hyperlink") || u.Contains("Fixed, No Review") || u.Contains("Attempted Fix") || u.Contains("Broken Internal")).ToList();
-            var titleChanges = updatedUrls.Where(u => u.Contains("Title Mismatch")).ToList();
-            var otherUpdates = updatedUrls.Except(internalHyperlinkIssues).Except(titleChanges).ToList();
-
-            if (titleChanges.Count > 0)
+            // 5. Title Mismatch section (detection only)
+            if (titleMismatchDetections.Count > 0)
             {
-                content.AppendLine($"Title Mismatch ({titleChanges.Count}):");
-                foreach (var change in titleChanges)
+                content.AppendLine($"Title Mismatch ({titleMismatchDetections.Count}):");
+                foreach (var change in titleMismatchDetections)
                 {
                     content.AppendLine($"    {change}");
                 }
                 content.AppendLine();
             }
 
+            // 6. Fixed Mismatched Titles section (actual fixes)
+            if (fixedMismatchedTitles.Count > 0)
+            {
+                content.AppendLine($"Fixed Mismatched Titles ({fixedMismatchedTitles.Count}):");
+                foreach (var fix in fixedMismatchedTitles)
+                {
+                    content.AppendLine($"    {fix}");
+                }
+                content.AppendLine();
+            }
+
+            // 7. Internal Hyperlink Issues section
             if (internalHyperlinkIssues.Count > 0)
             {
                 content.AppendLine($"Internal Hyperlink Issues ({internalHyperlinkIssues.Count}):");
@@ -698,18 +714,7 @@ namespace Bulk_Editor
                 content.AppendLine();
             }
 
-            // Replaced Hyperlinks section
-            content.AppendLine($"Replaced Hyperlinks ({replacedHyperlinks.Count}):");
-            if (replacedHyperlinks.Count > 0)
-            {
-                foreach (var hyperlink in replacedHyperlinks)
-                {
-                    content.AppendLine($"    {hyperlink}");
-                }
-            }
-            content.AppendLine();
-
-            // Amount of Double Spaces Removed
+            // 8. Amount of Double Spaces Removed (at bottom with no indent)
             if (doubleSpaceCount > 0)
             {
                 content.AppendLine($"Amount of Double Spaces Removed: {doubleSpaceCount}");
