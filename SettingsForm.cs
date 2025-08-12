@@ -125,6 +125,22 @@ namespace Bulk_Editor
             btnRefreshLogs.Click += BtnRefreshLogs_Click;
             btnExportLogs.Click += BtnExportLogs_Click;
             btnClearOldLogs.Click += BtnClearOldLogs_Click;
+            
+            // Auto-refresh logs when the logging tab is selected
+            if (this.Controls.Find("tabControl", true).FirstOrDefault() is TabControl tabControl)
+            {
+                tabControl.SelectedIndexChanged += TabControl_SelectedIndexChanged;
+            }
+        }
+        
+        private async void TabControl_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (sender is TabControl tabControl && tabControl.SelectedTab?.Name == "tabLogging")
+            {
+                // Auto-refresh logs when logging tab is selected
+                await Task.Delay(100); // Small delay to ensure tab is fully loaded
+                BtnRefreshLogs_Click(null, EventArgs.Empty);
+            }
         }
 
         private void UpdateDependentControls()
@@ -642,43 +658,24 @@ namespace Bulk_Editor
 
                 if (success)
                 {
-                    var result = MessageBox.Show($"Logs exported successfully to:\n{exportPath}\n\nWould you like to view the log file in Notepad?",
-                        "Export Complete", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Information);
-                    
-                    if (result == DialogResult.Yes)
+                    try
                     {
-                        try
+                        // Auto-open the log file in notepad without prompting
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                         {
-                            // Open the log file in notepad
-                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                            {
-                                FileName = "notepad.exe",
-                                Arguments = $"\"{exportPath}\"",
-                                UseShellExecute = true
-                            });
-                        }
-                        catch (Exception ex)
-                        {
-                            MessageBox.Show($"Error opening file in Notepad: {ex.Message}", "Error",
-                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        }
+                            FileName = "notepad.exe",
+                            Arguments = $"\"{exportPath}\"",
+                            UseShellExecute = true
+                        });
+                        
+                        // Log the successful export
+                        var logger = Services.LoggingService.Instance;
+                        logger.LogUserAction("Log Export", $"Exported to: {exportPath}");
                     }
-                    else if (result == DialogResult.No)
+                    catch (Exception ex)
                     {
-                        try
-                        {
-                            // Just open the folder
-                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                            {
-                                FileName = logDir,
-                                UseShellExecute = true
-                            });
-                        }
-                        catch (Exception ex)
-                        {
-                            MessageBox.Show($"Error opening folder: {ex.Message}", "Error",
-                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        }
+                        MessageBox.Show($"Logs exported to: {exportPath}\n\nError opening file in Notepad: {ex.Message}",
+                            "Export Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                 }
                 else
