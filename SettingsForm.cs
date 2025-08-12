@@ -19,6 +19,20 @@ namespace Bulk_Editor
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
             LoadSettings();
             SetupEventHandlers();
+            
+            // Auto-refresh logs when form opens
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(300); // Delay to ensure form is fully loaded and logging is initialized
+                if (InvokeRequired)
+                {
+                    Invoke(new Action(() => BtnRefreshLogs_Click(null, EventArgs.Empty)));
+                }
+                else
+                {
+                    BtnRefreshLogs_Click(null, EventArgs.Empty);
+                }
+            });
         }
 
         private void LoadSettings()
@@ -55,7 +69,12 @@ namespace Bulk_Editor
             chkConfirmOnExit.Checked = _settings.UI.ConfirmOnExit;
             chkShowStatusBar.Checked = _settings.UI.ShowStatusBar;
             cmbTheme.Text = _settings.UI.Theme;
-            cmbLanguage.Text = _settings.UI.Language;
+
+            // Logging Settings
+            cmbLogLevel.Text = _settings.Logging.LogLevel;
+            chkEnableFileLogging.Checked = _settings.Logging.EnableFileLogging;
+            chkLogUserActions.Checked = _settings.Logging.LogUserActions;
+            chkLogPerformance.Checked = _settings.Logging.LogPerformanceMetrics;
 
             // Update dependent controls
             UpdateDependentControls();
@@ -95,7 +114,17 @@ namespace Bulk_Editor
             chkConfirmOnExit.CheckedChanged += (s, e) => _hasChanges = true;
             chkShowStatusBar.CheckedChanged += (s, e) => _hasChanges = true;
             cmbTheme.SelectedIndexChanged += (s, e) => _hasChanges = true;
-            cmbLanguage.SelectedIndexChanged += (s, e) => _hasChanges = true;
+
+            // Track changes for Logging Settings
+            cmbLogLevel.SelectedIndexChanged += (s, e) => _hasChanges = true;
+            chkEnableFileLogging.CheckedChanged += (s, e) => _hasChanges = true;
+            chkLogUserActions.CheckedChanged += (s, e) => _hasChanges = true;
+            chkLogPerformance.CheckedChanged += (s, e) => _hasChanges = true;
+
+            // Logging button event handlers
+            btnRefreshLogs.Click += BtnRefreshLogs_Click;
+            btnExportLogs.Click += BtnExportLogs_Click;
+            btnClearOldLogs.Click += BtnClearOldLogs_Click;
         }
 
         private void UpdateDependentControls()
@@ -175,7 +204,12 @@ namespace Bulk_Editor
                 chkConfirmOnExit.Checked = defaultAppSettings.UI.ConfirmOnExit;
                 chkShowStatusBar.Checked = defaultAppSettings.UI.ShowStatusBar;
                 cmbTheme.Text = defaultAppSettings.UI.Theme;
-                cmbLanguage.Text = defaultAppSettings.UI.Language;
+
+                // Reset Logging Settings
+                cmbLogLevel.Text = defaultAppSettings.Logging.LogLevel;
+                chkEnableFileLogging.Checked = defaultAppSettings.Logging.EnableFileLogging;
+                chkLogUserActions.Checked = defaultAppSettings.Logging.LogUserActions;
+                chkLogPerformance.Checked = defaultAppSettings.Logging.LogPerformanceMetrics;
 
                 _hasChanges = true;
                 UpdateDependentControls();
@@ -251,7 +285,12 @@ namespace Bulk_Editor
                 _settings.UI.ConfirmOnExit = chkConfirmOnExit.Checked;
                 _settings.UI.ShowStatusBar = chkShowStatusBar.Checked;
                 _settings.UI.Theme = cmbTheme.Text;
-                _settings.UI.Language = cmbLanguage.Text;
+
+                // Save Logging Settings
+                _settings.Logging.LogLevel = cmbLogLevel.Text;
+                _settings.Logging.EnableFileLogging = chkEnableFileLogging.Checked;
+                _settings.Logging.LogUserActions = chkLogUserActions.Checked;
+                _settings.Logging.LogPerformanceMetrics = chkLogPerformance.Checked;
 
                 await _settings.SaveAsync();
 
@@ -337,6 +376,9 @@ namespace Bulk_Editor
                         _settings.UI = importedSettings.UI;
                         _settings.Logging = importedSettings.Logging;
 
+                        // Refresh logging settings display
+                        RefreshLoggingSettingsDisplay();
+
                         LoadSettings();
                         _hasChanges = true;
 
@@ -349,6 +391,351 @@ namespace Bulk_Editor
                     MessageBox.Show($"Error importing settings: {ex.Message}", "Import Error",
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Refreshes the logging settings display after import
+        /// </summary>
+        private void RefreshLoggingSettingsDisplay()
+        {
+            cmbLogLevel.Text = _settings.Logging.LogLevel;
+            chkEnableFileLogging.Checked = _settings.Logging.EnableFileLogging;
+            chkLogUserActions.Checked = _settings.Logging.LogUserActions;
+            chkLogPerformance.Checked = _settings.Logging.LogPerformanceMetrics;
+        }
+
+        /// <summary>
+        /// Refreshes the log viewer with recent entries
+        /// </summary>
+        private async void BtnRefreshLogs_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (btnRefreshLogs.InvokeRequired)
+                {
+                    btnRefreshLogs.Invoke(new Action(() =>
+                    {
+                        btnRefreshLogs.Enabled = false;
+                        btnRefreshLogs.Text = "⏳ Loading...";
+                    }));
+                }
+                else
+                {
+                    btnRefreshLogs.Enabled = false;
+                    btnRefreshLogs.Text = "⏳ Loading...";
+                }
+
+                // Use the singleton LoggingService instance
+                var logger = Services.LoggingService.Instance;
+                
+                // Force some log entries to be created for testing
+                logger.LogInformation("Settings dialog opened at {Timestamp}", DateTime.Now);
+                logger.LogInformation("Log viewer refresh requested");
+                
+                // Only log user action if this is a user-initiated refresh
+                if (sender != null)
+                {
+                    logger.LogInformation("User Action: Log Refresh - User requested log refresh from settings");
+                }
+
+                // Check log file path and directory
+                var logViewerService = new Services.LogViewerService(_settings.Logging);
+                string logPath = GetLogFilePath();
+                string logDir = Path.GetDirectoryName(logPath);
+                
+                // Ensure log directory exists
+                if (!string.IsNullOrEmpty(logDir) && !Directory.Exists(logDir))
+                {
+                    try
+                    {
+                        Directory.CreateDirectory(logDir);
+                        logger.LogInformation("Created log directory: {LogDirectory}", logDir);
+                    }
+                    catch (Exception dirEx)
+                    {
+                        logger.LogError(dirEx, "Failed to create log directory: {LogDirectory}", logDir);
+                    }
+                }
+                
+                // Give logging system time to write the entries
+                await Task.Delay(500);
+                
+                var logEntries = await logViewerService.GetRecentLogsAsync(200);
+                
+                // Add diagnostic information
+                var diagnosticInfo = new List<string>();
+                diagnosticInfo.Add($"[{DateTime.Now:HH:mm:ss}] === Log Viewer Diagnostic Info ===");
+                diagnosticInfo.Add($"Log File Path: {logPath}");
+                diagnosticInfo.Add($"Log Directory: {logDir}");
+                diagnosticInfo.Add($"Directory Exists: {Directory.Exists(logDir)}");
+                diagnosticInfo.Add($"File Exists: {File.Exists(logPath)}");
+                diagnosticInfo.Add($"File Logging Enabled: {_settings.Logging.EnableFileLogging}");
+                diagnosticInfo.Add($"Log Level: {_settings.Logging.LogLevel}");
+                diagnosticInfo.Add($"Log Format: {_settings.Logging.LogFormat}");
+                diagnosticInfo.Add($"Entries Found: {logEntries.Count}");
+                
+                if (File.Exists(logPath))
+                {
+                    try
+                    {
+                        var fileInfo = new FileInfo(logPath);
+                        diagnosticInfo.Add($"Log File Size: {fileInfo.Length} bytes");
+                        diagnosticInfo.Add($"Last Modified: {fileInfo.LastWriteTime}");
+                    }
+                    catch { }
+                }
+                
+                diagnosticInfo.Add("=== End Diagnostic Info ===");
+                diagnosticInfo.Add("");
+
+                if (lstLogEntries.InvokeRequired)
+                {
+                    lstLogEntries.Invoke(new Action(() => UpdateLogDisplay(logEntries, diagnosticInfo)));
+                }
+                else
+                {
+                    UpdateLogDisplay(logEntries, diagnosticInfo);
+                }
+
+                if (lblLogInfo.InvokeRequired)
+                {
+                    lblLogInfo.Invoke(new Action(() =>
+                    {
+                        lblLogInfo.Text = $"Last refreshed: {DateTime.Now:HH:mm:ss} ({logEntries.Count} entries)";
+                    }));
+                }
+                else
+                {
+                    lblLogInfo.Text = $"Last refreshed: {DateTime.Now:HH:mm:ss} ({logEntries.Count} entries)";
+                }
+
+                logger.LogDebug("Log viewer refreshed with {EntryCount} entries", logEntries.Count);
+            }
+            catch (Exception ex)
+            {
+                var logger = Services.LoggingService.Instance;
+                logger.LogError(ex, "Error refreshing log viewer");
+                
+                if (InvokeRequired)
+                {
+                    Invoke(new Action(() =>
+                    {
+                        MessageBox.Show($"Error refreshing logs: {ex.Message}", "Error",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }));
+                }
+                else
+                {
+                    MessageBox.Show($"Error refreshing logs: {ex.Message}", "Error",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            finally
+            {
+                if (btnRefreshLogs.InvokeRequired)
+                {
+                    btnRefreshLogs.Invoke(new Action(() =>
+                    {
+                        btnRefreshLogs.Enabled = true;
+                        btnRefreshLogs.Text = "🔄 Refresh";
+                    }));
+                }
+                else
+                {
+                    btnRefreshLogs.Enabled = true;
+                    btnRefreshLogs.Text = "🔄 Refresh";
+                }
+            }
+        }
+        
+        private void UpdateLogDisplay(List<Services.LogEntry> logEntries, List<string> diagnosticInfo)
+        {
+            lstLogEntries.Items.Clear();
+            
+            // Add diagnostic info first
+            foreach (var info in diagnosticInfo)
+            {
+                lstLogEntries.Items.Add(info);
+            }
+            
+            if (logEntries.Count == 0)
+            {
+                lstLogEntries.Items.Add("No log entries found in the log file.");
+                lstLogEntries.Items.Add("This could indicate:");
+                lstLogEntries.Items.Add("- Log file is empty or doesn't contain parseable entries");
+                lstLogEntries.Items.Add("- Log format may not match expected format");
+                lstLogEntries.Items.Add("- Logging configuration issue");
+            }
+            else
+            {
+                lstLogEntries.Items.Add("=== Recent Log Entries ===");
+                foreach (var entry in logEntries.OrderBy(x => x.Timestamp))
+                {
+                    lstLogEntries.Items.Add(entry.ToString());
+                }
+            }
+            
+            // Auto-scroll to show latest entries
+            if (lstLogEntries.Items.Count > 0)
+            {
+                lstLogEntries.TopIndex = Math.Max(0, lstLogEntries.Items.Count - 1);
+            }
+        }
+        
+        private string GetLogFilePath()
+        {
+            if (Path.IsPathRooted(_settings.Logging.LogFilePath))
+            {
+                return _settings.Logging.LogFilePath;
+            }
+            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, _settings.Logging.LogFilePath);
+        }
+        
+        /// <summary>
+        /// Get the path where exported logs should be saved
+        /// </summary>
+        private string GetLogExportPath()
+        {
+            string baseStoragePath;
+            
+            // Use centralized storage path if configured, otherwise use application directory
+            if (_settings.ChangelogSettings.UseCentralizedStorage && !string.IsNullOrWhiteSpace(_settings.ChangelogSettings.BaseStoragePath))
+            {
+                baseStoragePath = _settings.ChangelogSettings.BaseStoragePath;
+            }
+            else
+            {
+                baseStoragePath = AppDomain.CurrentDomain.BaseDirectory;
+            }
+            
+            // Create logs subfolder within the storage path
+            string logsFolder = Path.Combine(baseStoragePath, "Logs");
+            
+            // Generate filename with timestamp
+            string filename = $"BulkEditor_Logs_{DateTime.Now:yyyy-MM-dd_HHmmss}.txt";
+            
+            return Path.Combine(logsFolder, filename);
+        }
+        
+        /// <summary>
+        /// Exports current logs to a file
+        /// </summary>
+        private async void BtnExportLogs_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                btnExportLogs.Enabled = false;
+                btnExportLogs.Text = "⏳ Exporting...";
+
+                var logViewerService = new Services.LogViewerService(_settings.Logging);
+                string exportPath = GetLogExportPath();
+                
+                // Ensure the logs directory exists
+                string logDir = Path.GetDirectoryName(exportPath);
+                if (!Directory.Exists(logDir))
+                {
+                    Directory.CreateDirectory(logDir);
+                }
+
+                bool success = await logViewerService.ExportLogsAsync(exportPath);
+
+                if (success)
+                {
+                    var result = MessageBox.Show($"Logs exported successfully to:\n{exportPath}\n\nWould you like to view the log file in Notepad?",
+                        "Export Complete", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Information);
+                    
+                    if (result == DialogResult.Yes)
+                    {
+                        try
+                        {
+                            // Open the log file in notepad
+                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                            {
+                                FileName = "notepad.exe",
+                                Arguments = $"\"{exportPath}\"",
+                                UseShellExecute = true
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Error opening file in Notepad: {ex.Message}", "Error",
+                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        }
+                    }
+                    else if (result == DialogResult.No)
+                    {
+                        try
+                        {
+                            // Just open the folder
+                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                            {
+                                FileName = logDir,
+                                UseShellExecute = true
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Error opening folder: {ex.Message}", "Error",
+                                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        }
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Failed to export logs. Please check the configuration and try again.", "Export Failed",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error exporting logs: {ex.Message}", "Export Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                btnExportLogs.Enabled = true;
+                btnExportLogs.Text = "📤 Export";
+            }
+        }
+
+        /// <summary>
+        /// Clears old log files to free up space
+        /// </summary>
+        private async void BtnClearOldLogs_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                var result = MessageBox.Show(
+                    "This will delete log files older than 7 days. Continue?",
+                    "Clear Old Logs",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+
+                if (result == DialogResult.Yes)
+                {
+                    btnClearOldLogs.Enabled = false;
+                    btnClearOldLogs.Text = "⏳ Clearing...";
+
+                    var logViewerService = new Services.LogViewerService(_settings.Logging);
+                    int deletedCount = await logViewerService.ClearOldLogsAsync(7);
+
+                    MessageBox.Show($"Cleared {deletedCount} old log files.", "Cleanup Complete",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                    // Refresh the log viewer
+                    BtnRefreshLogs_Click(sender, e);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error clearing old logs: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                btnClearOldLogs.Enabled = true;
+                btnClearOldLogs.Text = "🗑️ Clear Old";
             }
         }
 
@@ -495,7 +882,7 @@ namespace Bulk_Editor
         /// <summary>
         /// Attempts to roll back a failed migration
         /// </summary>
-        private async Task RollbackMigration(List<(string source, string destination)> movedItems, string originalPath)
+        private static Task RollbackMigration(List<(string source, string destination)> movedItems, string originalPath)
         {
             try
             {
@@ -535,6 +922,8 @@ namespace Bulk_Editor
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
             }
+
+            return Task.CompletedTask;
         }
     }
 }
