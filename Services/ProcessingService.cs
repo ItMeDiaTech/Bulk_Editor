@@ -58,13 +58,77 @@ namespace Bulk_Editor.Services
         public string BuildChangelogContent(Collection<string> updatedLinks, Collection<string> notFoundLinks, Collection<string> expiredLinks, Collection<string> errorLinks, Collection<string> updatedUrls, Collection<string> replacedHyperlinks)
         {
             var sb = new StringBuilder();
-            sb.AppendLine("Changelog:");
-            sb.AppendLine(CreateChangelogSection("Updated Links", updatedLinks));
-            sb.AppendLine(CreateChangelogSection("Not Found", notFoundLinks));
-            sb.AppendLine(CreateChangelogSection("Expired", expiredLinks));
-            sb.AppendLine(CreateChangelogSection("Errors", errorLinks));
-            sb.AppendLine(CreateChangelogSection("Potential Title Changes", updatedUrls));
-            sb.AppendLine(CreateChangelogSection("Replaced Hyperlinks", replacedHyperlinks));
+            
+            // Updated Links section
+            sb.AppendLine($"Updated Links ({updatedLinks.Count}):");
+            if (updatedLinks.Count > 0)
+            {
+                foreach (var link in updatedLinks)
+                {
+                    sb.AppendLine($"    {link}");
+                }
+            }
+            sb.AppendLine();
+
+            // Found Expired section
+            sb.AppendLine($"Found Expired ({expiredLinks.Count}):");
+            if (expiredLinks.Count > 0)
+            {
+                foreach (var link in expiredLinks)
+                {
+                    sb.AppendLine($"    {link}");
+                }
+            }
+            sb.AppendLine();
+
+            // Not Found section
+            sb.AppendLine($"Not Found ({notFoundLinks.Count}):");
+            if (notFoundLinks.Count > 0)
+            {
+                foreach (var link in notFoundLinks)
+                {
+                    sb.AppendLine($"    {link}");
+                }
+            }
+            sb.AppendLine();
+
+            // Found Error section
+            sb.AppendLine($"Found Error ({errorLinks.Count}):");
+            if (errorLinks.Count > 0)
+            {
+                foreach (var link in errorLinks)
+                {
+                    sb.AppendLine($"    {link}");
+                }
+            }
+            sb.AppendLine();
+
+            // Parse updatedUrls for different categories
+            var internalHyperlinkIssues = updatedUrls.Where(u => u.Contains("Fixed, No Review Necessary") || u.Contains("Attempted Fix, Please Review") || u.Contains("Broken Internal Hyperlink")).ToList();
+            var titleChanges = updatedUrls.Where(u => u.Contains("Title Mismatch")).ToList();
+
+            // Title Mismatch section
+            if (titleChanges.Count > 0)
+            {
+                sb.AppendLine($"Title Mismatch ({titleChanges.Count}):");
+                foreach (var change in titleChanges)
+                {
+                    sb.AppendLine($"    {change}");
+                }
+                sb.AppendLine();
+            }
+
+            // Internal Hyperlink Issues section
+            if (internalHyperlinkIssues.Count > 0)
+            {
+                sb.AppendLine($"Internal Hyperlink Issues ({internalHyperlinkIssues.Count}):");
+                foreach (var issue in internalHyperlinkIssues)
+                {
+                    sb.AppendLine($"    {issue}");
+                }
+                sb.AppendLine();
+            }
+
             return sb.ToString();
         }
 
@@ -85,18 +149,18 @@ namespace Bulk_Editor.Services
         private string CreateChangelogEntry(HyperlinkData hyperlink, string note, string? title = null, string? contentId = null)
         {
             var sb = new StringBuilder();
-            sb.Append("    Page:").Append(hyperlink.PageNumber)
+            sb.Append("Page:").Append(hyperlink.PageNumber)
               .Append(" | Line:").Append(hyperlink.LineNumber)
               .Append(" | ").Append(note);
 
             if (!string.IsNullOrEmpty(title))
             {
-                sb.Append("\n        Title: ").Append(title);
+                sb.Append("\n        Current Title:    ").Append(title);
             }
 
             if (!string.IsNullOrEmpty(contentId))
             {
-                sb.Append("\n        Content ID: ").Append(contentId);
+                sb.Append("\n        Content ID:       ").Append(contentId);
             }
 
             return sb.ToString();
@@ -104,16 +168,16 @@ namespace Bulk_Editor.Services
 
         private string CreateCurrentTitleEntry(HyperlinkData hyperlink, string note)
         {
-            return $"    Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | {note}\n" +
+            return $"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | {note}\n" +
                    $"        Current Title:    {hyperlink.TextToDisplay}";
         }
 
         private string CreateTitleMismatchEntry(HyperlinkData hyperlink, string currentTitle, string correctTitle, string contentId)
         {
-            return $"    Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Title Mismatch - Please Review\n" +
+            return $"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Title Mismatch, Please Review\n" +
                    $"        Current Title:    {currentTitle}\n" +
                    $"        Correct Title:    {correctTitle}\n" +
-                   $"        Content ID:    {contentId}";
+                   $"        Content ID:       {contentId}";
         }
         #endregion
 
@@ -418,7 +482,7 @@ namespace Bulk_Editor.Services
             {
                 // Standardize format with underscore prefix
                 hyperlink.SubAddress = "_" + cleanedAnchor;
-                internalLinks.Add(CreateCurrentTitleEntry(hyperlink, "Fixed Internal Hyperlink"));
+                internalLinks.Add(CreateCurrentTitleEntry(hyperlink, "Fixed, No Review Necessary"));
             }
         }
 
@@ -433,7 +497,7 @@ namespace Bulk_Editor.Services
             if (exactMatch != null)
             {
                 hyperlink.SubAddress = "_" + exactMatch;
-                internalLinks.Add(CreateCurrentTitleEntry(hyperlink, "Fixed Internal Hyperlink"));
+                internalLinks.Add(CreateCurrentTitleEntry(hyperlink, "Fixed, No Review Necessary"));
                 return;
             }
 
@@ -450,7 +514,7 @@ namespace Bulk_Editor.Services
             else
             {
                 // Mark as broken
-                internalLinks.Add(CreateCurrentTitleEntry(hyperlink, "Broken Internal Hyperlink, Please Review"));
+                internalLinks.Add(CreateCurrentTitleEntry(hyperlink, "Broken Internal Hyperlink"));
                 if (!string.IsNullOrEmpty(hyperlink.TextToDisplay) && !hyperlink.TextToDisplay.Contains(BrokenMarker))
                 {
                     hyperlink.TextToDisplay += BrokenMarker;
@@ -697,7 +761,7 @@ namespace Bulk_Editor.Services
             hyperlink.SubAddress = $"{settings.HyperlinkViewPath}{fullContentId}";
 
             // Add to changelog
-            replacedHyperlinks.Add($"    Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Replaced Hyperlink based on User Replacement\n" +
+            replacedHyperlinks.Add($"Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Replaced Hyperlink based on User Replacement\n" +
                 $"        Old Hyperlink: {oldHyperlinkText}\n" +
                 $"        New Hyperlink: {newHyperlinkText}");
         }

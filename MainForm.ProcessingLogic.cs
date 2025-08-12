@@ -545,31 +545,15 @@ namespace Bulk_Editor
                     }
                 }
 
-                // Update the Word document with modified hyperlinks
-                if (changes.Count > 0 && hyperlinksModified)
-                {
-                    _loggingService.LogProcessingStep("Document Update", $"Saving {changes.Count} changes to {fileName}");
-                    WordDocumentProcessor.UpdateHyperlinksInDocument(filePath, hyperlinks);
-
-                    logWriter.WriteLine($"  Changes made:");
-                    foreach (string change in changes)
-                    {
-                        logWriter.WriteLine($"    - {change}");
-                    }
-                }
-                else
-                {
-                    _loggingService.LogInformation("No changes required for {FileName}", fileName);
-                }
-
                 // Handle double spaces separately as it affects document text content
+                int doubleSpaceCount = 0;
                 if (chkFixDoubleSpaces.Checked)
                 {
                     _loggingService.LogProcessingStep("Fix Double Spaces", $"Checking for multiple spaces in {fileName}");
                     try
                     {
                         // Use the OpenXML implementation to fix double spaces in Word documents
-                        int doubleSpaceCount = WordDocumentProcessorExtensions.FixDoubleSpacesInDocument(filePath);
+                        doubleSpaceCount = WordDocumentProcessorExtensions.FixDoubleSpacesInDocument(filePath);
 
                         if (doubleSpaceCount > 0)
                         {
@@ -593,8 +577,8 @@ namespace Bulk_Editor
 
                 _progressReporter.Report(ProgressReport.CreateStepProgress(fileIndex + 1, totalFiles, fileName, 7, 7, "Completing"));
 
-                WriteDetailedChangelog(logWriter, updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, replacedHyperlinks, _processor!);
-                WriteDetailedChangelogToDownloads(updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, replacedHyperlinks, _processor!);
+                WriteDetailedChangelog(logWriter, updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, replacedHyperlinks, doubleSpaceCount, _processor!);
+                WriteDetailedChangelogToDownloads(updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, replacedHyperlinks, doubleSpaceCount, _processor!);
 
                 var duration = DateTime.UtcNow - startTime;
                 _loggingService.LogFileOperation("Processing Complete", filePath, $"Completed in {duration.TotalSeconds:F2} seconds");
@@ -611,49 +595,94 @@ namespace Bulk_Editor
 
         private static System.Text.StringBuilder BuildChangelogContent(
     Collection<string> updatedLinks, Collection<string> notFoundLinks, Collection<string> expiredLinks,
-    Collection<string> errorLinks, Collection<string> updatedUrls, Collection<string> replacedHyperlinks)
+    Collection<string> errorLinks, Collection<string> updatedUrls, Collection<string> replacedHyperlinks, int doubleSpaceCount = 0)
         {
             var content = new System.Text.StringBuilder();
-            content.AppendLine($"Changes:");
-            content.AppendLine($"  Updated Links ({updatedLinks.Count}):");
+
+            // Updated Links section
+            content.AppendLine($"Updated Links ({updatedLinks.Count}):");
             if (updatedLinks.Count > 0)
             {
-                foreach (var link in updatedLinks) content.AppendLine($"    {link}");
+                foreach (var link in updatedLinks)
+                {
+                    content.AppendLine($"    {link}");
+                }
             }
-
             content.AppendLine();
-            content.AppendLine($"  Not Found ({notFoundLinks.Count}):");
-            if (notFoundLinks.Count > 0)
-            {
-                foreach (var link in notFoundLinks) content.AppendLine($"    {link}");
-            }
 
-            content.AppendLine();
-            content.AppendLine($"  Found Expired ({expiredLinks.Count}):");
+            // Found Expired section
+            content.AppendLine($"Found Expired ({expiredLinks.Count}):");
             if (expiredLinks.Count > 0)
             {
-                foreach (var link in expiredLinks) content.AppendLine($"    {link}");
+                foreach (var link in expiredLinks)
+                {
+                    content.AppendLine($"    {link}");
+                }
             }
-
             content.AppendLine();
-            content.AppendLine($"  Found Error ({errorLinks.Count}):");
+
+            // Not Found section
+            content.AppendLine($"Not Found ({notFoundLinks.Count}):");
+            if (notFoundLinks.Count > 0)
+            {
+                foreach (var link in notFoundLinks)
+                {
+                    content.AppendLine($"    {link}");
+                }
+            }
+            content.AppendLine();
+
+            // Found Error section
+            content.AppendLine($"Found Error ({errorLinks.Count}):");
             if (errorLinks.Count > 0)
             {
-                foreach (var link in errorLinks) content.AppendLine($"    {link}");
+                foreach (var link in errorLinks)
+                {
+                    content.AppendLine($"    {link}");
+                }
             }
-
             content.AppendLine();
-            content.AppendLine($"  Potential Title Change ({updatedUrls.Count}):");
-            if (updatedUrls.Count > 0)
+
+            // Internal Hyperlink Issues section (using updatedUrls for internal hyperlink results)
+            var internalHyperlinkIssues = updatedUrls.Where(u => u.Contains("Internal Hyperlink") || u.Contains("Fixed, No Review") || u.Contains("Attempted Fix") || u.Contains("Broken Internal")).ToList();
+            var titleChanges = updatedUrls.Where(u => u.Contains("Title Mismatch")).ToList();
+            var otherUpdates = updatedUrls.Except(internalHyperlinkIssues).Except(titleChanges).ToList();
+
+            if (titleChanges.Count > 0)
             {
-                foreach (var url in updatedUrls) content.AppendLine($"    {url}");
+                content.AppendLine($"Title Mismatch ({titleChanges.Count}):");
+                foreach (var change in titleChanges)
+                {
+                    content.AppendLine($"    {change}");
+                }
+                content.AppendLine();
             }
 
-            content.AppendLine();
-            content.AppendLine($"  Replaced Hyperlinks ({replacedHyperlinks.Count}):");
+            if (internalHyperlinkIssues.Count > 0)
+            {
+                content.AppendLine($"Internal Hyperlink Issues ({internalHyperlinkIssues.Count}):");
+                foreach (var issue in internalHyperlinkIssues)
+                {
+                    content.AppendLine($"    {issue}");
+                }
+                content.AppendLine();
+            }
+
+            // Replaced Hyperlinks section
+            content.AppendLine($"Replaced Hyperlinks ({replacedHyperlinks.Count}):");
             if (replacedHyperlinks.Count > 0)
             {
-                foreach (var hyperlink in replacedHyperlinks) content.AppendLine($"    {hyperlink}");
+                foreach (var hyperlink in replacedHyperlinks)
+                {
+                    content.AppendLine($"    {hyperlink}");
+                }
+            }
+            content.AppendLine();
+
+            // Amount of Double Spaces Removed
+            if (doubleSpaceCount > 0)
+            {
+                content.AppendLine($"Amount of Double Spaces Removed: {doubleSpaceCount}");
             }
 
             return content;
@@ -661,15 +690,15 @@ namespace Bulk_Editor
 
         private static void WriteDetailedChangelog(StreamWriter writer, Collection<string> updatedLinks, Collection<string> notFoundLinks,
             Collection<string> expiredLinks, Collection<string> errorLinks, Collection<string> updatedUrls,
-            Collection<string> replacedHyperlinks, WordDocumentProcessor processor)
+            Collection<string> replacedHyperlinks, int doubleSpaceCount, WordDocumentProcessor processor)
         {
-            var changelogContent = BuildChangelogContent(updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, replacedHyperlinks);
+            var changelogContent = BuildChangelogContent(updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, replacedHyperlinks, doubleSpaceCount);
             writer.Write(changelogContent.ToString());
         }
 
         private static void WriteDetailedChangelogToDownloads(Collection<string> updatedLinks, Collection<string> notFoundLinks,
             Collection<string> expiredLinks, Collection<string> errorLinks, Collection<string> updatedUrls,
-            Collection<string> replacedHyperlinks, WordDocumentProcessor processor)
+            Collection<string> replacedHyperlinks, int doubleSpaceCount, WordDocumentProcessor processor)
         {
             try
             {
@@ -706,7 +735,7 @@ namespace Bulk_Editor
                     }
                     writer.WriteLine();
 
-                    var changelogContent = BuildChangelogContent(updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, replacedHyperlinks);
+                    var changelogContent = BuildChangelogContent(updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, replacedHyperlinks, doubleSpaceCount);
                     writer.Write(changelogContent.ToString());
                 }
             }
