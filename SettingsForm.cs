@@ -70,12 +70,6 @@ namespace Bulk_Editor
             chkShowStatusBar.Checked = _settings.UI.ShowStatusBar;
             cmbTheme.Text = _settings.UI.Theme;
 
-            // Logging Settings
-            cmbLogLevel.Text = _settings.Logging.LogLevel;
-            chkEnableFileLogging.Checked = _settings.Logging.EnableFileLogging;
-            chkLogUserActions.Checked = _settings.Logging.LogUserActions;
-            chkLogPerformance.Checked = _settings.Logging.LogPerformanceMetrics;
-
             // Update dependent controls
             UpdateDependentControls();
         }
@@ -114,13 +108,7 @@ namespace Bulk_Editor
             chkConfirmOnExit.CheckedChanged += (s, e) => _hasChanges = true;
             chkShowStatusBar.CheckedChanged += (s, e) => _hasChanges = true;
             cmbTheme.SelectedIndexChanged += (s, e) => _hasChanges = true;
-
-            // Track changes for Logging Settings
-            cmbLogLevel.SelectedIndexChanged += (s, e) => _hasChanges = true;
-            chkEnableFileLogging.CheckedChanged += (s, e) => _hasChanges = true;
-            chkLogUserActions.CheckedChanged += (s, e) => _hasChanges = true;
-            chkLogPerformance.CheckedChanged += (s, e) => _hasChanges = true;
-
+            
             // Logging button event handlers
             btnRefreshLogs.Click += BtnRefreshLogs_Click;
             btnExportLogs.Click += BtnExportLogs_Click;
@@ -221,12 +209,6 @@ namespace Bulk_Editor
                 chkShowStatusBar.Checked = defaultAppSettings.UI.ShowStatusBar;
                 cmbTheme.Text = defaultAppSettings.UI.Theme;
 
-                // Reset Logging Settings
-                cmbLogLevel.Text = defaultAppSettings.Logging.LogLevel;
-                chkEnableFileLogging.Checked = defaultAppSettings.Logging.EnableFileLogging;
-                chkLogUserActions.Checked = defaultAppSettings.Logging.LogUserActions;
-                chkLogPerformance.Checked = defaultAppSettings.Logging.LogPerformanceMetrics;
-
                 _hasChanges = true;
                 UpdateDependentControls();
             }
@@ -301,12 +283,6 @@ namespace Bulk_Editor
                 _settings.UI.ConfirmOnExit = chkConfirmOnExit.Checked;
                 _settings.UI.ShowStatusBar = chkShowStatusBar.Checked;
                 _settings.UI.Theme = cmbTheme.Text;
-
-                // Save Logging Settings
-                _settings.Logging.LogLevel = cmbLogLevel.Text;
-                _settings.Logging.EnableFileLogging = chkEnableFileLogging.Checked;
-                _settings.Logging.LogUserActions = chkLogUserActions.Checked;
-                _settings.Logging.LogPerformanceMetrics = chkLogPerformance.Checked;
 
                 await _settings.SaveAsync();
 
@@ -392,9 +368,6 @@ namespace Bulk_Editor
                         _settings.UI = importedSettings.UI;
                         _settings.Logging = importedSettings.Logging;
 
-                        // Refresh logging settings display
-                        RefreshLoggingSettingsDisplay();
-
                         LoadSettings();
                         _hasChanges = true;
 
@@ -410,6 +383,196 @@ namespace Bulk_Editor
             }
         }
 
+        private async void BtnExportSettings_Click(object sender, EventArgs e)
+        {
+            using var saveFileDialog = new SaveFileDialog();
+            saveFileDialog.Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*";
+            saveFileDialog.Title = "Export Settings";
+            saveFileDialog.FileName = $"BulkEditor_Settings_{DateTime.Now:yyyy-MM-dd}.json";
+
+            if (saveFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    await _settings.ExportSettingsAsync(saveFileDialog.FileName);
+                    MessageBox.Show("Settings exported successfully!", "Export Complete",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error exporting settings: {ex.Message}", "Export Error",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Migrates the entire BulkEditor storage directory to a new location
+        /// </summary>
+        private async Task<bool> MigrateStorageDirectory(string originalPath, string newPath)
+        {
+            try
+            {
+                // Skip migration if original path doesn't exist or is the same as new path
+                if (!Directory.Exists(originalPath) || originalPath.Equals(newPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                // Confirm migration with user
+                var result = MessageBox.Show(
+                    $"This will move all BulkEditor data from:\n{originalPath}\n\nTo:\n{newPath}\n\nDo you want to continue?",
+                    "Migrate Storage Location",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+
+                if (result != DialogResult.Yes)
+                {
+                    return false;
+                }
+
+                // Create new directory if it doesn't exist
+                if (!Directory.Exists(newPath))
+                {
+                    Directory.CreateDirectory(newPath);
+                }
+
+                // Check if new directory is empty (to avoid conflicts)
+                if (Directory.GetFileSystemEntries(newPath).Length > 0)
+                {
+                    MessageBox.Show(
+                        $"The destination directory is not empty:\n{newPath}\n\nPlease choose an empty directory or manually merge the contents.",
+                        "Migration Error",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                    return false;
+                }
+
+                // Get all subdirectories and files in the original location
+                var directories = Directory.GetDirectories(originalPath, "*", SearchOption.AllDirectories);
+                var files = Directory.GetFiles(originalPath, "*", SearchOption.AllDirectories);
+
+                // Create a backup list of what we're moving (for rollback if needed)
+                var movedItems = new List<(string source, string destination)>();
+
+                try
+                {
+                    // Create all subdirectories in the new location
+                    foreach (var dir in directories)
+                    {
+                        var relativePath = Path.GetRelativePath(originalPath, dir);
+                        var newDir = Path.Combine(newPath, relativePath);
+                        Directory.CreateDirectory(newDir);
+                    }
+
+                    // Move all files
+                    foreach (var file in files)
+                    {
+                        var relativePath = Path.GetRelativePath(originalPath, file);
+                        var newFile = Path.Combine(newPath, relativePath);
+
+                        File.Move(file, newFile);
+                        movedItems.Add((file, newFile));
+                    }
+
+                    // Remove the original empty directories (from deepest to shallowest)
+                    var sortedDirs = directories.OrderByDescending(d => d.Length).ToArray();
+                    foreach (var dir in sortedDirs)
+                    {
+                        if (Directory.Exists(dir) && !Directory.GetFileSystemEntries(dir).Any())
+                        {
+                            Directory.Delete(dir);
+                        }
+                    }
+
+                    // Finally remove the original base directory if it's empty
+                    if (Directory.Exists(originalPath) && !Directory.GetFileSystemEntries(originalPath).Any())
+                    {
+                        Directory.Delete(originalPath);
+                    }
+
+                    MessageBox.Show(
+                        $"Successfully migrated BulkEditor data to:\n{newPath}",
+                        "Migration Complete",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    // Migration failed - attempt to roll back
+                    MessageBox.Show(
+                        $"Error during migration: {ex.Message}\n\nAttempting to restore files to original location...",
+                        "Migration Error",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+
+                    await RollbackMigration(movedItems, originalPath);
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Error preparing migration: {ex.Message}",
+                    "Migration Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Attempts to roll back a failed migration
+        /// </summary>
+        private async Task RollbackMigration(List<(string source, string destination)> movedItems, string originalPath)
+        {
+
+            await Task.Run(() =>
+            {
+
+                try
+                {
+                    // Ensure original directory exists
+                    if (!Directory.Exists(originalPath))
+                    {
+                        Directory.CreateDirectory(originalPath);
+                    }
+
+                    // Move files back to original location
+                    foreach (var (source, destination) in movedItems)
+                    {
+                        if (File.Exists(destination))
+                        {
+                            // Ensure source directory exists
+                            var sourceDir = Path.GetDirectoryName(source);
+                            if (!Directory.Exists(sourceDir))
+                            {
+                                Directory.CreateDirectory(sourceDir);
+                            }
+
+                            File.Move(destination, source);
+                        }
+                    }
+
+                    MessageBox.Show(
+                        "Files have been restored to their original location.",
+                        "Rollback Complete",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(
+                        $"Error during rollback: {ex.Message}\n\nSome files may be in an inconsistent state. Please check both directories manually.",
+                        "Rollback Error",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                }
+            });
+        }
+        
         /// <summary>
         /// Refreshes the logging settings display after import
         /// </summary>
@@ -734,193 +897,6 @@ namespace Bulk_Editor
                 btnClearOldLogs.Enabled = true;
                 btnClearOldLogs.Text = "🗑️ Clear Old";
             }
-        }
-
-        private async void BtnExportSettings_Click(object sender, EventArgs e)
-        {
-            using var saveFileDialog = new SaveFileDialog();
-            saveFileDialog.Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*";
-            saveFileDialog.Title = "Export Settings";
-            saveFileDialog.FileName = $"BulkEditor_Settings_{DateTime.Now:yyyy-MM-dd}.json";
-
-            if (saveFileDialog.ShowDialog() == DialogResult.OK)
-            {
-                try
-                {
-                    await _settings.ExportSettingsAsync(saveFileDialog.FileName);
-                    MessageBox.Show("Settings exported successfully!", "Export Complete",
-                        MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Error exporting settings: {ex.Message}", "Export Error",
-                        MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Migrates the entire BulkEditor storage directory to a new location
-        /// </summary>
-        private async Task<bool> MigrateStorageDirectory(string originalPath, string newPath)
-        {
-            try
-            {
-                // Skip migration if original path doesn't exist or is the same as new path
-                if (!Directory.Exists(originalPath) || originalPath.Equals(newPath, StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-
-                // Confirm migration with user
-                var result = MessageBox.Show(
-                    $"This will move all BulkEditor data from:\n{originalPath}\n\nTo:\n{newPath}\n\nDo you want to continue?",
-                    "Migrate Storage Location",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Question);
-
-                if (result != DialogResult.Yes)
-                {
-                    return false;
-                }
-
-                // Create new directory if it doesn't exist
-                if (!Directory.Exists(newPath))
-                {
-                    Directory.CreateDirectory(newPath);
-                }
-
-                // Check if new directory is empty (to avoid conflicts)
-                if (Directory.GetFileSystemEntries(newPath).Length > 0)
-                {
-                    MessageBox.Show(
-                        $"The destination directory is not empty:\n{newPath}\n\nPlease choose an empty directory or manually merge the contents.",
-                        "Migration Error",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Warning);
-                    return false;
-                }
-
-                // Get all subdirectories and files in the original location
-                var directories = Directory.GetDirectories(originalPath, "*", SearchOption.AllDirectories);
-                var files = Directory.GetFiles(originalPath, "*", SearchOption.AllDirectories);
-
-                // Create a backup list of what we're moving (for rollback if needed)
-                var movedItems = new List<(string source, string destination)>();
-
-                try
-                {
-                    // Create all subdirectories in the new location
-                    foreach (var dir in directories)
-                    {
-                        var relativePath = Path.GetRelativePath(originalPath, dir);
-                        var newDir = Path.Combine(newPath, relativePath);
-                        Directory.CreateDirectory(newDir);
-                    }
-
-                    // Move all files
-                    foreach (var file in files)
-                    {
-                        var relativePath = Path.GetRelativePath(originalPath, file);
-                        var newFile = Path.Combine(newPath, relativePath);
-
-                        File.Move(file, newFile);
-                        movedItems.Add((file, newFile));
-                    }
-
-                    // Remove the original empty directories (from deepest to shallowest)
-                    var sortedDirs = directories.OrderByDescending(d => d.Length).ToArray();
-                    foreach (var dir in sortedDirs)
-                    {
-                        if (Directory.Exists(dir) && !Directory.GetFileSystemEntries(dir).Any())
-                        {
-                            Directory.Delete(dir);
-                        }
-                    }
-
-                    // Finally remove the original base directory if it's empty
-                    if (Directory.Exists(originalPath) && !Directory.GetFileSystemEntries(originalPath).Any())
-                    {
-                        Directory.Delete(originalPath);
-                    }
-
-                    MessageBox.Show(
-                        $"Successfully migrated BulkEditor data to:\n{newPath}",
-                        "Migration Complete",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Information);
-
-                    return true;
-                }
-                catch (Exception ex)
-                {
-                    // Migration failed - attempt to roll back
-                    MessageBox.Show(
-                        $"Error during migration: {ex.Message}\n\nAttempting to restore files to original location...",
-                        "Migration Error",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Error);
-
-                    await RollbackMigration(movedItems, originalPath);
-                    return false;
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    $"Error preparing migration: {ex.Message}",
-                    "Migration Error",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Attempts to roll back a failed migration
-        /// </summary>
-        private static Task RollbackMigration(List<(string source, string destination)> movedItems, string originalPath)
-        {
-            try
-            {
-                // Ensure original directory exists
-                if (!Directory.Exists(originalPath))
-                {
-                    Directory.CreateDirectory(originalPath);
-                }
-
-                // Move files back to original location
-                foreach (var (source, destination) in movedItems)
-                {
-                    if (File.Exists(destination))
-                    {
-                        // Ensure source directory exists
-                        var sourceDir = Path.GetDirectoryName(source);
-                        if (!Directory.Exists(sourceDir))
-                        {
-                            Directory.CreateDirectory(sourceDir);
-                        }
-
-                        File.Move(destination, source);
-                    }
-                }
-
-                MessageBox.Show(
-                    "Files have been restored to their original location.",
-                    "Rollback Complete",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    $"Error during rollback: {ex.Message}\n\nSome files may be in an inconsistent state. Please check both directories manually.",
-                    "Rollback Error",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
-            }
-
-            return Task.CompletedTask;
         }
     }
 }
