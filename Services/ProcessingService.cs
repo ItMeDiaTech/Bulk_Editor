@@ -349,8 +349,9 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Appends Content ID to hyperlinks and tracks changes for changelog
         /// </summary>
-        public string AppendContentIDToHyperlinks(List<HyperlinkData> hyperlinks, Collection<string> updatedLinks, Dictionary<string, bool>? urlUpdatedTracker = null)
+        public int AppendContentIDToHyperlinks(List<HyperlinkData> hyperlinks, Collection<string> updatedLinks, Dictionary<string, bool>? urlUpdatedTracker = null)
         {
+            int modifiedCount = 0;
             foreach (var hyperlink in hyperlinks)
             {
                 string lookupId = WordDocumentProcessor.ExtractLookupID(hyperlink.Address, hyperlink.SubAddress);
@@ -366,9 +367,10 @@ namespace Bulk_Editor.Services
 
                     // Handle changelog tracking
                     HandleContentIdChangelogEntry(hyperlink, lookupId, updatedLinks, urlUpdatedTracker);
+                    modifiedCount++;
                 }
             }
-            return string.Empty;
+            return modifiedCount;
         }
 
         /// <summary>

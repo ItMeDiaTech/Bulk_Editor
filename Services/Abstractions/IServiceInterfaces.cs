@@ -27,7 +27,7 @@ namespace Bulk_Editor.Services.Abstractions
         Task<ProcessingResult> ProcessFilesAsync(string path, AppSettings settings, IProgress<ProgressReport> progress);
         Task<string> GenerateChangelogContentAsync(ProcessingResult result, AppSettings settings);
         Task FixSourceHyperlinksWithProgress(string? content, List<HyperlinkData> hyperlinks, WordDocumentProcessor processor, List<string> changes, Collection<string> updatedLinks, Collection<string> notFoundLinks, Collection<string> expiredLinks, Collection<string> errorLinks, Collection<string> updatedUrls, RetryPolicyService retryService, IProgress<ProgressReport> progress, CancellationToken cancellationToken);
-        string AppendContentIDToHyperlinks(List<HyperlinkData> hyperlinks, Collection<string> updatedLinks, Dictionary<string, bool>? urlUpdatedTracker = null);
+        int AppendContentIDToHyperlinks(List<HyperlinkData> hyperlinks, Collection<string> updatedLinks, Dictionary<string, bool>? urlUpdatedTracker = null);
         void FixInternalHyperlink(string? content, List<HyperlinkData> hyperlinks, List<string> changes, Collection<string> internalLinks);
         void DetectTitleChanges(string? content, List<HyperlinkData> hyperlinks, Dictionary<string, ApiResult> apiResults, List<string> changes, Collection<string> titleChangesList);
         void UpdateTitles(string? content, List<HyperlinkData> hyperlinks, Dictionary<string, ApiResult> apiResults, List<string> changes, Collection<string> updatedLinks, Dictionary<string, bool> urlUpdatedTracker);
