@@ -1,17 +1,21 @@
+using System.Linq;
+using System.Windows.Forms;
 using Bulk_Editor.Configuration;
+using Bulk_Editor.Models;
+using Bulk_Editor.Services.Abstractions;
 
 namespace Bulk_Editor.Services
 {
     /// <summary>
     /// Service for managing application themes
     /// </summary>
-    public class ThemeService
+    public class ThemeService : IThemeService
     {
-        private readonly UiSettings _settings;
+        private readonly ISettingsService _settingsService;
 
-        public ThemeService(UiSettings settings)
+        public ThemeService(ISettingsService settingsService)
         {
-            _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+            _settingsService = settingsService ?? throw new ArgumentNullException(nameof(settingsService));
         }
 
         /// <summary>
@@ -23,29 +27,36 @@ namespace Bulk_Editor.Services
 
             // Get theme before try block so it's accessible in deferred callbacks
             var theme = GetCurrentTheme();
+            var themeColors = theme.Colors;
 
             try
             {
                 // Suspend layout to prevent flicker and improve performance
                 form.SuspendLayout();
 
-                ApplyThemeToControl(form, theme);
+                ApplyThemeToControl(form, themeColors);
 
                 // Apply theme-appropriate icons
-                ApplyThemeIcons(form, theme);
+                ApplyThemeIcons(form, themeColors);
 
                 // Ensure sub-checkbox colors stay in sync with parent in all themes (initial pass)
-                WireSubCheckboxColors(form, theme);
+                WireSubCheckboxColors(form, themeColors);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error applying theme to form: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error applying theme to form '{form.Name}': {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
             }
             finally
             {
                 // Always resume layout
-                try { form.ResumeLayout(true); }
-                catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Error resuming layout: {ex.Message}"); }
+                try {
+                    if (!form.IsDisposed)
+                        form.ResumeLayout(true);
+                }
+                catch (Exception ex) {
+                    System.Diagnostics.Debug.WriteLine($"Error resuming layout: {ex.Message}");
+                }
             }
 
             // ---- SAFE FINAL PASS ----
@@ -53,139 +64,204 @@ namespace Bulk_Editor.Services
             {
                 try
                 {
+                    if (form?.IsDisposed != false) return;
+
                     // Run after the form is fully initialized & ready to paint
-                    WireSubCheckboxColors(form, theme);
+                    WireSubCheckboxColors(form, themeColors);
 
                     foreach (var n in new[] { "chkAppendContentID", "chkCheckTitleChanges", "chkFixTitles" })
                     {
                         if (form.Controls.Find(n, true).FirstOrDefault() is CheckBox c && !c.IsDisposed)
                         {
-                            ApplyCheckBoxTheme(c, theme);
+                            ApplyCheckBoxTheme(c, themeColors);
                             c.Invalidate();
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error in FinalPass: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Error in FinalPass for form '{form?.Name}': {ex.Message}");
                 }
             }
 
             // If handle exists now, queue via BeginInvoke; otherwise, defer to HandleCreated.
-            if (form.IsHandleCreated)
+            try
             {
-                form.BeginInvoke((Action)FinalPass);
-            }
-            else
-            {
-                // HandleCreated fires once when the native handle is ready.
-                EventHandler handler = null;
-                handler = (s, e) =>
+                if (form.IsDisposed) return;
+
+                if (form.IsHandleCreated)
                 {
-                    form.HandleCreated -= handler;
-                    // Now it's safe to BeginInvoke
                     form.BeginInvoke((Action)FinalPass);
-                };
-                form.HandleCreated += handler;
+                }
+                else
+                {
+                    // HandleCreated fires once when the native handle is ready.
+                    EventHandler? handler = null;
+                    handler = (s, e) =>
+                    {
+                        try
+                        {
+                            if (form?.IsDisposed == false)
+                            {
+                                form.HandleCreated -= handler;
+                                // Now it's safe to BeginInvoke
+                                form.BeginInvoke((Action)FinalPass);
+                            }
+                        }
+                        catch (ObjectDisposedException)
+                        {
+                            // Form was disposed, ignore
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Error in HandleCreated handler: {ex.Message}");
+                        }
+                    };
+                    form.HandleCreated += handler;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error setting up FinalPass for form '{form?.Name}': {ex.Message}");
             }
         }
 
 
         private void ApplySettingsButtonTheme(Button b, ThemeConfiguration theme)
         {
-            // Surface: fully transparent, no OS painting
-            b.UseVisualStyleBackColor = false;
-            b.BackColor = Color.Transparent;
-            b.FlatStyle = FlatStyle.Flat;
-            b.FlatAppearance.BorderSize = 0;
-            b.FlatAppearance.MouseOverBackColor = Color.Transparent;
-            b.FlatAppearance.MouseDownBackColor = Color.Transparent;
-
-            // Icon only, no background image stacking
-            b.BackgroundImage = null;
-            b.Text = string.Empty;
-            b.ImageAlign = ContentAlignment.MiddleCenter;
-            b.Padding = Padding.Empty;
-
-            // Pick an icon for the current theme
-            bool dark = string.Equals(_settings.Theme, "dark", StringComparison.OrdinalIgnoreCase)
-                     || (string.Equals(_settings.Theme, "auto", StringComparison.OrdinalIgnoreCase) && SystemSupportsAutoDarkMode());
-
             try
             {
-                var assembly = System.Reflection.Assembly.GetExecutingAssembly();
-                var iconResource = dark ? "Bulk_Editor.White_Settings_Icon_25x25.png"   // white gear for dark UI
-                                        : "Bulk_Editor.Settings_Icon.png";              // dark gear for light UI
+                if (b?.IsDisposed != false) return;
 
-                using var stream = assembly.GetManifestResourceStream(iconResource);
-                if (stream != null)
+                // Surface: fully transparent, no OS painting
+                b.UseVisualStyleBackColor = false;
+                b.BackColor = Color.Transparent;
+                b.FlatStyle = FlatStyle.Flat;
+                b.FlatAppearance.BorderSize = 0;
+                b.FlatAppearance.MouseOverBackColor = Color.Transparent;
+                b.FlatAppearance.MouseDownBackColor = Color.Transparent;
+
+                // Icon only, no background image stacking
+                b.BackgroundImage = null;
+                b.Text = string.Empty;
+                b.ImageAlign = ContentAlignment.MiddleCenter;
+                b.Padding = Padding.Empty;
+
+                // Pick an icon for the current theme
+                var currentSettings = _settingsService.Settings.UI;
+                bool dark = string.Equals(currentSettings.Theme, "dark", StringComparison.OrdinalIgnoreCase)
+                         || (string.Equals(currentSettings.Theme, "auto", StringComparison.OrdinalIgnoreCase) && SystemSupportsAutoDarkMode());
+
+                try
                 {
-                    // Dispose old image if it exists to prevent memory leaks
-                    var oldImage = b.Image;
-                    b.Image = System.Drawing.Image.FromStream(stream);
+                    var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+                    var iconResource = dark ? "Bulk_Editor.White_Settings_Icon_25x25.png"   // white gear for dark UI
+                                            : "Bulk_Editor.Settings_Icon.png";              // dark gear for light UI
 
-                    // Only dispose if it's not the same image reference
-                    if (oldImage != null && oldImage != b.Image)
+                    using var stream = assembly.GetManifestResourceStream(iconResource);
+                    if (stream != null)
                     {
-                        oldImage.Dispose();
+                        // Safely dispose old image to prevent memory leaks
+                        var oldImage = b.Image;
+                        var newImage = System.Drawing.Image.FromStream(stream);
+                        
+                        // Set new image first
+                        b.Image = newImage;
+                        
+                        // Then safely dispose old image if different and not null
+                        if (oldImage != null && oldImage != newImage && !ReferenceEquals(oldImage, newImage))
+                        {
+                            try
+                            {
+                                oldImage.Dispose();
+                            }
+                            catch (ObjectDisposedException)
+                            {
+                                // Image was already disposed, ignore
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Clear image and fallback to emoji if resource not found
+                        b.Image = null;
+                        b.Text = "⚙️";
+                        b.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+                        b.ForeColor = dark ? System.Drawing.Color.White : System.Drawing.Color.Black;
                     }
                 }
-                else
+                catch (Exception ex)
                 {
-                    // Fallback to emoji if resource not found
+                    System.Diagnostics.Debug.WriteLine($"Error loading settings icon: {ex.Message}");
+                    // Clear image and fallback to emoji
+                    b.Image = null;
                     b.Text = "⚙️";
                     b.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
                     b.ForeColor = dark ? System.Drawing.Color.White : System.Drawing.Color.Black;
                 }
+
+                // Wire the pressed effect once
+                if (!Equals(b.Tag, "settings-press-wired"))
+                {
+                    var ring = theme.BorderColor; // use your theme border color
+
+                    // Mouse press -> push + ring
+                    b.MouseDown += (s, e) =>
+                    {
+                        try
+                        {
+                            if (s is Button btn && !btn.IsDisposed)
+                            {
+                                btn.Padding = new Padding(1, 2, 0, 0); // nudge down/right
+                                btn.FlatAppearance.BorderSize = 1;
+                                btn.FlatAppearance.BorderColor = ring;
+                            }
+                        }
+                        catch (ObjectDisposedException) { }
+                    };
+
+                    // Release (mouse/key/leave) -> reset
+                    void ResetButtonState(object? s, EventArgs e)
+                    {
+                        try
+                        {
+                            if (s is Button btn && !btn.IsDisposed)
+                            {
+                                btn.Padding = Padding.Empty;
+                                btn.FlatAppearance.BorderSize = 0;
+                            }
+                        }
+                        catch (ObjectDisposedException) { }
+                    }
+
+                    b.MouseUp += (s, e) => ResetButtonState(s, e);
+                    b.MouseLeave += ResetButtonState;
+                    b.KeyUp += (s, e) => ResetButtonState(s, e);
+
+                    // Keyboard press should also look pressed
+                    b.KeyDown += (s, e) =>
+                    {
+                        try
+                        {
+                            if (e.KeyCode == Keys.Space || e.KeyCode == Keys.Enter)
+                            {
+                                if (s is Button btn && !btn.IsDisposed)
+                                {
+                                    btn.Padding = new Padding(1, 2, 0, 0);
+                                    btn.FlatAppearance.BorderSize = 1;
+                                    btn.FlatAppearance.BorderColor = ring;
+                                }
+                            }
+                        }
+                        catch (ObjectDisposedException) { }
+                    };
+
+                    b.Tag = "settings-press-wired";
+                }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading settings icon: {ex.Message}");
-                // Fallback to emoji
-                b.Text = "⚙️";
-                b.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-                b.ForeColor = dark ? System.Drawing.Color.White : System.Drawing.Color.Black;
-            }
-
-            // Wire the pressed effect once
-            if (!Equals(b.Tag, "settings-press-wired"))
-            {
-                var ring = theme.BorderColor; // use your theme border color
-
-                // Mouse press -> push + ring
-                b.MouseDown += (s, e) =>
-                {
-                    var btn = (Button)s!;
-                    btn.Padding = new Padding(1, 2, 0, 0); // nudge down/right
-                    btn.FlatAppearance.BorderSize = 1;
-                    btn.FlatAppearance.BorderColor = ring;
-                };
-
-                // Release (mouse/key/leave) -> reset
-                void ResetButtonState(object s, EventArgs e)
-                {
-                    var btn = (Button)s!;
-                    btn.Padding = Padding.Empty;
-                    btn.FlatAppearance.BorderSize = 0;
-                }
-
-                b.MouseUp += (s, e) => ResetButtonState(s, e);
-                b.MouseLeave += ResetButtonState;
-                b.KeyUp += (s, e) => ResetButtonState(s, e);
-
-                // Keyboard press should also look pressed
-                b.KeyDown += (s, e) =>
-                {
-                    if (e.KeyCode == Keys.Space || e.KeyCode == Keys.Enter)
-                    {
-                        var btn = (Button)s!;
-                        btn.Padding = new Padding(1, 2, 0, 0);
-                        btn.FlatAppearance.BorderSize = 1;
-                        btn.FlatAppearance.BorderColor = ring;
-                    }
-                };
-
-                b.Tag = "settings-press-wired";
+                System.Diagnostics.Debug.WriteLine($"Error applying settings button theme: {ex.Message}");
             }
         }
 
@@ -216,25 +292,38 @@ namespace Bulk_Editor.Services
         {
             try
             {
+                if (settingsButton?.IsDisposed != false) return;
+
                 var assembly = System.Reflection.Assembly.GetExecutingAssembly();
                 var iconResource = IsLightTheme(theme) ? "Bulk_Editor.Settings_Icon.png" : "Bulk_Editor.White_Settings_Icon_25x25.png";
 
                 using var stream = assembly.GetManifestResourceStream(iconResource);
                 if (stream != null)
                 {
-                    // Dispose old image if it exists to prevent memory leaks
+                    // Safely dispose old image to prevent memory leaks
                     var oldImage = settingsButton.Image;
-                    settingsButton.Image = System.Drawing.Image.FromStream(stream);
-
-                    // Only dispose if it's not the same image reference
-                    if (oldImage != null && oldImage != settingsButton.Image)
+                    var newImage = System.Drawing.Image.FromStream(stream);
+                    
+                    // Set new image first
+                    settingsButton.Image = newImage;
+                    
+                    // Then safely dispose old image if different and not null
+                    if (oldImage != null && oldImage != newImage && !ReferenceEquals(oldImage, newImage))
                     {
-                        oldImage.Dispose();
+                        try
+                        {
+                            oldImage.Dispose();
+                        }
+                        catch (ObjectDisposedException)
+                        {
+                            // Image was already disposed, ignore
+                        }
                     }
                 }
                 else
                 {
-                    // Fallback to emoji if resource not found
+                    // Clear image and fallback to emoji if resource not found
+                    settingsButton.Image = null;
                     settingsButton.Text = "⚙️";
                     settingsButton.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
                     settingsButton.ForeColor = IsLightTheme(theme) ? System.Drawing.Color.Black : System.Drawing.Color.White;
@@ -243,17 +332,28 @@ namespace Bulk_Editor.Services
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error loading settings icon: {ex.Message}");
-                // Fallback to emoji
-                settingsButton.Text = "⚙️";
-                settingsButton.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-                settingsButton.ForeColor = IsLightTheme(theme) ? System.Drawing.Color.Black : System.Drawing.Color.White;
+                try
+                {
+                    if (settingsButton?.IsDisposed == false)
+                    {
+                        // Clear image and fallback to emoji
+                        settingsButton.Image = null;
+                        settingsButton.Text = "⚙️";
+                        settingsButton.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+                        settingsButton.ForeColor = IsLightTheme(theme) ? System.Drawing.Color.Black : System.Drawing.Color.White;
+                    }
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Button was disposed, ignore
+                }
             }
         }
 
         /// <summary>
         /// Recursively find a control by name
         /// </summary>
-        private static Control FindControlByName(Control parent, string name)
+        private static Control? FindControlByName(Control parent, string name)
         {
             if (parent.Name == name)
                 return parent;
@@ -282,15 +382,29 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Get the current theme configuration
         /// </summary>
-        public ThemeConfiguration GetCurrentTheme()
+        public Theme GetCurrentTheme()
         {
-            return _settings.Theme.ToLowerInvariant() switch
+            var currentSettings = _settingsService.Settings.UI;
+            var themeName = currentSettings.Theme.ToLowerInvariant();
+            ThemeConfiguration config;
+
+            switch (themeName)
             {
-                "dark" => CreateDarkTheme(),
-                "light" => CreateLightTheme(),
-                "auto" => SystemSupportsAutoDarkMode() ? CreateDarkTheme() : CreateLightTheme(),
-                _ => CreateLightTheme()
-            };
+                case "dark":
+                    config = CreateDarkTheme();
+                    break;
+                case "light":
+                    config = CreateLightTheme();
+                    break;
+                case "auto":
+                    config = SystemSupportsAutoDarkMode() ? CreateDarkTheme() : CreateLightTheme();
+                    break;
+                default:
+                    config = CreateLightTheme();
+                    break;
+            }
+
+            return new Theme { Name = themeName, Colors = config };
         }
 
         private void ApplyThemeToControl(Control control, ThemeConfiguration theme)
@@ -334,8 +448,8 @@ namespace Bulk_Editor.Services
 
         private void ApplyControlTheme(Control control, ThemeConfiguration theme)
         {
-            ListBox listBoxToEndUpdate = null;
-            ComboBox comboBoxToEndUpdate = null;
+            ListBox? listBoxToEndUpdate = null;
+            ComboBox? comboBoxToEndUpdate = null;
 
             try
             {
@@ -385,7 +499,7 @@ namespace Bulk_Editor.Services
                 }
 
                 // Skip special handling if control is disposed
-                if (control.IsDisposed)
+                if (control?.IsDisposed == true)
                     return;
 
                 // Special handling for specific control types
@@ -572,7 +686,7 @@ namespace Bulk_Editor.Services
                    checkBox.Name == "chkFixTitles";
         }
 
-        private static CheckBox GetParentCheckBox(CheckBox subCheckBox)
+        private static CheckBox? GetParentCheckBox(CheckBox subCheckBox)
         {
             // Find the parent form and locate the Fix Source Hyperlinks checkbox
             var form = subCheckBox.FindForm();
@@ -793,6 +907,28 @@ namespace Bulk_Editor.Services
                 SubCheckBoxForeground = Color.FromArgb(241, 241, 241),
                 DisabledCheckBoxForeground = Color.FromArgb(120, 120, 120)
             };
+        }
+        public void UpdateCheckboxColors(Control container)
+        {
+            if (container == null || container.IsDisposed) return;
+
+            var themeColors = GetCurrentTheme().Colors;
+            var parent = container.Controls.Find("chkFixSourceHyperlinks", true).FirstOrDefault() as CheckBox;
+
+            if (parent == null) return;
+
+            bool parentOn = parent.Checked;
+
+            var subCheckboxNames = new[] { "chkAppendContentID", "chkCheckTitleChanges", "chkFixTitles" };
+
+            foreach (var name in subCheckboxNames)
+            {
+                if (container.Controls.Find(name, true).FirstOrDefault() is CheckBox c && !c.IsDisposed)
+                {
+                    c.ForeColor = parentOn ? themeColors.SubCheckBoxForeground : themeColors.DisabledCheckBoxForeground;
+                    c.Invalidate();
+                }
+            }
         }
     }
 

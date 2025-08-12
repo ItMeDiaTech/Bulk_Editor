@@ -38,7 +38,7 @@ namespace Bulk_Editor
         }
 
         // Binding source for better change notifications
-        private BindingSource _bindingSource;
+        private BindingSource _bindingSource = default!;
 
         private void InitializeDataGridView()
         {

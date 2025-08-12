@@ -10,30 +10,45 @@ namespace Bulk_Editor
 {
     public partial class MainForm
     {
+        private void UpdateFileList(IEnumerable<string> filePaths)
+        {
+            lstFiles.Items.Clear();
+            var fileItems = new List<string>();
+
+            foreach (var filePath in filePaths)
+            {
+                try
+                {
+                    var fileInfo = new FileInfo(filePath);
+                    fileItems.Add($"{fileInfo.Name} ({FormatFileSize(fileInfo.Length)})");
+                }
+                catch (Exception ex)
+                {
+                    _loggingService.LogError(ex, "Failed to get file info for: {FilePath}", filePath);
+                }
+            }
+
+            lstFiles.Items.AddRange(fileItems.ToArray());
+
+            if (_appSettings.UI.AutoSelectFirstFile && lstFiles.Items.Count > 0)
+            {
+                lstFiles.SelectedIndex = 0;
+            }
+
+            lblStatus.Text = $"Loaded {lstFiles.Items.Count} file(s).";
+            _loggingService.LogUserAction("Update File List", $"Loaded {lstFiles.Items.Count} file(s).");
+        }
+
         private void LoadFile(string filePath)
         {
-            try
+            UpdateFileList(new[] { filePath });
+            
+            // Create file path mapping for single file
+            var filePathMap = new Dictionary<int, string>();
+            if (lstFiles.Items.Count > 0)
             {
-                _loggingService?.LogUserAction("Load File", $"Loading single file: {Path.GetFileName(filePath)}");
-                
-                lstFiles.Items.Clear();
-                FileInfo fileInfo = new(filePath);
-                lstFiles.Items.Add($"{fileInfo.Name} ({FormatFileSize(fileInfo.Length)})");
-
-                // Auto-select first file if setting is enabled
-                if (_appSettings.UI.AutoSelectFirstFile && lstFiles.Items.Count > 0)
-                {
-                    lstFiles.SelectedIndex = 0;
-                    _loggingService?.LogDebug("Auto-selected first file due to setting");
-                }
-
-                lblStatus.Text = $"Loaded file: {filePath}";
-                _loggingService?.LogFileOperation("Load", filePath, $"Successfully loaded file ({FormatFileSize(fileInfo.Length)})");
-            }
-            catch (Exception ex)
-            {
-                _loggingService?.LogError(ex, "Failed to load file: {FilePath}", filePath);
-                MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                filePathMap[0] = filePath;
+                lstFiles.Tag = filePathMap;
             }
         }
 
@@ -41,32 +56,20 @@ namespace Bulk_Editor
         {
             try
             {
-                _loggingService?.LogUserAction("Load Files", $"Loading files from folder: {folderPath}");
+                var files = Directory.GetFiles(folderPath, "*.docx");
+                UpdateFileList(files);
                 
-                lstFiles.Items.Clear();
-                string[] files = Directory.GetFiles(folderPath, "*.docx");
-
-                _loggingService?.LogDebug("Found {FileCount} .docx files in folder: {FolderPath}", files.Length, folderPath);
-
-                foreach (string file in files)
+                // Create file path mapping for folder-based files
+                var filePathMap = new Dictionary<int, string>();
+                for (int i = 0; i < files.Length && i < lstFiles.Items.Count; i++)
                 {
-                    FileInfo fileInfo = new(file);
-                    lstFiles.Items.Add($"{fileInfo.Name} ({FormatFileSize(fileInfo.Length)})");
+                    filePathMap[i] = files[i];
                 }
-
-                // Auto-select first file if setting is enabled
-                if (_appSettings.UI.AutoSelectFirstFile && lstFiles.Items.Count > 0)
-                {
-                    lstFiles.SelectedIndex = 0;
-                    _loggingService?.LogDebug("Auto-selected first file due to setting");
-                }
-
-                lblStatus.Text = $"Loaded {files.Length} files from {folderPath}";
-                _loggingService?.LogFileOperation("Load Folder", folderPath, $"Successfully loaded {files.Length} files");
+                lstFiles.Tag = filePathMap;
             }
             catch (Exception ex)
             {
-                _loggingService?.LogError(ex, "Error loading files from folder: {FolderPath}", folderPath);
+                _loggingService.LogError(ex, "Error loading files from folder: {FolderPath}", folderPath);
                 MessageBox.Show($"Error loading files: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -81,17 +84,17 @@ namespace Bulk_Editor
                     if (filePathMap != null && filePathMap.ContainsKey(lstFiles.SelectedIndex))
                     {
                         var path = filePathMap[lstFiles.SelectedIndex];
-                        _loggingService?.LogDebug("Retrieved file path from map: {FilePath}", path);
+                        _loggingService.LogDebug("Retrieved file path from map: {FilePath}", path);
                         return path;
                     }
 
                     // Fallback for folder-based selection
                     if (Directory.Exists(txtFolderPath.Text))
                     {
-                        string selectedItem = lstFiles.SelectedItem.ToString();
+                        string selectedItem = lstFiles.SelectedItem?.ToString() ?? string.Empty;
                         string fileName = selectedItem.Split('(')[0].Trim();
                         var path = Path.Combine(txtFolderPath.Text, fileName);
-                        _loggingService?.LogDebug("Built file path from folder selection: {FilePath}", path);
+                        _loggingService.LogDebug("Built file path from folder selection: {FilePath}", path);
                         return path;
                     }
                 }
@@ -99,7 +102,7 @@ namespace Bulk_Editor
             }
             catch (Exception ex)
             {
-                _loggingService?.LogError(ex, "Error getting selected file path");
+                _loggingService.LogError(ex, "Error getting selected file path");
                 return string.Empty;
             }
         }
@@ -108,7 +111,7 @@ namespace Bulk_Editor
         {
             try
             {
-                _loggingService?.LogUserAction("Open File", $"Opening file: {Path.GetFileName(filePath)}");
+                _loggingService.LogUserAction("Open File", $"Opening file: {Path.GetFileName(filePath)}");
                 
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                 {
@@ -116,98 +119,112 @@ namespace Bulk_Editor
                     UseShellExecute = true
                 });
                 
-                _loggingService?.LogFileOperation("Open", filePath, "File opened successfully");
+                _loggingService.LogFileOperation("Open", filePath, "File opened successfully");
             }
             catch (Exception ex)
             {
-                _loggingService?.LogError(ex, "Error opening file: {FilePath}", filePath);
+                _loggingService.LogError(ex, "Error opening file: {FilePath}", filePath);
                 MessageBox.Show($"Error opening file: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
         private async void ProcessSingleFile()
         {
-            _loggingService?.LogUserAction("Process Single File", "Processing single file from current selection");
+            _loggingService.LogUserAction("Process Single File", "Processing single file from current selection");
             
-            // Store the original selection and file list state
-            int originalSelectedIndex = lstFiles.SelectedIndex;
-            var originalItems = new object[lstFiles.Items.Count];
-            lstFiles.Items.CopyTo(originalItems, 0);
-            var originalTag = lstFiles.Tag;
-            var originalFolderPath = txtFolderPath.Text;
-            
-
             try
             {
-                // Set up for single file processing
-                string filePath = txtFolderPath.Text;
-                if (File.Exists(filePath))
+                // Get the selected file path directly
+                string filePath = GetSelectedFilePath();
+                if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
                 {
-                    _loggingService?.LogDebug("Setting up single file processing for: {FilePath}", filePath);
-                    
-                    // Temporarily clear list and load single file
-                    lstFiles.Items.Clear();
-                    LoadFile(filePath);
+                    _loggingService.LogWarning("Single file processing requested but file not found: {FilePath}", filePath);
+                    MessageBox.Show("Selected file not found or could not be determined.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
 
-                    // Process the file - this will trigger the automatic refresh timer
-                    BtnRunTools_Click(null, null);
-                    
-                    // Wait a bit for processing to complete
-                    await Task.Delay(200);
-                }
-                else
-                {
-                    _loggingService?.LogWarning("Single file processing requested but file does not exist: {FilePath}", filePath);
-                }
-            }
-            catch (Exception ex)
-            {
-                _loggingService?.LogError(ex, "Error in single file processing");
-            }
-            finally
-            {
-                // Always restore the original state
-                // Restore folder path first
-                txtFolderPath.Text = originalFolderPath;
+                _loggingService.LogDebug("Processing single file directly: {FilePath}", filePath);
                 
-                // Restore original list and selection
-                lstFiles.Items.Clear();
-                lstFiles.Items.AddRange(originalItems);
-                lstFiles.Tag = originalTag;
+                // Store original selection - DON'T change txtFolderPath.Text to avoid affecting other files' changelog detection
+                int originalSelectedIndex = lstFiles.SelectedIndex;
                 
-                // Restore the original selection immediately
+                // Process the file directly without changing UI state
+                await ProcessSingleFileDirectly(filePath);
+                
+                // Ensure selection is maintained
                 if (originalSelectedIndex >= 0 && originalSelectedIndex < lstFiles.Items.Count)
                 {
                     lstFiles.SelectedIndex = originalSelectedIndex;
-                    
-                    // Trigger changelog refresh manually after a delay to avoid conflicts
-                    await Task.Delay(100);
-                    
-                    // Force a manual changelog refresh for the restored selection
-                    LstFiles_SelectedIndexChanged(null, null);
                 }
                 
-                _loggingService?.LogDebug("Restored original file list and selection after single file processing");
-            }
-        }
-
-        private static string FindLatestChangelog()
-        {
-            try
-            {
-                string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-                string changelogPath = Path.Combine(desktopPath, "BulkEditor_Changelog.txt");
-                bool exists = File.Exists(changelogPath);
+                // Refresh changelog for the current selection after a short delay
+                await Task.Delay(1000);
+                LstFiles_SelectedIndexChanged(this, EventArgs.Empty);
                 
-                Services.LoggingService.Instance.LogDebug("Searching for latest changelog. Path: {ChangelogPath}, Exists: {Exists}",
-                    changelogPath, exists);
-                
-                return exists ? changelogPath : string.Empty;
+                _loggingService.LogDebug("Single file processing completed successfully");
             }
             catch (Exception ex)
             {
-                Services.LoggingService.Instance.LogError(ex, "Error searching for latest changelog");
-                return string.Empty;
+                _loggingService.LogError(ex, "Error in single file processing");
+                MessageBox.Show($"Error processing file: {ex.Message}", "Processing Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+        
+        private async Task ProcessSingleFileDirectly(string filePath)
+        {
+            // Create a temporary file list with just this file for processing
+            var tempList = new List<string> { filePath };
+            
+            // Use the existing processing logic but bypass the UI file list manipulation
+            var validFiles = await ValidateFilesForProcessing(tempList);
+            if (validFiles.Count == 0)
+            {
+                MessageBox.Show("The selected file failed validation and cannot be processed.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            
+            // Set up changelog path
+            string fileName = Path.GetFileName(filePath);
+            string? baseDir = Path.GetDirectoryName(filePath);
+            string changelogPath;
+            
+            if (_changelogManager != null && _appSettings.ChangelogSettings.UseCentralizedStorage)
+            {
+                changelogPath = _changelogManager.GetIndividualChangelogPath(fileName);
+                if (string.IsNullOrEmpty(changelogPath))
+                {
+                    string docName = Path.GetFileNameWithoutExtension(filePath);
+                    string dateFormat = DateTime.Now.ToString("MMddyyyy");
+                    changelogPath = Path.Combine(baseDir ?? string.Empty, $"{docName}_Changelog_{dateFormat}.txt");
+                }
+            }
+            else
+            {
+                string docName = Path.GetFileNameWithoutExtension(filePath);
+                string dateFormat = DateTime.Now.ToString("MMddyyyy");
+                changelogPath = Path.Combine(baseDir ?? string.Empty, $"{docName}_Changelog_{dateFormat}.txt");
+            }
+            
+            // Process the single file
+            bool appendMode = File.Exists(changelogPath);
+            using (var writer = new StreamWriter(changelogPath, append: appendMode))
+            {
+                if (!appendMode)
+                {
+                    writer.WriteLine($"Bulk Editor: Single File Processing - {DateTime.Now}");
+                    writer.WriteLine($"Version: 2.1");
+                    writer.WriteLine($"File: {fileName}");
+                    writer.WriteLine();
+                }
+                else
+                {
+                    writer.WriteLine();
+                    writer.WriteLine($"=== Single File Processing Session - {DateTime.Now} ===");
+                    writer.WriteLine($"File: {fileName}");
+                    writer.WriteLine();
+                }
+                
+                await ProcessFileWithProgressAsync(filePath, writer, null, 0, 1, CancellationToken.None);
             }
         }
     }

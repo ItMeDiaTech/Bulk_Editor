@@ -14,9 +14,9 @@ namespace Bulk_Editor.Services
     public class RetryPolicyService
     {
         private readonly RetrySettings _settings;
-        private readonly IProgress<ProgressReport> _progress;
+        private readonly IProgress<ProgressReport>? _progress;
 
-        public RetryPolicyService(RetrySettings settings, IProgress<ProgressReport> progress = null)
+        public RetryPolicyService(RetrySettings settings, IProgress<ProgressReport>? progress = null)
         {
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
             _progress = progress;
@@ -29,7 +29,7 @@ namespace Bulk_Editor.Services
             Func<CancellationToken, Task<T>> operation,
             CancellationToken cancellationToken = default)
         {
-            Exception lastException = null;
+            Exception? lastException = null;
 
             for (int attempt = 1; attempt <= _settings.MaxRetryAttempts; attempt++)
             {

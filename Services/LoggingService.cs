@@ -4,48 +4,18 @@ using Bulk_Editor.Configuration;
 using Serilog;
 using Serilog.Core;
 
+using Bulk_Editor.Services.Abstractions;
+
 namespace Bulk_Editor.Services
-{
-    /// <summary>
-    /// Logging service that integrates with LoggingSettings and uses the global Serilog logger
-    /// </summary>
-    public class LoggingService : IDisposable
-    {
-        private readonly LoggingSettings _settings;
-        private bool _disposed = false;
-        private static LoggingService _instance;
-        private static readonly object _lock = new object();
-
-        // Use singleton pattern to ensure consistent logging
-        public static LoggingService Instance
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    lock (_lock)
-                    {
-                        if (_instance == null)
-                        {
-                            // Create with default settings if none provided
-                            _instance = new LoggingService(new LoggingSettings());
-                        }
-                    }
-                }
-                return _instance;
-            }
-        }
-
-        public static void Initialize(LoggingSettings settings)
-        {
-            lock (_lock)
-            {
-                _instance?.Dispose();
-                _instance = new LoggingService(settings);
-            }
-        }
-
-        private LoggingService(LoggingSettings settings)
+ {
+     /// <summary>
+     /// Logging service that integrates with LoggingSettings and uses the global Serilog logger
+     /// </summary>
+     public class LoggingService : ILoggingService
+     {
+         private readonly LoggingSettings _settings;
+ 
+         public LoggingService(LoggingSettings settings)
         {
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
             ConfigureFileLogging();
@@ -53,29 +23,15 @@ namespace Bulk_Editor.Services
 
         private void ConfigureFileLogging()
         {
-            // Only configure file logging if enabled and not already configured
+            // Ensure file logging is properly configured if enabled
             if (_settings.EnableFileLogging)
             {
                 var logPath = GetLogFilePath();
                 EnsureLogDirectoryExists(logPath);
-
-                // Use the global logger but ensure our file sink is configured
-                var additionalConfig = new LoggerConfiguration()
-                    .WriteTo.Logger(Log.Logger) // Chain to existing logger
-                    .WriteTo.File(
-                        path: logPath,
-                        outputTemplate: GetOutputTemplate(),
-                        rollingInterval: RollingInterval.Day,
-                        retainedFileCountLimit: _settings.MaxLogFiles,
-                        fileSizeLimitBytes: _settings.MaxLogFileSizeMB * 1024 * 1024,
-                        rollOnFileSizeLimit: true,
-                        shared: true);
-
-                // Only replace if we're not already using a properly configured logger
-                if (!IsLoggerConfiguredForFiles())
-                {
-                    Log.Logger = additionalConfig.CreateLogger();
-                }
+                
+                // The Serilog configuration in Program.cs should handle the main logging
+                // This just ensures the directory structure exists
+                System.Diagnostics.Debug.WriteLine($"File logging enabled. Log path: {logPath}");
             }
         }
 
@@ -133,6 +89,11 @@ namespace Bulk_Editor.Services
             Log.Warning(message, args);
         }
 
+        public void LogWarning(Exception ex, string message, params object[] args)
+        {
+            Log.Warning(ex, message, args);
+        }
+
         public void LogError(string message, params object[] args)
         {
             Log.Error(message, args);
@@ -151,11 +112,11 @@ namespace Bulk_Editor.Services
             }
         }
 
-        public void LogUserAction(string action, string details = "")
+        public void LogUserAction(string action, string description)
         {
             if (_settings.LogUserActions)
             {
-                Log.Information("User Action: {Action} {Details}", action, details);
+                Log.Information("User Action: {Action} {Details}", action, description);
             }
         }
 
@@ -172,9 +133,9 @@ namespace Bulk_Editor.Services
             Log.Information("Processing: {Step} - {Details}", step, details);
         }
 
-        public void LogFileOperation(string operation, string filePath, string result = "")
+        public void LogFileOperation(string operation, string filePath, string details)
         {
-            Log.Information("File {Operation}: {FilePath} - {Result}", operation, filePath, result);
+            Log.Information("File {Operation}: {FilePath} - {Result}", operation, filePath, details);
         }
 
         public void LogApiCall(string endpoint, string method, TimeSpan duration, string result = "")
@@ -183,13 +144,5 @@ namespace Bulk_Editor.Services
                 method, endpoint, duration.TotalMilliseconds, result);
         }
 
-        public void Dispose()
-        {
-            if (!_disposed)
-            {
-                // Don't dispose the global logger, just mark as disposed
-                _disposed = true;
-            }
-        }
     }
 }

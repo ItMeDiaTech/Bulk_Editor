@@ -1,354 +1,285 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.Json;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Bulk_Editor.Configuration;
+using Bulk_Editor.Models;
+using Bulk_Editor.Services.Abstractions;
 
 namespace Bulk_Editor.Services
 {
-    /// <summary>
-    /// Service for reading and displaying application logs
-    /// </summary>
-    public class LogViewerService
+    public class LogViewerService : ILogViewerService
     {
-        private readonly LoggingSettings _settings;
+        private readonly ILoggingService _loggingService;
+        private readonly LoggingSettings _logSettings;
+        
+        private static readonly Regex LogLineRx = new(
+            @"^\[(?<ts>[^\]]+)\]\s*\[(?<lvl>[^\]]+)\]\s*(?<msg>.*)$",
+            RegexOptions.Compiled);
 
-        public LogViewerService(LoggingSettings settings)
+        public LogViewerService(ILoggingService loggingService, LoggingSettings logSettings)
         {
-            _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+            _loggingService = loggingService;
+            _logSettings = logSettings;
         }
 
-        /// <summary>
-        /// Get recent log entries from the current log file
-        /// </summary>
-        public async Task<List<LogEntry>> GetRecentLogsAsync(int maxEntries = 100)
+        public async Task<List<LogEntry>> GetRecentLogsAsync(int lineCount)
         {
-            var logEntries = new List<LogEntry>();
+            var result = new List<LogEntry>();
+            var logPath = GetLogFilePath();
+            
+            if (string.IsNullOrWhiteSpace(logPath) || !File.Exists(logPath))
+                return result;
 
-            try
+            const int maxRetries = 3;
+            int retryDelay = 100;
+
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
             {
-                string logPath = GetLogFilePath();
-                if (!File.Exists(logPath))
+                try
                 {
-                    return logEntries;
-                }
+                    using var fs = new FileStream(logPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                    using var reader = new StreamReader(fs, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
 
-                var lines = await File.ReadAllLinesAsync(logPath);
-                
-                // Take the last N lines and parse them
-                var recentLines = lines.TakeLast(maxEntries).ToList();
-                
-                foreach (var line in recentLines)
-                {
-                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    // Read all lines
+                    var raw = new List<string>();
+                    string? line;
+                    while ((line = await reader.ReadLineAsync()) != null)
+                        raw.Add(line);
 
-                    try
+                    // Collapse multi-line entries: a new entry starts when a line matches the regex
+                    var entries = new List<(string ts, string lvl, StringBuilder msg)>();
+                    foreach (var l in raw)
                     {
-                        var logEntry = ParseLogEntry(line);
-                        if (logEntry != null)
+                        var m = LogLineRx.Match(l);
+                        if (m.Success)
                         {
-                            logEntries.Add(logEntry);
+                            entries.Add((m.Groups["ts"].Value, m.Groups["lvl"].Value, new StringBuilder(m.Groups["msg"].Value)));
+                        }
+                        else if (entries.Count > 0)
+                        {
+                            entries[^1].msg.AppendLine().Append(l); // attach stack trace / continuation
                         }
                     }
-                    catch
+
+                    // Take the most recent N (from end), then return chronological order
+                    foreach (var e in entries.AsEnumerable().Reverse().Take(lineCount).Reverse())
                     {
-                        // If JSON parsing fails, treat as plain text
-                        logEntries.Add(new LogEntry
+                        // Be tolerant of formats: don't drop on parse; store current time if parse fails
+                        DateTime ts;
+                        if (!DateTime.TryParse(e.ts, System.Globalization.CultureInfo.InvariantCulture,
+                                System.Globalization.DateTimeStyles.AssumeLocal, out ts))
                         {
-                            Timestamp = DateTime.Now,
-                            Level = "Information",
-                            Message = line
+                            // fallback: try local culture or just set to now
+                            if (!DateTime.TryParse(e.ts, out ts))
+                                ts = DateTime.Now;
+                        }
+
+                        result.Add(new LogEntry
+                        {
+                            Timestamp = ts,
+                            Level = e.lvl,
+                            Message = e.msg.ToString()
                         });
                     }
+
+                    return result;
+                }
+                catch (IOException ex) when (attempt < maxRetries)
+                {
+                    _loggingService.LogWarning(ex, "Attempt {Attempt}: Log file locked, retrying in {Delay}ms. Path: {Path}", attempt, retryDelay, logPath);
+                    await Task.Delay(retryDelay);
+                    retryDelay *= 2;
+                }
+                catch (Exception ex)
+                {
+                    _loggingService.LogError(ex, "Unexpected error reading log file: {Path}", logPath);
+                    break;
                 }
             }
-            catch (Exception ex)
-            {
-                logEntries.Add(new LogEntry
-                {
-                    Timestamp = DateTime.Now,
-                    Level = "Error",
-                    Message = $"Error reading logs: {ex.Message}"
-                });
-            }
 
-            return logEntries.OrderByDescending(x => x.Timestamp).ToList();
+            return result;
         }
 
-        /// <summary>
-        /// Get all available log files
-        /// </summary>
-        public List<string> GetAvailableLogFiles()
-        {
-            var logFiles = new List<string>();
-
-            try
-            {
-                string logPath = GetLogFilePath();
-                string? logDirectory = Path.GetDirectoryName(logPath);
-                string logFilePattern = Path.GetFileNameWithoutExtension(logPath) + "*" + Path.GetExtension(logPath);
-
-                if (!string.IsNullOrEmpty(logDirectory) && Directory.Exists(logDirectory))
-                {
-                    logFiles.AddRange(Directory.GetFiles(logDirectory, logFilePattern)
-                        .OrderByDescending(File.GetCreationTime));
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error getting log files: {ex.Message}");
-            }
-
-            return logFiles;
-        }
-
-        /// <summary>
-        /// Export logs to a file
-        /// </summary>
-        public async Task<bool> ExportLogsAsync(string exportPath, DateTime? fromDate = null, DateTime? toDate = null)
+        public async Task<bool> ExportLogsAsync(string exportPath)
         {
             try
             {
-                // Try to get more logs and also get raw log content if parsing fails
-                var allLogs = await GetRecentLogsAsync(5000);
-                
-                // Filter by date if specified
-                if (fromDate.HasValue)
+                var logPath = GetLogFilePath();
+                if (string.IsNullOrWhiteSpace(logPath) || !File.Exists(logPath))
+                    return false;
+
+                // Expand env vars and normalize
+                exportPath = Environment.ExpandEnvironmentVariables(exportPath);
+                if (!Path.IsPathRooted(exportPath))
+                    exportPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, exportPath));
+
+                // If a directory was provided, append filename
+                if (Directory.Exists(exportPath) || exportPath.EndsWith(Path.DirectorySeparatorChar.ToString()) || exportPath.EndsWith(Path.AltDirectorySeparatorChar.ToString()))
                 {
-                    allLogs = allLogs.Where(x => x.Timestamp >= fromDate.Value).ToList();
-                }
-                if (toDate.HasValue)
-                {
-                    allLogs = allLogs.Where(x => x.Timestamp <= toDate.Value).ToList();
+                    exportPath = Path.Combine(exportPath, Path.GetFileName(logPath));
                 }
 
-                using var writer = new StreamWriter(exportPath);
-                await writer.WriteLineAsync($"Bulk Editor Log Export - {DateTime.Now}");
-                await writer.WriteLineAsync("=" + new string('=', 50));
-                await writer.WriteLineAsync($"Total log entries found: {allLogs.Count}");
-                await writer.WriteLineAsync();
+                // Ensure destination directory exists
+                var destDir = Path.GetDirectoryName(exportPath);
+                if (!string.IsNullOrEmpty(destDir))
+                    Directory.CreateDirectory(destDir);
 
-                if (allLogs.Count == 0)
-                {
-                    // If no parsed logs found, try to get raw log file content
-                    await writer.WriteLineAsync("No parsed log entries found. Attempting to export raw log file content:");
-                    await writer.WriteLineAsync();
-                    
-                    string logPath = GetLogFilePath();
-                    if (File.Exists(logPath))
-                    {
-                        var rawContent = await File.ReadAllTextAsync(logPath);
-                        await writer.WriteLineAsync("=== Raw Log File Content ===");
-                        await writer.WriteLineAsync(rawContent);
-                    }
-                    else
-                    {
-                        await writer.WriteLineAsync($"Log file not found at: {logPath}");
-                    }
-                }
-                else
-                {
-                    foreach (var log in allLogs.OrderBy(x => x.Timestamp))
-                    {
-                        await writer.WriteLineAsync($"[{log.Timestamp:yyyy-MM-dd HH:mm:ss}] [{log.Level}] {log.Message}");
-                        if (!string.IsNullOrEmpty(log.Exception))
-                        {
-                            await writer.WriteLineAsync($"    Exception: {log.Exception}");
-                        }
-                        await writer.WriteLineAsync();
-                    }
-                }
-
+                await Task.Run(() => File.Copy(logPath, exportPath, overwrite: true));
                 return true;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error exporting logs: {ex.Message}");
+                _loggingService.LogError(ex, "Failed to export log file to {ExportPath}", exportPath);
                 return false;
             }
         }
 
-        /// <summary>
-        /// Clear old log files
-        /// </summary>
-        public Task<int> ClearOldLogsAsync(int daysToKeep = 7)
+        public async Task<int> ClearOldLogsAsync(int daysToKeep)
         {
             int deletedCount = 0;
+            string? logDirectory = Path.GetDirectoryName(GetLogFilePath());
 
-            try
+            if (!Directory.Exists(logDirectory))
             {
-                var logFiles = GetAvailableLogFiles();
-                var cutoffDate = DateTime.Now.AddDays(-daysToKeep);
+                return 0;
+            }
 
-                foreach (var logFile in logFiles)
+            // Handle multiple log file patterns (*.log, *.txt, *.log.*)
+            var patterns = new[] { "*.log", "*.txt", "*.log.*" };
+            var filesToDelete = new List<string>();
+
+            foreach (var pattern in patterns)
+            {
+                try
                 {
-                    if (File.GetCreationTime(logFile) < cutoffDate)
-                    {
-                        try
-                        {
-                            File.Delete(logFile);
-                            deletedCount++;
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"Error deleting log file {logFile}: {ex.Message}");
-                        }
-                    }
+                    filesToDelete.AddRange(Directory.GetFiles(logDirectory, pattern)
+                        .Where(file => File.GetLastWriteTime(file) < DateTime.Now.AddDays(-daysToKeep)));
+                }
+                catch (Exception ex)
+                {
+                    _loggingService.LogWarning(ex, "Failed to search for log files with pattern {Pattern}", pattern);
                 }
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error clearing old logs: {ex.Message}");
-            }
 
-            return Task.FromResult(deletedCount);
+            foreach (var file in filesToDelete.Distinct())
+            {
+                try
+                {
+                    await Task.Run(() => File.Delete(file));
+                    deletedCount++;
+                    _loggingService.LogInformation("Deleted old log file: {FileName}", Path.GetFileName(file));
+                }
+                catch (Exception ex)
+                {
+                    _loggingService.LogError(ex, "Failed to delete old log file: {FilePath}", file);
+                }
+            }
+            
+            return deletedCount;
         }
 
         private string GetLogFilePath()
         {
-            if (Path.IsPathRooted(_settings.LogFilePath))
+            if (_logSettings?.LogFilePath == null)
+                return string.Empty;
+
+            var p = Environment.ExpandEnvironmentVariables(_logSettings.LogFilePath);
+
+            // If it's a directory, choose the newest *.log inside
+            if (Directory.Exists(p))
             {
-                return _settings.LogFilePath;
+                var latest = new DirectoryInfo(p).GetFiles("*.log")
+                    .OrderByDescending(f => f.LastWriteTimeUtc)
+                    .FirstOrDefault();
+                return latest?.FullName ?? string.Empty;
             }
 
-            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, _settings.LogFilePath);
+            if (!Path.IsPathRooted(p))
+                p = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, p);
+
+            return p;
         }
 
-        private LogEntry? ParseLogEntry(string logLine)
+        public async Task<string> GetChangelogForFileAsync(string changelogPath, string fileName)
         {
-            if (string.IsNullOrWhiteSpace(logLine)) return null;
+            const int maxRetries = 3;
+            int retryDelay = 250;
 
-            try
+            for (int attempt = 1; attempt <= maxRetries; attempt++)
             {
-                // Try JSON format first
-                if (logLine.TrimStart().StartsWith("{"))
+                try
                 {
-                    return ParseJsonLogEntry(logLine);
+                    string[] changelogLines = await File.ReadAllLinesAsync(changelogPath);
+                    return ParseChangelogContent(changelogLines, fileName);
                 }
-                
-                // Try standard Serilog format: 2024-01-01 12:00:00.000 +00:00 [INF] Message
-                return ParseStandardLogEntry(logLine);
-            }
-            catch (Exception ex)
-            {
-                // If all parsing fails, create a basic entry
-                System.Diagnostics.Debug.WriteLine($"Failed to parse log line: {ex.Message}");
-                return new LogEntry
+                catch (IOException ex) when (attempt < maxRetries)
                 {
-                    Timestamp = DateTime.Now,
-                    Level = "Information",
-                    Message = logLine
-                };
-            }
-        }
-
-        private LogEntry? ParseJsonLogEntry(string logLine)
-        {
-            try
-            {
-                using var jsonDoc = JsonDocument.Parse(logLine);
-                var root = jsonDoc.RootElement;
-
-                return new LogEntry
-                {
-                    Timestamp = root.TryGetProperty("@t", out var timestamp) ?
-                        (DateTime.TryParse(timestamp.GetString(), out var dt) ? dt : DateTime.Now) : DateTime.Now,
-                    Level = root.TryGetProperty("@l", out var level) ?
-                        (level.GetString() ?? "Information") : "Information",
-                    Message = root.TryGetProperty("@m", out var message) ?
-                        (message.GetString() ?? logLine) : logLine,
-                    Exception = root.TryGetProperty("@x", out var exception) ? exception.GetString() : null
-                };
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        private LogEntry? ParseStandardLogEntry(string logLine)
-        {
-            try
-            {
-                // Parse standard Serilog format: 2024-01-01 12:00:00.000 +00:00 [INF] Message
-                // Also handle format: [2024-01-01 12:00:00.000 +00:00] [INF] Message
-                
-                var line = logLine.Trim();
-                
-                // Handle bracketed timestamp format
-                if (line.StartsWith('['))
-                {
-                    return ParseBracketedLogEntry(line);
+                    _loggingService.LogWarning(ex, "Attempt {Attempt}: File was locked, retrying in {RetryDelay}ms. Path: {ChangelogPath}", attempt, retryDelay, changelogPath);
+                    await Task.Delay(retryDelay);
+                    retryDelay *= 2;
                 }
-                
-                // Handle standard timestamp format (most common)
-                return ParseTimestampLogEntry(line);
+                catch (Exception ex)
+                {
+                    _loggingService.LogError(ex, "An unexpected error occurred while reading the changelog for {FileName} from {Path}", fileName, changelogPath);
+                    // Re-throw to be caught by the UI layer, which will show a message box
+                    throw;
+                }
             }
-            catch
+
+            // This part is reached only if all retries fail with an IOException
+            var finalException = new IOException($"Could not read the changelog file '{changelogPath}' after {maxRetries} attempts as it remained locked.");
+            _loggingService.LogError(finalException, "All retries failed to read changelog file.");
+            throw finalException;
+        }
+
+        private string ParseChangelogContent(string[] lines, string fileName)
+        {
+            var fileChangelog = new StringBuilder();
+            bool foundFileSection = false;
+            var targetTitle = $"Title: {Path.GetFileNameWithoutExtension(fileName)}";
+
+            foreach (string line in lines)
             {
-                return null;
+                if (!foundFileSection && line.Equals(targetTitle, StringComparison.OrdinalIgnoreCase))
+                {
+                    foundFileSection = true;
+                    fileChangelog.AppendLine(line);
+                }
+                else if (foundFileSection)
+                {
+                    // Stop at the start of the next file's log
+                    if (line.StartsWith("Title:", StringComparison.OrdinalIgnoreCase) && !line.Equals(targetTitle, StringComparison.OrdinalIgnoreCase))
+                    {
+                        break;
+                    }
+
+                    // Filter out unwanted lines from the UI display
+                    if (IsSkippableLine(line))
+                    {
+                        continue;
+                    }
+
+                    fileChangelog.AppendLine(line);
+                }
             }
+            
+            return fileChangelog.Length > 0
+                ? fileChangelog.ToString().TrimEnd()
+                : $"No changelog entries found for {fileName}.";
         }
 
-        private LogEntry? ParseBracketedLogEntry(string line)
+        private bool IsSkippableLine(string line)
         {
-            var timestampEnd = line.IndexOf(']');
-            if (timestampEnd <= 0) return null;
-
-            var levelStart = line.IndexOf('[', timestampEnd);
-            var levelEnd = line.IndexOf(']', levelStart);
-
-            if (levelStart <= 0 || levelEnd <= 0) return null;
-
-            var timestampStr = line.Substring(1, timestampEnd - 1);
-            var levelStr = line.Substring(levelStart + 1, levelEnd - levelStart - 1);
-            var messageStr = line.Length > levelEnd + 2 ? line.Substring(levelEnd + 2) : "";
-
-            return new LogEntry
-            {
-                Timestamp = DateTime.TryParse(timestampStr, out var ts) ? ts : DateTime.Now,
-                Level = levelStr.Trim(),
-                Message = messageStr.Trim()
-            };
+            var trimmedLine = line.Trim();
+            // Filter out summary lines and document separators
+            return (trimmedLine.StartsWith("Processed ") && trimmedLine.EndsWith(" files.")) ||
+                   trimmedLine == "__________";
         }
-
-        private LogEntry? ParseTimestampLogEntry(string line)
-        {
-            // Look for pattern: timestamp [LEVEL] message
-            var levelStart = line.IndexOf('[');
-            var levelEnd = line.IndexOf(']', levelStart);
-
-            if (levelStart <= 0 || levelEnd <= 0) return null;
-
-            var timestampStr = line.Substring(0, levelStart).Trim();
-            var levelStr = line.Substring(levelStart + 1, levelEnd - levelStart - 1);
-            var messageStr = line.Length > levelEnd + 2 ? line.Substring(levelEnd + 2) : "";
-
-            return new LogEntry
-            {
-                Timestamp = DateTime.TryParse(timestampStr, out var ts) ? ts : DateTime.Now,
-                Level = levelStr.Trim(),
-                Message = messageStr.Trim()
-            };
-        }
-    }
-
-    /// <summary>
-    /// Represents a single log entry
-    /// </summary>
-    public class LogEntry
-    {
-        public DateTime Timestamp { get; set; }
-        public string Level { get; set; } = string.Empty;
-        public string Message { get; set; } = string.Empty;
-        public string? Exception { get; set; }
-
-        public override string ToString()
-        {
-            return $"[{Timestamp:yyyy-MM-dd HH:mm:ss}] [{Level}] {Message}";
-        }
+        
+        // Removed ParseLogEntry - logic moved to GetRecentLogsAsync for better performance
     }
 }

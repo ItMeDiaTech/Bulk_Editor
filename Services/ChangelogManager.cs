@@ -26,28 +26,42 @@ namespace Bulk_Editor.Services
         {
             try
             {
+                // Ensure base path is absolute
+                string basePath = GetAbsoluteBasePath();
+                
                 // Create base directory
-                Directory.CreateDirectory(_settings.BaseStoragePath);
+                Directory.CreateDirectory(basePath);
+                System.Diagnostics.Debug.WriteLine($"Created base directory: {basePath}");
 
                 // Create changelog directories
                 if (_settings.SeparateIndividualAndCombined)
                 {
-                    Directory.CreateDirectory(_settings.GetIndividualChangelogsPath());
-                    Directory.CreateDirectory(_settings.GetCombinedChangelogsPath());
+                    var individualPath = GetIndividualChangelogsPath();
+                    var combinedPath = GetCombinedChangelogsPath();
+                    Directory.CreateDirectory(individualPath);
+                    Directory.CreateDirectory(combinedPath);
+                    System.Diagnostics.Debug.WriteLine($"Created individual changelogs: {individualPath}");
+                    System.Diagnostics.Debug.WriteLine($"Created combined changelogs: {combinedPath}");
                 }
                 else
                 {
-                    Directory.CreateDirectory(Path.Combine(_settings.BaseStoragePath, "Changelogs"));
+                    var changelogsPath = Path.Combine(basePath, "Changelogs");
+                    Directory.CreateDirectory(changelogsPath);
+                    System.Diagnostics.Debug.WriteLine($"Created changelogs directory: {changelogsPath}");
                 }
 
                 // Create backups directory if centralized
                 if (_settings.CentralizeBackups)
                 {
-                    Directory.CreateDirectory(_settings.GetBackupsPath());
+                    var backupsPath = GetBackupsPath();
+                    Directory.CreateDirectory(backupsPath);
+                    System.Diagnostics.Debug.WriteLine($"Created backups directory: {backupsPath}");
                 }
 
                 // Create settings directory
-                Directory.CreateDirectory(Path.Combine(_settings.BaseStoragePath, "Settings"));
+                var settingsPath = Path.Combine(basePath, "Settings");
+                Directory.CreateDirectory(settingsPath);
+                System.Diagnostics.Debug.WriteLine($"Created settings directory: {settingsPath}");
 
                 await Task.CompletedTask;
             }
@@ -56,6 +70,20 @@ namespace Bulk_Editor.Services
                 System.Diagnostics.Debug.WriteLine($"Error initializing changelog storage: {ex.Message}");
                 throw;
             }
+        }
+        
+        private string GetAbsoluteBasePath()
+        {
+            // Expand environment variables first
+            var basePath = Environment.ExpandEnvironmentVariables(_settings.BaseStoragePath);
+            
+            if (Path.IsPathRooted(basePath))
+            {
+                return basePath;
+            }
+            
+            // Convert relative path to absolute path relative to application directory
+            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, basePath);
         }
 
         /// <summary>
@@ -69,8 +97,8 @@ namespace Bulk_Editor.Services
                 return string.Empty;
             }
 
-            var basePath = _settings.GetIndividualChangelogsPath();
-            var datePath = _settings.GetDateBasedPath(basePath);
+            var basePath = GetIndividualChangelogsPath();
+            var datePath = GetDateBasedPath(basePath);
 
             // Ensure directory exists
             Directory.CreateDirectory(datePath);
@@ -90,8 +118,8 @@ namespace Bulk_Editor.Services
                 return string.Empty;
             }
 
-            var basePath = _settings.GetCombinedChangelogsPath();
-            var datePath = _settings.GetDateBasedPath(basePath);
+            var basePath = GetCombinedChangelogsPath();
+            var datePath = GetDateBasedPath(basePath);
 
             // Ensure directory exists
             Directory.CreateDirectory(datePath);
@@ -104,7 +132,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Find the most recent changelog file (centralized or legacy)
         /// </summary>
-        public string FindLatestChangelog(string documentFolderPath = null)
+        public string FindLatestChangelog(string? documentFolderPath = null)
         {
             var allChangelogFiles = new List<string>();
 
@@ -144,7 +172,7 @@ namespace Bulk_Editor.Services
 
             try
             {
-                var changelogsBasePath = Path.Combine(_settings.BaseStoragePath, "Changelogs");
+                var changelogsBasePath = Path.Combine(GetAbsoluteBasePath(), "Changelogs");
                 if (!Directory.Exists(changelogsBasePath))
                     return changelogs;
 
@@ -167,16 +195,19 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Find changelogs in legacy document folder locations
         /// </summary>
-        private static List<string> FindLegacyChangelogs(string documentFolderPath)
+        private static List<string> FindLegacyChangelogs(string? documentFolderPath)
         {
             var changelogs = new List<string>();
 
             try
             {
-                bool isFolder = Directory.Exists(documentFolderPath);
-                string basePath = isFolder ? documentFolderPath : Path.GetDirectoryName(documentFolderPath);
+                if (string.IsNullOrEmpty(documentFolderPath))
+                    return changelogs;
 
-                if (!Directory.Exists(basePath))
+                bool isFolder = Directory.Exists(documentFolderPath);
+                string? basePath = isFolder ? documentFolderPath : Path.GetDirectoryName(documentFolderPath);
+
+                if (string.IsNullOrEmpty(basePath) || !Directory.Exists(basePath))
                     return changelogs;
 
                 // Look for both old format and new format changelog files
@@ -209,7 +240,35 @@ namespace Bulk_Editor.Services
                     "Changelogs");
             }
 
-            return Path.Combine(_settings.BaseStoragePath, "Changelogs");
+            return Path.Combine(GetAbsoluteBasePath(), "Changelogs");
+        }
+
+        public string GetBackupsPath()
+        {
+            return Path.Combine(GetAbsoluteBasePath(), "Backups");
+        }
+
+        private string GetIndividualChangelogsPath()
+        {
+            var basePath = Path.Combine(GetAbsoluteBasePath(), "Changelogs");
+            return _settings.SeparateIndividualAndCombined
+                ? Path.Combine(basePath, "Individual")
+                : basePath;
+        }
+
+        private string GetCombinedChangelogsPath()
+        {
+            var basePath = Path.Combine(GetAbsoluteBasePath(), "Changelogs");
+            return _settings.SeparateIndividualAndCombined
+                ? Path.Combine(basePath, "Combined")
+                : basePath;
+        }
+
+        private string GetDateBasedPath(string baseFolder)
+        {
+            return _settings.OrganizeByDate
+                ? Path.Combine(baseFolder, DateTime.Now.ToString("MM-dd-yyyy"))
+                : baseFolder;
         }
 
         /// <summary>
@@ -223,7 +282,7 @@ namespace Bulk_Editor.Services
             try
             {
                 var cutoffDate = DateTime.Now.AddDays(-_settings.AutoCleanupDays);
-                var changelogsPath = Path.Combine(_settings.BaseStoragePath, "Changelogs");
+                var changelogsPath = Path.Combine(GetAbsoluteBasePath(), "Changelogs");
 
                 if (!Directory.Exists(changelogsPath))
                     return;

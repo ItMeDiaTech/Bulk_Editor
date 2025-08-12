@@ -1,13 +1,7 @@
-using System;
-using System.IO;
-using System.Reflection;
-using System.Text.Json;
-using System.Threading.Tasks;
-
 namespace Bulk_Editor.Configuration
 {
     /// <summary>
-    /// Application configuration settings
+    /// Root settings object
     /// </summary>
     public class AppSettings
     {
@@ -15,240 +9,9 @@ namespace Bulk_Editor.Configuration
         public RetrySettings RetrySettings { get; set; } = new();
         public ApplicationSettings ApplicationSettings { get; set; } = new();
         public ChangelogSettings ChangelogSettings { get; set; } = new();
-
-        // Keep existing settings for backward compatibility
         public ProcessingSettings Processing { get; set; } = new();
         public UiSettings UI { get; set; } = new();
         public LoggingSettings Logging { get; set; } = new();
-
-        /// <summary>
-        /// Default configuration file path
-        /// </summary>
-        private static readonly string ConfigPath = Path.Combine(
-            AppDomain.CurrentDomain.BaseDirectory,
-            "appsettings.json"
-        );
-
-        /// <summary>
-        /// Load configuration from file, embedded resource, or create default
-        /// </summary>
-        public static async Task<AppSettings> LoadAsync()
-        {
-            try
-            {
-                // Try loading from external file first (highest priority)
-                if (File.Exists(ConfigPath))
-                {
-                    var json = await File.ReadAllTextAsync(ConfigPath);
-                    var settings = JsonSerializer.Deserialize<AppSettings>(json, new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true,
-                        WriteIndented = true
-                    });
-
-                    if (settings != null)
-                    {
-                        settings.ValidateSettings();
-                        return settings;
-                    }
-                }
-
-                // Try loading from embedded resource as fallback
-                var embeddedSettings = await LoadFromEmbeddedResourceAsync();
-                if (embeddedSettings != null)
-                {
-                    embeddedSettings.ValidateSettings();
-                    // Save the embedded configuration as external file for future customization
-                    await embeddedSettings.SaveAsync();
-                    return embeddedSettings;
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error loading configuration: {ex.Message}");
-            }
-
-            // Return default configuration and save it (last resort)
-            var defaultSettings = new AppSettings();
-            defaultSettings.ValidateSettings();
-            await defaultSettings.SaveAsync();
-            return defaultSettings;
-        }
-
-        /// <summary>
-        /// Load configuration from embedded resource
-        /// </summary>
-        private static async Task<AppSettings> LoadFromEmbeddedResourceAsync()
-        {
-            try
-            {
-                var assembly = Assembly.GetExecutingAssembly();
-                var resourceName = "Bulk_Editor.appsettings.default.json";
-
-                using var stream = assembly.GetManifestResourceStream(resourceName);
-                if (stream == null)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Embedded resource not found: {resourceName}");
-                    return null;
-                }
-
-                using var reader = new StreamReader(stream);
-                var json = await reader.ReadToEndAsync();
-
-                var settings = JsonSerializer.Deserialize<AppSettings>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true,
-                    WriteIndented = true
-                });
-
-                System.Diagnostics.Debug.WriteLine("Successfully loaded configuration from embedded resource");
-                return settings;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error loading embedded configuration: {ex.Message}");
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Validate configuration settings and apply defaults
-        /// </summary>
-        private void ValidateSettings()
-        {
-            // Ensure API settings are valid
-            if (string.IsNullOrWhiteSpace(ApiSettings.PowerAutomateFlowUrl))
-            {
-                ApiSettings.PowerAutomateFlowUrl = "https://prod-00.eastus.logic.azure.com:443/workflows/...";
-            }
-
-            // Ensure retry settings are reasonable
-            if (RetrySettings.MaxRetryAttempts < 1 || RetrySettings.MaxRetryAttempts > 10)
-            {
-                RetrySettings.MaxRetryAttempts = 3;
-            }
-
-            if (RetrySettings.BaseDelayMs < 100 || RetrySettings.BaseDelayMs > 10000)
-            {
-                RetrySettings.BaseDelayMs = 1000;
-            }
-
-            if (RetrySettings.MaxDelayMs < RetrySettings.BaseDelayMs)
-            {
-                RetrySettings.MaxDelayMs = RetrySettings.BaseDelayMs * 8;
-            }
-
-            // Convert relative paths to absolute paths
-            ValidatePaths();
-        }
-
-        /// <summary>
-        /// Convert relative paths to absolute paths based on application directory
-        /// </summary>
-        private void ValidatePaths()
-        {
-            var appBaseDir = AppDomain.CurrentDomain.BaseDirectory;
-
-            // Handle ChangelogSettings.BaseStoragePath
-            if (!Path.IsPathRooted(ChangelogSettings.BaseStoragePath))
-            {
-                ChangelogSettings.BaseStoragePath = Path.Combine(appBaseDir, ChangelogSettings.BaseStoragePath);
-            }
-
-            // Handle ProcessingSettings.TempFolderPath
-            if (!Path.IsPathRooted(Processing.TempFolderPath))
-            {
-                Processing.TempFolderPath = Path.Combine(appBaseDir, Processing.TempFolderPath);
-            }
-        }
-
-        /// <summary>
-        /// Save configuration to file
-        /// </summary>
-        public async Task SaveAsync()
-        {
-            try
-            {
-                var json = JsonSerializer.Serialize(this, new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                });
-                await File.WriteAllTextAsync(ConfigPath, json);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error saving configuration: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Export current settings to a file
-        /// </summary>
-        public async Task ExportSettingsAsync(string filePath)
-        {
-            try
-            {
-                var json = JsonSerializer.Serialize(this, new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                });
-                await File.WriteAllTextAsync(filePath, json);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error exporting settings: {ex.Message}");
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Import settings from a file
-        /// </summary>
-        public static async Task<AppSettings> ImportSettingsAsync(string filePath)
-        {
-            try
-            {
-                if (!File.Exists(filePath))
-                {
-                    throw new FileNotFoundException("Settings file not found");
-                }
-
-                var json = await File.ReadAllTextAsync(filePath);
-                var settings = JsonSerializer.Deserialize<AppSettings>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true,
-                    WriteIndented = true
-                });
-
-                if (settings != null)
-                {
-                    settings.ValidateSettings();
-                    return settings;
-                }
-
-                throw new InvalidOperationException("Failed to deserialize settings");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error importing settings: {ex.Message}");
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Reset all settings to defaults
-        /// </summary>
-        public void ResetToDefaults()
-        {
-            ApiSettings = new ApiSettings();
-            RetrySettings = new RetrySettings();
-            ApplicationSettings = new ApplicationSettings();
-            ChangelogSettings = new ChangelogSettings();
-            Processing = new ProcessingSettings();
-            UI = new UiSettings();
-            Logging = new LoggingSettings();
-            ValidateSettings();
-        }
     }
 
     /// <summary>
@@ -261,8 +24,6 @@ namespace Bulk_Editor.Configuration
         public string HyperlinkViewPath { get; set; } = "!/view?docid=";
         public int TimeoutSeconds { get; set; } = 30;
         public int MaxConcurrentRequests { get; set; } = 5;
-
-        // Keep existing properties for backward compatibility
         public int RetryCount { get; set; } = 3;
         public string UserAgent { get; set; } = "Bulk-Editor/2.1";
         public bool ValidateSsl { get; set; } = true;
@@ -353,74 +114,11 @@ namespace Bulk_Editor.Configuration
     /// </summary>
     public class ChangelogSettings
     {
-        /// <summary>
-        /// Base directory for all changelog storage. Defaults to application directory
-        /// </summary>
         public string BaseStoragePath { get; set; } = "Data";
-
-        /// <summary>
-        /// Whether to use centralized storage (true) or document folders (false)
-        /// </summary>
         public bool UseCentralizedStorage { get; set; } = true;
-
-        /// <summary>
-        /// Whether to organize changelogs by date
-        /// </summary>
         public bool OrganizeByDate { get; set; } = true;
-
-        /// <summary>
-        /// Number of days to keep changelogs before auto-cleanup (0 = disabled)
-        /// </summary>
         public int AutoCleanupDays { get; set; } = 30;
-
-        /// <summary>
-        /// Whether to create separate folders for individual vs combined changelogs
-        /// </summary>
         public bool SeparateIndividualAndCombined { get; set; } = true;
-
-        /// <summary>
-        /// Whether to create backups in the centralized location
-        /// </summary>
         public bool CentralizeBackups { get; set; } = true;
-
-        /// <summary>
-        /// Get the individual changelogs folder path
-        /// </summary>
-        public string GetIndividualChangelogsPath()
-        {
-            var basePath = Path.Combine(BaseStoragePath, "Changelogs");
-            return SeparateIndividualAndCombined
-                ? Path.Combine(basePath, "Individual")
-                : basePath;
-        }
-
-        /// <summary>
-        /// Get the combined changelogs folder path
-        /// </summary>
-        public string GetCombinedChangelogsPath()
-        {
-            var basePath = Path.Combine(BaseStoragePath, "Changelogs");
-            return SeparateIndividualAndCombined
-                ? Path.Combine(basePath, "Combined")
-                : basePath;
-        }
-
-        /// <summary>
-        /// Get the dated subfolder path for organizing by date
-        /// </summary>
-        public string GetDateBasedPath(string baseFolder)
-        {
-            return OrganizeByDate
-                ? Path.Combine(baseFolder, DateTime.Now.ToString("MM-dd-yyyy"))
-                : baseFolder;
-        }
-
-        /// <summary>
-        /// Get the centralized backups folder path
-        /// </summary>
-        public string GetBackupsPath()
-        {
-            return Path.Combine(BaseStoragePath, "Backups");
-        }
     }
 }

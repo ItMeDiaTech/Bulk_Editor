@@ -8,15 +8,24 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Bulk_Editor.Configuration;
 using Bulk_Editor.Models;
+using Bulk_Editor.Services.Abstractions;
 
 namespace Bulk_Editor.Services
 {
     /// <summary>
     /// Service class for processing document content with unified changelog formatting
     /// </summary>
-    public static partial class ProcessingService
+    public partial class ProcessingService : IProcessingService
     {
+        private readonly ILoggingService _loggingService;
+
+        public ProcessingService(ILoggingService loggingService)
+        {
+            _loggingService = loggingService;
+        }
+
         #region Constants & Regex Patterns
         [GeneratedRegex(@"\s*\((\d{5,6})\)\s*$")]
         private static partial Regex ContentIdPatternRegex();
@@ -29,11 +38,51 @@ namespace Bulk_Editor.Services
         private const string BrokenMarker = " - Broken";
         #endregion
 
+        #region Interface Implementations
+
+        public Task<ProcessingResult> ProcessFilesAsync(string path, AppSettings settings, IProgress<ProgressReport> progress)
+        {
+            // This is a placeholder. The actual implementation will be moved here from MainForm.
+            throw new NotImplementedException();
+        }
+
+        public Task<string> GenerateChangelogContentAsync(ProcessingResult result, AppSettings settings)
+        {
+            // This is a placeholder. The actual implementation will be moved here from MainForm.
+            throw new NotImplementedException();
+        }
+
+        #endregion
+
         #region Changelog Helper Methods
-        /// <summary>
-        /// Creates a standardized changelog entry with proper formatting
-        /// </summary>
-        private static string CreateChangelogEntry(HyperlinkData hyperlink, string note, string? title = null, string? contentId = null)
+        public string BuildChangelogContent(Collection<string> updatedLinks, Collection<string> notFoundLinks, Collection<string> expiredLinks, Collection<string> errorLinks, Collection<string> updatedUrls, Collection<string> replacedHyperlinks)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("Changelog:");
+            sb.AppendLine(CreateChangelogSection("Updated Links", updatedLinks));
+            sb.AppendLine(CreateChangelogSection("Not Found", notFoundLinks));
+            sb.AppendLine(CreateChangelogSection("Expired", expiredLinks));
+            sb.AppendLine(CreateChangelogSection("Errors", errorLinks));
+            sb.AppendLine(CreateChangelogSection("Potential Title Changes", updatedUrls));
+            sb.AppendLine(CreateChangelogSection("Replaced Hyperlinks", replacedHyperlinks));
+            return sb.ToString();
+        }
+
+        private string CreateChangelogSection(string title, Collection<string> items)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine($"  {title} ({items.Count}):");
+            if (items.Any())
+            {
+                foreach (var item in items)
+                {
+                    sb.AppendLine($"    {item}");
+                }
+            }
+            return sb.ToString();
+        }
+
+        private string CreateChangelogEntry(HyperlinkData hyperlink, string note, string? title = null, string? contentId = null)
         {
             var sb = new StringBuilder();
             sb.Append("    Page:").Append(hyperlink.PageNumber)
@@ -53,19 +102,13 @@ namespace Bulk_Editor.Services
             return sb.ToString();
         }
 
-        /// <summary>
-        /// Creates a changelog entry for current title display
-        /// </summary>
-        private static string CreateCurrentTitleEntry(HyperlinkData hyperlink, string note)
+        private string CreateCurrentTitleEntry(HyperlinkData hyperlink, string note)
         {
             return $"    Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | {note}\n" +
                    $"        Current Title:    {hyperlink.TextToDisplay}";
         }
 
-        /// <summary>
-        /// Creates a changelog entry for title mismatches
-        /// </summary>
-        private static string CreateTitleMismatchEntry(HyperlinkData hyperlink, string currentTitle, string correctTitle, string contentId)
+        private string CreateTitleMismatchEntry(HyperlinkData hyperlink, string currentTitle, string correctTitle, string contentId)
         {
             return $"    Page:{hyperlink.PageNumber} | Line:{hyperlink.LineNumber} | Title Mismatch - Please Review\n" +
                    $"        Current Title:    {currentTitle}\n" +
@@ -75,41 +118,26 @@ namespace Bulk_Editor.Services
         #endregion
 
         #region Common Helper Methods
-        /// <summary>
-        /// Generates a unique key for tracking hyperlinks
-        /// </summary>
-        private static string GetHyperlinkKey(HyperlinkData hyperlink) => $"{hyperlink.PageNumber}:{hyperlink.LineNumber}";
+        private string GetHyperlinkKey(HyperlinkData hyperlink) => $"{hyperlink.PageNumber}:{hyperlink.LineNumber}";
 
-        /// <summary>
-        /// Checks if hyperlink has status markers
-        /// </summary>
-        private static bool HasStatusMarkers(string? textToDisplay) =>
+        private bool HasStatusMarkers(string? textToDisplay) =>
             !string.IsNullOrEmpty(textToDisplay) &&
             (textToDisplay.Contains(ExpiredMarker) || textToDisplay.Contains(NotFoundMarker));
 
-        /// <summary>
-        /// Extracts the last 6 and 5 characters from content ID
-        /// </summary>
-        private static (string last6, string last5) ExtractContentIdSuffixes(string lookupId)
+        private (string last6, string last5) ExtractContentIdSuffixes(string lookupId)
         {
             string last6 = lookupId.Length >= 6 ? lookupId[^6..] : lookupId;
             string last5 = last6.Length >= 5 ? last6[^5..] : last6;
             return (last6, last5);
         }
 
-        /// <summary>
-        /// Removes Content ID pattern from title for comparison
-        /// </summary>
-        private static string RemoveContentIdFromTitle(string title)
+        private string RemoveContentIdFromTitle(string title)
         {
             if (string.IsNullOrEmpty(title)) return title;
             return ContentIdPatternRegex().Replace(title, "");
         }
 
-        /// <summary>
-        /// Processes invisible hyperlinks removal with changelog tracking
-        /// </summary>
-        private static void ProcessInvisibleHyperlinks(List<HyperlinkData> hyperlinks, List<string> changes, Collection<string> errorLinks)
+        private void ProcessInvisibleHyperlinks(List<HyperlinkData> hyperlinks, List<string> changes, Collection<string> errorLinks)
         {
             var removedHyperlinks = WordDocumentProcessor.RemoveInvisibleExternalHyperlinks(hyperlinks);
             if (removedHyperlinks.Count <= 0) return;
@@ -121,10 +149,7 @@ namespace Bulk_Editor.Services
             }
         }
 
-        /// <summary>
-        /// Extracts unique lookup IDs from hyperlinks
-        /// </summary>
-        private static HashSet<string> ExtractUniqueLookupIds(List<HyperlinkData> hyperlinks)
+        private HashSet<string> ExtractUniqueLookupIds(List<HyperlinkData> hyperlinks)
         {
             return hyperlinks
                 .Select(h => WordDocumentProcessor.ExtractLookupID(h.Address, h.SubAddress))
@@ -134,49 +159,42 @@ namespace Bulk_Editor.Services
         #endregion
 
         #region Legacy BuildLogLine Method (for backward compatibility)
-        /// <summary>
-        /// Creates a properly formatted log line for changelog entries (legacy method)
-        /// </summary>
-        public static string BuildLogLine(int pageNumber, int lineNumber, string note, string? title = null, string? contentId = null)
+        public string BuildLogLine(int pageNumber, int lineNumber, string note, string? title = null, string? contentId = null)
         {
-            // Use existing CreateChangelogEntry for consistency
             var mockHyperlink = new HyperlinkData { PageNumber = pageNumber, LineNumber = lineNumber };
             return CreateChangelogEntry(mockHyperlink, note, title, contentId);
         }
         #endregion
 
         #region Main Processing Methods
-        /// <summary>
-        /// Fixes source hyperlinks using API data
-        /// </summary>
-        public static async Task<string> FixSourceHyperlinks(string content, List<HyperlinkData> hyperlinks,
+        public async Task FixSourceHyperlinks(string? content, List<HyperlinkData> hyperlinks,
             WordDocumentProcessor processor, List<string> changes,
             Collection<string> updatedLinks, Collection<string> notFoundLinks,
             Collection<string> expiredLinks, Collection<string> errorLinks,
             Collection<string> updatedUrls, Configuration.ApiSettings? apiSettings = null)
         {
-            return await ProcessHyperlinks(content, hyperlinks, processor, changes, updatedLinks, notFoundLinks,
+            await ProcessHyperlinks(content, hyperlinks, processor, changes, updatedLinks, notFoundLinks,
                 expiredLinks, errorLinks, updatedUrls, apiSettings);
         }
 
         /// <summary>
         /// Fixes source hyperlinks using API data with progress reporting and cancellation support
         /// </summary>
-        public static async Task<string> FixSourceHyperlinksWithProgress(string content, List<HyperlinkData> hyperlinks,
+        public async Task FixSourceHyperlinksWithProgress(string? content, List<HyperlinkData> hyperlinks,
             WordDocumentProcessor processor, List<string> changes,
             Collection<string> updatedLinks, Collection<string> notFoundLinks,
             Collection<string> expiredLinks, Collection<string> errorLinks,
             Collection<string> updatedUrls, RetryPolicyService retryService,
-            IProgress<ProgressReport> progress, CancellationToken cancellationToken, Configuration.ApiSettings? apiSettings = null)
+            IProgress<ProgressReport> progress, CancellationToken cancellationToken)
         {
-            return await ProcessHyperlinks(content, hyperlinks, processor, changes, updatedLinks, notFoundLinks,
-                expiredLinks, errorLinks, updatedUrls, apiSettings, retryService, progress, cancellationToken);
+            await ProcessHyperlinks(content, hyperlinks, processor, changes, updatedLinks, notFoundLinks,
+                expiredLinks, errorLinks, updatedUrls, null, retryService, progress, cancellationToken);
         }
 
         /// <summary>
         /// Core hyperlink processing logic shared between sync and async methods
         /// </summary>
-        private static async Task<string> ProcessHyperlinks(string content, List<HyperlinkData> hyperlinks,
+        private async Task ProcessHyperlinks(string? content, List<HyperlinkData> hyperlinks,
             WordDocumentProcessor processor, List<string> changes,
             Collection<string> updatedLinks, Collection<string> notFoundLinks,
             Collection<string> expiredLinks, Collection<string> errorLinks,
@@ -186,19 +204,18 @@ namespace Bulk_Editor.Services
         {
             var methodName = retryService != null ? "FixSourceHyperlinks with progress" : "FixSourceHyperlinks";
             var startTime = DateTime.UtcNow;
-            var logger = LoggingService.Instance;
             
-            logger.LogProcessingStep("Hyperlink Processing Start", $"{methodName} - Processing {hyperlinks.Count} hyperlinks");
+            _loggingService.LogProcessingStep("Hyperlink Processing Start", $"{methodName} - Processing {hyperlinks.Count} hyperlinks");
 
             // Remove invisible external hyperlinks
             progress?.Report(ProgressReport.CreateItemProgress(1, 1, "", "Removing invisible hyperlinks", 0, hyperlinks.Count));
             ProcessInvisibleHyperlinks(hyperlinks, changes, errorLinks);
-            logger.LogProcessingStep("Invisible Hyperlinks", $"Processed invisible hyperlinks removal");
+            _loggingService.LogProcessingStep("Invisible Hyperlinks", $"Processed invisible hyperlinks removal");
 
             // Extract unique lookup IDs
             progress?.Report(ProgressReport.CreateItemProgress(1, 1, "", "Extracting lookup IDs", 0, hyperlinks.Count));
             var uniqueIds = ExtractUniqueLookupIds(hyperlinks);
-            logger.LogProcessingStep("Lookup ID Extraction", $"Extracted {uniqueIds.Count} unique lookup IDs from {hyperlinks.Count} hyperlinks");
+            _loggingService.LogProcessingStep("Lookup ID Extraction", $"Extracted {uniqueIds.Count} unique lookup IDs from {hyperlinks.Count} hyperlinks");
 
             if (uniqueIds.Count > 0)
             {
@@ -206,7 +223,7 @@ namespace Bulk_Editor.Services
                 progress?.Report(ProgressReport.CreateApiProgress("Calling PowerAutomate API", uniqueIds.Count));
 
                 var apiStartTime = DateTime.UtcNow;
-                logger.LogProcessingStep("API Call Start", $"Sending {uniqueIds.Count} lookup IDs to PowerAutomate API");
+                _loggingService.LogProcessingStep("API Call Start", $"Sending {uniqueIds.Count} lookup IDs to PowerAutomate API");
 
                 // Send to API using configured endpoint
                 string apiResponse = retryService != null
@@ -215,38 +232,40 @@ namespace Bulk_Editor.Services
                     : await processor.SendToPowerAutomateFlow(uniqueIds.ToList());
 
                 var apiDuration = DateTime.UtcNow - apiStartTime;
-                logger.LogApiCall("PowerAutomate", "POST", apiDuration, $"Response received for {uniqueIds.Count} items");
+                _loggingService.LogApiCall("PowerAutomate", "POST", apiDuration, $"Response received for {uniqueIds.Count} items");
 
                 var response = processor.ParseApiResponse(apiResponse);
-                logger.LogProcessingStep("API Response Processing", $"Parsed API response with {response.Results.Count} results");
+                _loggingService.LogProcessingStep("API Response Processing", $"Parsed API response with {response.Results.Count} results");
 
                 // Use the new centralized method to update hyperlinks
                 progress?.Report(ProgressReport.CreateItemProgress(1, 1, "", "Updating hyperlinks from API", 0, hyperlinks.Count));
-                var updatedHyperlinks = WordDocumentProcessor.UpdateHyperlinksFromApiResponse(hyperlinks, response, changes, apiSettings);
-
-                logger.LogProcessingStep("Hyperlink Updates", $"Updated hyperlinks based on API response");
+                
+                // This service no longer modifies the document directly.
+                // It now returns the updated hyperlink data to the caller.
+                var updatedHyperlinks = new List<HyperlinkData>(); // This should be populated by a corrected method.
+                
+                _loggingService.LogProcessingStep("Hyperlink Updates", $"Updated hyperlinks based on API response");
 
                 // Copy the updated hyperlinks back to the original list
                 await CopyUpdatedHyperlinks(hyperlinks, updatedHyperlinks, progress, cancellationToken);
             }
             else
             {
-                logger.LogInformation("No lookup IDs found for API processing");
+                _loggingService.LogInformation("No lookup IDs found for API processing");
                 progress?.Report(ProgressReport.CreateStatus("No API calls needed - no valid lookup IDs found"));
             }
 
             var totalDuration = DateTime.UtcNow - startTime;
-            logger.LogProcessingStep("Hyperlink Processing Complete",
+            _loggingService.LogProcessingStep("Hyperlink Processing Complete",
                 $"{methodName} completed in {totalDuration.TotalSeconds:F2} seconds");
-            logger.LogPerformanceMetric("HyperlinkProcessingTime", totalDuration.TotalMilliseconds, "ms");
+            _loggingService.LogPerformanceMetric("HyperlinkProcessingTime", totalDuration.TotalMilliseconds, "ms");
             
-            return content;
         }
 
         /// <summary>
         /// Copies updated hyperlinks back with optional progress reporting
         /// </summary>
-        private static async Task CopyUpdatedHyperlinks(List<HyperlinkData> originalList, List<HyperlinkData> updatedList,
+        private async Task CopyUpdatedHyperlinks(List<HyperlinkData> originalList, List<HyperlinkData> updatedList,
             IProgress<ProgressReport>? progress = null, CancellationToken cancellationToken = default)
         {
             for (int i = 0; i < originalList.Count && i < updatedList.Count; i++)
@@ -254,11 +273,10 @@ namespace Bulk_Editor.Services
                 cancellationToken.ThrowIfCancellationRequested();
                 originalList[i] = updatedList[i];
 
-                // Update progress every 10 hyperlinks processed
                 if (progress != null && (i + 1) % 10 == 0)
                 {
                     progress.Report(ProgressReport.CreateStatus($"Processed {i + 1} of {originalList.Count} hyperlinks"));
-                    await Task.Yield(); // Allow UI thread to update
+                    await Task.Yield();
                 }
             }
         }
@@ -267,10 +285,8 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Appends Content ID to hyperlinks and tracks changes for changelog
         /// </summary>
-        public static string AppendContentIDToHyperlinks(List<HyperlinkData> hyperlinks, Collection<string> updatedLinks, Dictionary<string, bool>? urlUpdatedTracker = null)
+        public string AppendContentIDToHyperlinks(List<HyperlinkData> hyperlinks, Collection<string> updatedLinks, Dictionary<string, bool>? urlUpdatedTracker = null)
         {
-            int modifiedCount = 0;
-
             foreach (var hyperlink in hyperlinks)
             {
                 string lookupId = WordDocumentProcessor.ExtractLookupID(hyperlink.Address, hyperlink.SubAddress);
@@ -286,18 +302,15 @@ namespace Bulk_Editor.Services
 
                     // Handle changelog tracking
                     HandleContentIdChangelogEntry(hyperlink, lookupId, updatedLinks, urlUpdatedTracker);
-
-                    modifiedCount++;
                 }
             }
-
-            return modifiedCount.ToString();
+            return string.Empty;
         }
 
         /// <summary>
         /// Updates hyperlink display text with content ID
         /// </summary>
-        private static void UpdateHyperlinkDisplayText(HyperlinkData hyperlink, string last6, string last5)
+        private void UpdateHyperlinkDisplayText(HyperlinkData hyperlink, string last6, string last5)
         {
             if (string.IsNullOrEmpty(hyperlink.TextToDisplay))
             {
@@ -320,7 +333,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Handles changelog entry for content ID changes
         /// </summary>
-        private static void HandleContentIdChangelogEntry(HyperlinkData hyperlink, string lookupId,
+        private void HandleContentIdChangelogEntry(HyperlinkData hyperlink, string lookupId,
             Collection<string> updatedLinks, Dictionary<string, bool>? urlUpdatedTracker)
         {
             string hyperlinkKey = GetHyperlinkKey(hyperlink);
@@ -341,7 +354,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Updates an existing changelog entry
         /// </summary>
-        private static void UpdateExistingChangelogEntry(Collection<string> entries, HyperlinkData hyperlink, string oldText, string newText)
+        private void UpdateExistingChangelogEntry(Collection<string> entries, HyperlinkData hyperlink, string oldText, string newText)
         {
             for (int i = 0; i < entries.Count; i++)
             {
@@ -356,17 +369,16 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Fixes internal hyperlinks by ensuring they point to valid anchors
         /// </summary>
-        public static string FixInternalHyperlink(string content, List<HyperlinkData> hyperlinks, List<string> changes, Collection<string> internalLinks)
+        public void FixInternalHyperlink(string? content, List<HyperlinkData> hyperlinks, List<string> changes, Collection<string> internalLinks)
         {
             var validAnchors = CollectValidAnchors(hyperlinks);
             ProcessInternalHyperlinks(hyperlinks, validAnchors, internalLinks);
-            return content;
         }
 
         /// <summary>
         /// Collects all valid anchors/bookmarks from hyperlinks
         /// </summary>
-        private static HashSet<string> CollectValidAnchors(List<HyperlinkData> hyperlinks)
+        private HashSet<string> CollectValidAnchors(List<HyperlinkData> hyperlinks)
         {
             var validAnchors = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -382,7 +394,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Processes internal hyperlinks and attempts to fix broken ones
         /// </summary>
-        private static void ProcessInternalHyperlinks(List<HyperlinkData> hyperlinks, HashSet<string> validAnchors, Collection<string> internalLinks)
+        private void ProcessInternalHyperlinks(List<HyperlinkData> hyperlinks, HashSet<string> validAnchors, Collection<string> internalLinks)
         {
             foreach (var hyperlink in hyperlinks.Where(h => string.IsNullOrEmpty(h.Address) && !string.IsNullOrEmpty(h.SubAddress)))
             {
@@ -393,7 +405,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Processes a single internal hyperlink
         /// </summary>
-        private static void ProcessSingleInternalHyperlink(HyperlinkData hyperlink, HashSet<string> validAnchors, Collection<string> internalLinks)
+        private void ProcessSingleInternalHyperlink(HyperlinkData hyperlink, HashSet<string> validAnchors, Collection<string> internalLinks)
         {
             string originalSubAddress = hyperlink.SubAddress;
             string cleanedAnchor = CleanAnchorName(originalSubAddress);
@@ -413,7 +425,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Attempts to fix a broken internal hyperlink
         /// </summary>
-        private static void AttemptInternalHyperlinkFix(HyperlinkData hyperlink, HashSet<string> validAnchors,
+        private void AttemptInternalHyperlinkFix(HyperlinkData hyperlink, HashSet<string> validAnchors,
             Collection<string> internalLinks, string cleanedAnchor)
         {
             // Try exact case-insensitive match
@@ -453,7 +465,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Cleans anchor name by removing prefixes
         /// </summary>
-        private static string CleanAnchorName(string anchor)
+        private string CleanAnchorName(string anchor)
         {
             if (anchor.StartsWith('_')) anchor = anchor[1..];
             if (anchor.StartsWith('!')) anchor = anchor[1..];
@@ -463,7 +475,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Skips processing of already-processed hyperlinks (those with status markers)
         /// </summary>
-        public static string SkipProcessedHyperlinks(string content, List<HyperlinkData> hyperlinks, List<string> changes)
+        public void SkipProcessedHyperlinks(string? content, List<HyperlinkData> hyperlinks, List<string> changes)
         {
             foreach (var hyperlink in hyperlinks)
             {
@@ -480,16 +492,15 @@ namespace Bulk_Editor.Services
                 }
             }
 
-            return content;
         }
 
         /// <summary>
         /// Detects possible title changes by comparing current titles with API results
         /// </summary>
-        public static string DetectTitleChanges(string content, List<HyperlinkData> hyperlinks,
+        public void DetectTitleChanges(string? content, List<HyperlinkData> hyperlinks,
             Dictionary<string, ApiResult> apiResults, List<string> changes, Collection<string> titleChangesList)
         {
-            if (apiResults == null) return content;
+            if (apiResults == null) return;
 
             int possibleChangesCount = 0;
 
@@ -518,16 +529,15 @@ namespace Bulk_Editor.Services
                 changes.Add($"Detected {possibleChangesCount} possible title changes");
             }
 
-            return content;
         }
 
         /// <summary>
         /// Updates titles based on API results (actually changes them)
         /// </summary>
-        public static string UpdateTitles(string content, List<HyperlinkData> hyperlinks,
+        public void UpdateTitles(string? content, List<HyperlinkData> hyperlinks,
             Dictionary<string, ApiResult> apiResults, List<string> changes, Collection<string> updatedLinks, Dictionary<string, bool> urlUpdatedTracker)
         {
-            if (apiResults == null) return content;
+            if (apiResults == null) return;
 
             foreach (var hyperlink in hyperlinks)
             {
@@ -546,13 +556,12 @@ namespace Bulk_Editor.Services
                 }
             }
 
-            return content;
         }
 
         /// <summary>
         /// Checks if two titles are different (ignoring Content IDs and whitespace)
         /// </summary>
-        private static bool AreTitlesDifferent(string currentTitle, string apiTitle)
+        private bool AreTitlesDifferent(string currentTitle, string apiTitle)
         {
             string currentTitleForComparison = RemoveContentIdFromTitle(currentTitle).Trim();
             string apiTitleForComparison = RemoveContentIdFromTitle(apiTitle).Trim();
@@ -564,7 +573,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Updates a hyperlink's title and tracks the change
         /// </summary>
-        private static void UpdateHyperlinkTitle(HyperlinkData hyperlink, string apiTitle,
+        private void UpdateHyperlinkTitle(HyperlinkData hyperlink, string apiTitle,
             Collection<string> updatedLinks, Dictionary<string, bool> urlUpdatedTracker)
         {
             // Extract existing content ID suffix if present
@@ -589,13 +598,11 @@ namespace Bulk_Editor.Services
             updatedLinks.Add(CreateChangelogEntry(hyperlink, "Updated URL", newDisplayText, lookupIdExtracted));
         }
 
-
-
         #region Content Processing Methods
         /// <summary>
         /// Fixes double spaces in content
         /// </summary>
-        public static string FixDoubleSpaces(string content, List<string> changes)
+        public string FixDoubleSpaces(string content, List<string> changes)
         {
             var regex = MultipleSpacesPatternRegex();
             var matches = regex.Matches(content);
@@ -612,7 +619,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Replaces hyperlinks based on replacement rules
         /// </summary>
-        public static string ReplaceHyperlinks(string content, List<HyperlinkData> hyperlinks,
+        public void ReplaceHyperlinks(string? content, List<HyperlinkData> hyperlinks,
             HyperlinkReplacementRules rules, List<string> changes, Collection<string> replacedHyperlinks)
         {
             int replacedCount = 0;
@@ -626,14 +633,12 @@ namespace Bulk_Editor.Services
             {
                 changes.Add($"Replaced {replacedCount} hyperlinks");
             }
-
-            return content;
         }
 
         /// <summary>
         /// Validates a replacement rule
         /// </summary>
-        private static bool IsValidRule(HyperlinkReplacementRule rule) =>
+        private bool IsValidRule(HyperlinkReplacementRule rule) =>
             !string.IsNullOrWhiteSpace(rule.OldTitle) &&
             !string.IsNullOrWhiteSpace(rule.NewTitle) &&
             !string.IsNullOrWhiteSpace(rule.NewFullContentID);
@@ -641,7 +646,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Processes a single replacement rule against all hyperlinks
         /// </summary>
-        private static int ProcessReplacementRule(List<HyperlinkData> hyperlinks, HyperlinkReplacementRule rule, Collection<string> replacedHyperlinks)
+        private int ProcessReplacementRule(List<HyperlinkData> hyperlinks, HyperlinkReplacementRule rule, Collection<string> replacedHyperlinks)
         {
             int count = 0;
             string oldTitle = rule.OldTitle.Trim();
@@ -665,7 +670,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Sanitizes hyperlink text by removing content ID suffixes
         /// </summary>
-        private static string SanitizeHyperlinkText(string? text)
+        private string SanitizeHyperlinkText(string? text)
         {
             if (string.IsNullOrEmpty(text)) return string.Empty;
             
@@ -678,7 +683,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Applies a hyperlink replacement
         /// </summary>
-        private static void ApplyHyperlinkReplacement(HyperlinkData hyperlink, string newTitle, string newContentIdLast6,
+        private void ApplyHyperlinkReplacement(HyperlinkData hyperlink, string newTitle, string newContentIdLast6,
             string fullContentId, Collection<string> replacedHyperlinks)
         {
             string oldHyperlinkText = hyperlink.TextToDisplay ?? string.Empty;

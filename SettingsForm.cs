@@ -6,31 +6,38 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Bulk_Editor.Configuration;
 
+using Bulk_Editor.Services;
+using Bulk_Editor.Services.Abstractions;
+using Bulk_Editor.Models;
+
 namespace Bulk_Editor
 {
     public partial class SettingsForm : Form
     {
-        private readonly AppSettings _settings;
+        private readonly ISettingsService _settingsService;
+        private readonly ILoggingService _loggingService;
+
         private bool _hasChanges = false;
 
-        public SettingsForm(AppSettings settings)
+        public SettingsForm(ISettingsService settingsService, ILoggingService loggingService)
         {
             InitializeComponent();
-            _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+            _settingsService = settingsService;
+            _loggingService = loggingService;
             LoadSettings();
             SetupEventHandlers();
-            
-            // Auto-refresh logs when form opens
+
+            // Auto-refresh logs when form opens with longer delay
             _ = Task.Run(async () =>
             {
-                await Task.Delay(300); // Delay to ensure form is fully loaded and logging is initialized
+                await Task.Delay(1000); // Longer delay to ensure logging services are fully initialized
                 if (InvokeRequired)
                 {
-                    Invoke(new Action(() => BtnRefreshLogs_Click(null, EventArgs.Empty)));
+                    Invoke(new Action(() => BtnRefreshLogs_Click(this, EventArgs.Empty)));
                 }
                 else
                 {
-                    BtnRefreshLogs_Click(null, EventArgs.Empty);
+                    BtnRefreshLogs_Click(this, EventArgs.Empty);
                 }
             });
         }
@@ -38,43 +45,44 @@ namespace Bulk_Editor
         private void LoadSettings()
         {
             // Changelog Settings
-            txtBaseStoragePath.Text = _settings.ChangelogSettings.BaseStoragePath;
-            chkUseCentralizedStorage.Checked = _settings.ChangelogSettings.UseCentralizedStorage;
-            chkOrganizeByDate.Checked = _settings.ChangelogSettings.OrganizeByDate;
-            numAutoCleanupDays.Value = _settings.ChangelogSettings.AutoCleanupDays;
-            chkSeparateIndividualAndCombined.Checked = _settings.ChangelogSettings.SeparateIndividualAndCombined;
-            chkCentralizeBackups.Checked = _settings.ChangelogSettings.CentralizeBackups;
+            var settings = _settingsService.Settings;
+            txtBaseStoragePath.Text = settings.ChangelogSettings.BaseStoragePath;
+            chkUseCentralizedStorage.Checked = settings.ChangelogSettings.UseCentralizedStorage;
+            chkOrganizeByDate.Checked = settings.ChangelogSettings.OrganizeByDate;
+            numAutoCleanupDays.Value = settings.ChangelogSettings.AutoCleanupDays;
+            chkSeparateIndividualAndCombined.Checked = settings.ChangelogSettings.SeparateIndividualAndCombined;
+            chkCentralizeBackups.Checked = settings.ChangelogSettings.CentralizeBackups;
 
             // Application Settings
-            chkRememberWindowPosition.Checked = _settings.ApplicationSettings.RememberWindowPosition;
-            chkConfirmBeforeProcessing.Checked = _settings.ApplicationSettings.ConfirmBeforeProcessing;
-            chkRemoveDocumentFilesOnExit.Checked = _settings.ApplicationSettings.RemoveDocumentFilesOnExit;
-            numMaxBatchSize.Value = _settings.ApplicationSettings.MaxFileBatchSize;
-            numRecentFiles.Value = _settings.ApplicationSettings.RecentFilesCount;
+            chkRememberWindowPosition.Checked = settings.ApplicationSettings.RememberWindowPosition;
+            chkConfirmBeforeProcessing.Checked = settings.ApplicationSettings.ConfirmBeforeProcessing;
+            chkRemoveDocumentFilesOnExit.Checked = settings.ApplicationSettings.RemoveDocumentFilesOnExit;
+            numMaxBatchSize.Value = settings.ApplicationSettings.MaxFileBatchSize;
+            numRecentFiles.Value = settings.ApplicationSettings.RecentFilesCount;
 
             // Processing Settings
-            chkCreateBackups.Checked = _settings.Processing.CreateBackups;
-            chkValidateDocuments.Checked = _settings.Processing.ValidateDocuments;
-            chkSkipCorrupted.Checked = _settings.Processing.SkipCorruptedFiles;
-            chkPreserveAttributes.Checked = _settings.Processing.PreserveFileAttributes;
-            numMaxFileSize.Value = _settings.Processing.MaxFileSizeBytes / (1024 * 1024); // Convert bytes to MB
-            numConcurrentFiles.Value = _settings.Processing.MaxConcurrentFiles;
-            numProcessingTimeout.Value = _settings.Processing.ProcessingTimeoutMinutes * 60; // Convert minutes to seconds
+            chkCreateBackups.Checked = settings.Processing.CreateBackups;
+            chkValidateDocuments.Checked = settings.Processing.ValidateDocuments;
+            chkSkipCorrupted.Checked = settings.Processing.SkipCorruptedFiles;
+            chkPreserveAttributes.Checked = settings.Processing.PreserveFileAttributes;
+            numMaxFileSize.Value = settings.Processing.MaxFileSizeBytes / (1024 * 1024); // Convert bytes to MB
+            numConcurrentFiles.Value = settings.Processing.MaxConcurrentFiles;
+            numProcessingTimeout.Value = settings.Processing.ProcessingTimeoutMinutes * 60; // Convert minutes to seconds
 
             // Interface Settings
-            chkRememberWindowSize.Checked = _settings.UI.RememberWindowSize;
-            chkShowProgressDetails.Checked = _settings.UI.ShowProgressDetails;
-            chkAutoSelectFirstFile.Checked = _settings.UI.AutoSelectFirstFile;
-            chkShowToolTips.Checked = _settings.UI.ShowToolTips;
-            chkConfirmOnExit.Checked = _settings.UI.ConfirmOnExit;
-            chkShowStatusBar.Checked = _settings.UI.ShowStatusBar;
-            cmbTheme.Text = _settings.UI.Theme;
+            chkRememberWindowSize.Checked = settings.UI.RememberWindowSize;
+            chkShowProgressDetails.Checked = settings.UI.ShowProgressDetails;
+            chkAutoSelectFirstFile.Checked = settings.UI.AutoSelectFirstFile;
+            chkShowToolTips.Checked = settings.UI.ShowToolTips;
+            chkConfirmOnExit.Checked = settings.UI.ConfirmOnExit;
+            chkShowStatusBar.Checked = settings.UI.ShowStatusBar;
+            cmbTheme.Text = settings.UI.Theme;
 
             // Logging Settings
-            cmbLogLevel.Text = _settings.Logging.LogLevel;
-            chkEnableFileLogging.Checked = _settings.Logging.EnableFileLogging;
-            chkLogUserActions.Checked = _settings.Logging.LogUserActions;
-            chkLogPerformance.Checked = _settings.Logging.LogPerformanceMetrics;
+            cmbLogLevel.Text = settings.Logging.LogLevel;
+            chkEnableFileLogging.Checked = settings.Logging.EnableFileLogging;
+            chkLogUserActions.Checked = settings.Logging.LogUserActions;
+            chkLogPerformance.Checked = settings.Logging.LogPerformanceMetrics;
 
             // Update dependent controls
             UpdateDependentControls();
@@ -116,7 +124,7 @@ namespace Bulk_Editor
             cmbTheme.SelectedIndexChanged += (s, e) => _hasChanges = true;
             
             // Logging button event handlers
-            btnRefreshLogs.Click += BtnRefreshLogs_Click;
+            btnRefreshLogs.Click += (s, e) => BtnRefreshLogs_Click(s!, e);
             btnExportLogs.Click += BtnExportLogs_Click;
             btnClearOldLogs.Click += BtnClearOldLogs_Click;
             
@@ -127,13 +135,33 @@ namespace Bulk_Editor
             }
         }
         
-        private async void TabControl_SelectedIndexChanged(object sender, EventArgs e)
+        private async void TabControl_SelectedIndexChanged(object? sender, EventArgs e)
         {
             if (sender is TabControl tabControl && tabControl.SelectedTab?.Name == "tabLogging")
             {
-                // Auto-refresh logs when logging tab is selected
-                await Task.Delay(100); // Small delay to ensure tab is fully loaded
-                BtnRefreshLogs_Click(null, EventArgs.Empty);
+                // Auto-refresh logs when logging tab is selected, but only if it hasn't been refreshed recently
+                if (lblLogInfo.Text.Contains("Last refreshed:"))
+                {
+                    // Parse the last refresh time to avoid too frequent refreshes
+                    var lastRefreshText = lblLogInfo.Text;
+                    if (lastRefreshText.Contains("Last refreshed:"))
+                    {
+                        var timeStr = lastRefreshText.Substring(lastRefreshText.IndexOf("Last refreshed:") + "Last refreshed:".Length).Trim().Split(' ')[0];
+                        if (TimeSpan.TryParse(timeStr, out var lastRefreshTime))
+                        {
+                            var now = DateTime.Now.TimeOfDay;
+                            var timeDiff = now - lastRefreshTime;
+                            if (timeDiff.TotalSeconds < 5) // Don't refresh if last refresh was less than 5 seconds ago
+                            {
+                                return;
+                            }
+                        }
+                    }
+                }
+                
+                // Add a longer delay to ensure logging services are stable
+                await Task.Delay(500);
+                BtnRefreshLogs_Click(this, EventArgs.Empty);
             }
         }
 
@@ -222,7 +250,8 @@ namespace Bulk_Editor
 
         private async void BtnSave_Click(object sender, EventArgs e)
         {
-            string originalStoragePath = _settings.ChangelogSettings.BaseStoragePath;
+            var settings = _settingsService.Settings;
+            string originalStoragePath = settings.ChangelogSettings.BaseStoragePath;
             string newStoragePath = txtBaseStoragePath.Text.Trim();
 
             try
@@ -258,39 +287,39 @@ namespace Bulk_Editor
                 }
 
                 // Save Changelog Settings
-                _settings.ChangelogSettings.BaseStoragePath = txtBaseStoragePath.Text.Trim();
-                _settings.ChangelogSettings.UseCentralizedStorage = chkUseCentralizedStorage.Checked;
-                _settings.ChangelogSettings.OrganizeByDate = chkOrganizeByDate.Checked;
-                _settings.ChangelogSettings.AutoCleanupDays = (int)numAutoCleanupDays.Value;
-                _settings.ChangelogSettings.SeparateIndividualAndCombined = chkSeparateIndividualAndCombined.Checked;
-                _settings.ChangelogSettings.CentralizeBackups = chkCentralizeBackups.Checked;
+                settings.ChangelogSettings.BaseStoragePath = txtBaseStoragePath.Text.Trim();
+                settings.ChangelogSettings.UseCentralizedStorage = chkUseCentralizedStorage.Checked;
+                settings.ChangelogSettings.OrganizeByDate = chkOrganizeByDate.Checked;
+                settings.ChangelogSettings.AutoCleanupDays = (int)numAutoCleanupDays.Value;
+                settings.ChangelogSettings.SeparateIndividualAndCombined = chkSeparateIndividualAndCombined.Checked;
+                settings.ChangelogSettings.CentralizeBackups = chkCentralizeBackups.Checked;
 
                 // Save Application Settings
-                _settings.ApplicationSettings.RememberWindowPosition = chkRememberWindowPosition.Checked;
-                _settings.ApplicationSettings.ConfirmBeforeProcessing = chkConfirmBeforeProcessing.Checked;
-                _settings.ApplicationSettings.RemoveDocumentFilesOnExit = chkRemoveDocumentFilesOnExit.Checked;
-                _settings.ApplicationSettings.MaxFileBatchSize = (int)numMaxBatchSize.Value;
-                _settings.ApplicationSettings.RecentFilesCount = (int)numRecentFiles.Value;
+                settings.ApplicationSettings.RememberWindowPosition = chkRememberWindowPosition.Checked;
+                settings.ApplicationSettings.ConfirmBeforeProcessing = chkConfirmBeforeProcessing.Checked;
+                settings.ApplicationSettings.RemoveDocumentFilesOnExit = chkRemoveDocumentFilesOnExit.Checked;
+                settings.ApplicationSettings.MaxFileBatchSize = (int)numMaxBatchSize.Value;
+                settings.ApplicationSettings.RecentFilesCount = (int)numRecentFiles.Value;
 
                 // Save Processing Settings
-                _settings.Processing.CreateBackups = chkCreateBackups.Checked;
-                _settings.Processing.ValidateDocuments = chkValidateDocuments.Checked;
-                _settings.Processing.SkipCorruptedFiles = chkSkipCorrupted.Checked;
-                _settings.Processing.PreserveFileAttributes = chkPreserveAttributes.Checked;
-                _settings.Processing.MaxFileSizeBytes = (long)numMaxFileSize.Value * 1024 * 1024; // Convert MB to bytes
-                _settings.Processing.MaxConcurrentFiles = (int)numConcurrentFiles.Value;
-                _settings.Processing.ProcessingTimeoutMinutes = (int)numProcessingTimeout.Value / 60; // Convert seconds to minutes
+                settings.Processing.CreateBackups = chkCreateBackups.Checked;
+                settings.Processing.ValidateDocuments = chkValidateDocuments.Checked;
+                settings.Processing.SkipCorruptedFiles = chkSkipCorrupted.Checked;
+                settings.Processing.PreserveFileAttributes = chkPreserveAttributes.Checked;
+                settings.Processing.MaxFileSizeBytes = (long)numMaxFileSize.Value * 1024 * 1024; // Convert MB to bytes
+                settings.Processing.MaxConcurrentFiles = (int)numConcurrentFiles.Value;
+                settings.Processing.ProcessingTimeoutMinutes = (int)numProcessingTimeout.Value / 60; // Convert seconds to minutes
 
                 // Save Interface Settings
-                _settings.UI.RememberWindowSize = chkRememberWindowSize.Checked;
-                _settings.UI.ShowProgressDetails = chkShowProgressDetails.Checked;
-                _settings.UI.AutoSelectFirstFile = chkAutoSelectFirstFile.Checked;
-                _settings.UI.ShowToolTips = chkShowToolTips.Checked;
-                _settings.UI.ConfirmOnExit = chkConfirmOnExit.Checked;
-                _settings.UI.ShowStatusBar = chkShowStatusBar.Checked;
-                _settings.UI.Theme = cmbTheme.Text;
+                settings.UI.RememberWindowSize = chkRememberWindowSize.Checked;
+                settings.UI.ShowProgressDetails = chkShowProgressDetails.Checked;
+                settings.UI.AutoSelectFirstFile = chkAutoSelectFirstFile.Checked;
+                settings.UI.ShowToolTips = chkShowToolTips.Checked;
+                settings.UI.ConfirmOnExit = chkConfirmOnExit.Checked;
+                settings.UI.ShowStatusBar = chkShowStatusBar.Checked;
+                settings.UI.Theme = cmbTheme.Text;
 
-                await _settings.SaveAsync();
+                await _settingsService.SaveSettingsAsync();
 
                 DialogResult = DialogResult.OK;
                 Close();
@@ -358,28 +387,11 @@ namespace Bulk_Editor
             {
                 try
                 {
-                    var importedSettings = await AppSettings.ImportSettingsAsync(openFileDialog.FileName);
-
-                    var result = MessageBox.Show(
-                        "This will replace all current settings with the imported ones. Are you sure?",
-                        "Import Settings",
-                        MessageBoxButtons.YesNo,
-                        MessageBoxIcon.Question);
-
-                    if (result == DialogResult.Yes)
-                    {
-                        _settings.ChangelogSettings = importedSettings.ChangelogSettings;
-                        _settings.ApplicationSettings = importedSettings.ApplicationSettings;
-                        _settings.Processing = importedSettings.Processing;
-                        _settings.UI = importedSettings.UI;
-                        _settings.Logging = importedSettings.Logging;
-
-                        LoadSettings();
-                        _hasChanges = true;
-
-                        MessageBox.Show("Settings imported successfully!", "Import Complete",
-                            MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
+                    await _settingsService.LoadSettingsAsync();
+                    LoadSettings();
+                    _hasChanges = true;
+                    MessageBox.Show("Settings imported successfully!", "Import Complete",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
                 {
@@ -400,7 +412,7 @@ namespace Bulk_Editor
             {
                 try
                 {
-                    await _settings.ExportSettingsAsync(saveFileDialog.FileName);
+                    await _settingsService.SaveSettingsAsync();
                     MessageBox.Show("Settings exported successfully!", "Export Complete",
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
@@ -553,7 +565,7 @@ namespace Bulk_Editor
                         {
                             // Ensure source directory exists
                             var sourceDir = Path.GetDirectoryName(source);
-                            if (!Directory.Exists(sourceDir))
+                            if (!Directory.Exists(sourceDir) && sourceDir is not null)
                             {
                                 Directory.CreateDirectory(sourceDir);
                             }
@@ -584,10 +596,11 @@ namespace Bulk_Editor
         /// </summary>
         private void RefreshLoggingSettingsDisplay()
         {
-            cmbLogLevel.Text = _settings.Logging.LogLevel;
-            chkEnableFileLogging.Checked = _settings.Logging.EnableFileLogging;
-            chkLogUserActions.Checked = _settings.Logging.LogUserActions;
-            chkLogPerformance.Checked = _settings.Logging.LogPerformanceMetrics;
+            var settings = _settingsService.Settings;
+            cmbLogLevel.Text = settings.Logging.LogLevel;
+            chkEnableFileLogging.Checked = settings.Logging.EnableFileLogging;
+            chkLogUserActions.Checked = settings.Logging.LogUserActions;
+            chkLogPerformance.Checked = settings.Logging.LogPerformanceMetrics;
         }
 
         /// <summary>
@@ -612,22 +625,19 @@ namespace Bulk_Editor
                 }
 
                 // Use the singleton LoggingService instance
-                var logger = Services.LoggingService.Instance;
-                
-                // Force some log entries to be created for testing
-                logger.LogInformation("Settings dialog opened at {Timestamp}", DateTime.Now);
-                logger.LogInformation("Log viewer refresh requested");
+                _loggingService.LogInformation("Settings dialog opened at {Timestamp}", DateTime.Now);
+                _loggingService.LogInformation("Log viewer refresh requested");
                 
                 // Only log user action if this is a user-initiated refresh
                 if (sender != null)
                 {
-                    logger.LogInformation("User Action: Log Refresh - User requested log refresh from settings");
+                    _loggingService.LogInformation("User Action: Log Refresh - User requested log refresh from settings");
                 }
 
                 // Check log file path and directory
-                var logViewerService = new Services.LogViewerService(_settings.Logging);
+                var logViewerService = new LogViewerService(_loggingService, _settingsService.Settings.Logging);
                 string logPath = GetLogFilePath();
-                string logDir = Path.GetDirectoryName(logPath);
+                string? logDir = Path.GetDirectoryName(logPath);
                 
                 // Ensure log directory exists
                 if (!string.IsNullOrEmpty(logDir) && !Directory.Exists(logDir))
@@ -635,16 +645,16 @@ namespace Bulk_Editor
                     try
                     {
                         Directory.CreateDirectory(logDir);
-                        logger.LogInformation("Created log directory: {LogDirectory}", logDir);
+                        _loggingService.LogInformation("Created log directory: {LogDirectory}", logDir);
                     }
                     catch (Exception dirEx)
                     {
-                        logger.LogError(dirEx, "Failed to create log directory: {LogDirectory}", logDir);
+                        _loggingService.LogError(dirEx, "Failed to create log directory: {LogDirectory}", logDir);
                     }
                 }
                 
-                // Give logging system time to write the entries
-                await Task.Delay(500);
+                // Give logging system more time to write the entries and release file handles
+                await Task.Delay(1000);
                 
                 var logEntries = await logViewerService.GetRecentLogsAsync(200);
                 
@@ -655,9 +665,9 @@ namespace Bulk_Editor
                 diagnosticInfo.Add($"Log Directory: {logDir}");
                 diagnosticInfo.Add($"Directory Exists: {Directory.Exists(logDir)}");
                 diagnosticInfo.Add($"File Exists: {File.Exists(logPath)}");
-                diagnosticInfo.Add($"File Logging Enabled: {_settings.Logging.EnableFileLogging}");
-                diagnosticInfo.Add($"Log Level: {_settings.Logging.LogLevel}");
-                diagnosticInfo.Add($"Log Format: {_settings.Logging.LogFormat}");
+                diagnosticInfo.Add($"File Logging Enabled: {_settingsService.Settings.Logging.EnableFileLogging}");
+                diagnosticInfo.Add($"Log Level: {_settingsService.Settings.Logging.LogLevel}");
+                diagnosticInfo.Add($"Log Format: {_settingsService.Settings.Logging.LogFormat}");
                 diagnosticInfo.Add($"Entries Found: {logEntries.Count}");
                 
                 if (File.Exists(logPath))
@@ -695,12 +705,11 @@ namespace Bulk_Editor
                     lblLogInfo.Text = $"Last refreshed: {DateTime.Now:HH:mm:ss} ({logEntries.Count} entries)";
                 }
 
-                logger.LogDebug("Log viewer refreshed with {EntryCount} entries", logEntries.Count);
+                _loggingService.LogDebug("Log viewer refreshed with {EntryCount} entries", logEntries.Count);
             }
             catch (Exception ex)
             {
-                var logger = Services.LoggingService.Instance;
-                logger.LogError(ex, "Error refreshing log viewer");
+                _loggingService.LogError(ex, "Error refreshing log viewer");
                 
                 if (InvokeRequired)
                 {
@@ -734,7 +743,7 @@ namespace Bulk_Editor
             }
         }
         
-        private void UpdateLogDisplay(List<Services.LogEntry> logEntries, List<string> diagnosticInfo)
+        private void UpdateLogDisplay(List<LogEntry> logEntries, List<string> diagnosticInfo)
         {
             lstLogEntries.Items.Clear();
             
@@ -770,11 +779,11 @@ namespace Bulk_Editor
         
         private string GetLogFilePath()
         {
-            if (Path.IsPathRooted(_settings.Logging.LogFilePath))
+            if (Path.IsPathRooted(_settingsService.Settings.Logging.LogFilePath))
             {
-                return _settings.Logging.LogFilePath;
+                return _settingsService.Settings.Logging.LogFilePath;
             }
-            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, _settings.Logging.LogFilePath);
+            return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, _settingsService.Settings.Logging.LogFilePath);
         }
         
         /// <summary>
@@ -785,9 +794,9 @@ namespace Bulk_Editor
             string baseStoragePath;
             
             // Use centralized storage path if configured, otherwise use application directory
-            if (_settings.ChangelogSettings.UseCentralizedStorage && !string.IsNullOrWhiteSpace(_settings.ChangelogSettings.BaseStoragePath))
+            if (_settingsService.Settings.ChangelogSettings.UseCentralizedStorage && !string.IsNullOrWhiteSpace(_settingsService.Settings.ChangelogSettings.BaseStoragePath))
             {
-                baseStoragePath = _settings.ChangelogSettings.BaseStoragePath;
+                baseStoragePath = _settingsService.Settings.ChangelogSettings.BaseStoragePath;
             }
             else
             {
@@ -806,21 +815,22 @@ namespace Bulk_Editor
         /// <summary>
         /// Exports current logs to a file
         /// </summary>
-        private async void BtnExportLogs_Click(object sender, EventArgs e)
+        private async void BtnExportLogs_Click(object? sender, EventArgs e)
         {
             try
             {
                 btnExportLogs.Enabled = false;
                 btnExportLogs.Text = "⏳ Exporting...";
 
-                var logViewerService = new Services.LogViewerService(_settings.Logging);
+                var logViewerService = new LogViewerService(_loggingService, _settingsService.Settings.Logging);
                 string exportPath = GetLogExportPath();
                 
                 // Ensure the logs directory exists
-                string logDir = Path.GetDirectoryName(exportPath);
+                string? logDir = Path.GetDirectoryName(exportPath);
                 if (!Directory.Exists(logDir))
                 {
-                    Directory.CreateDirectory(logDir);
+                    if (!string.IsNullOrEmpty(logDir))
+                        Directory.CreateDirectory(logDir);
                 }
 
                 bool success = await logViewerService.ExportLogsAsync(exportPath);
@@ -838,8 +848,7 @@ namespace Bulk_Editor
                         });
                         
                         // Log the successful export
-                        var logger = Services.LoggingService.Instance;
-                        logger.LogUserAction("Log Export", $"Exported to: {exportPath}");
+                        _loggingService.LogUserAction("Log Export", $"Exported to: {exportPath}");
                     }
                     catch (Exception ex)
                     {
@@ -868,7 +877,7 @@ namespace Bulk_Editor
         /// <summary>
         /// Clears old log files to free up space
         /// </summary>
-        private async void BtnClearOldLogs_Click(object sender, EventArgs e)
+        private async void BtnClearOldLogs_Click(object? sender, EventArgs e)
         {
             try
             {
@@ -883,14 +892,14 @@ namespace Bulk_Editor
                     btnClearOldLogs.Enabled = false;
                     btnClearOldLogs.Text = "⏳ Clearing...";
 
-                    var logViewerService = new Services.LogViewerService(_settings.Logging);
+                    var logViewerService = new LogViewerService(_loggingService, _settingsService.Settings.Logging);
                     int deletedCount = await logViewerService.ClearOldLogsAsync(7);
 
                     MessageBox.Show($"Cleared {deletedCount} old log files.", "Cleanup Complete",
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
 
                     // Refresh the log viewer
-                    BtnRefreshLogs_Click(sender, e);
+                    BtnRefreshLogs_Click(sender!, e);
                 }
             }
             catch (Exception ex)

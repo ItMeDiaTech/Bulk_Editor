@@ -6,12 +6,14 @@ using System.Text.RegularExpressions;
 using Bulk_Editor.Configuration;
 using Bulk_Editor.Models;
 
+using Bulk_Editor.Services.Abstractions;
+
 namespace Bulk_Editor.Services
 {
     /// <summary>
     /// Provides validation services for input data and files
     /// </summary>
-    public static class ValidationService
+    public class ValidationService : IValidationService
     {
         private static readonly Regex UrlRegex = new(@"^https?:\/\/[^\s/$.?#].[^\s]*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex ContentIdRegex = new(@"^[A-Z]{2,4}-[A-Z0-9]+-\d{6}$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -19,7 +21,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Validates a file path for processing
         /// </summary>
-        public static ProcessingResult ValidateFilePath(string filePath, ProcessingSettings settings)
+        public ProcessingResult ValidateFilePath(string filePath, ProcessingSettings settings)
         {
             if (string.IsNullOrWhiteSpace(filePath))
             {
@@ -78,7 +80,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Validates a directory path for processing
         /// </summary>
-        public static ProcessingResult ValidateDirectoryPath(string directoryPath)
+        public ProcessingResult ValidateDirectoryPath(string directoryPath)
         {
             if (string.IsNullOrWhiteSpace(directoryPath))
             {
@@ -121,7 +123,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Validates URL format
         /// </summary>
-        public static ProcessingResult ValidateUrl(string url)
+        public ProcessingResult ValidateUrl(string url)
         {
             if (string.IsNullOrWhiteSpace(url))
             {
@@ -146,7 +148,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Validates content ID format
         /// </summary>
-        public static ProcessingResult ValidateContentId(string contentId)
+        public ProcessingResult ValidateContentId(string contentId)
         {
             if (string.IsNullOrWhiteSpace(contentId))
             {
@@ -164,7 +166,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Validates hyperlink replacement rule
         /// </summary>
-        public static ProcessingResult ValidateHyperlinkReplacementRule(HyperlinkReplacementRule rule)
+        public ProcessingResult ValidateHyperlinkReplacementRule(HyperlinkReplacementRule rule)
         {
             var errors = new List<string>();
 
@@ -214,7 +216,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Validates hyperlink data
         /// </summary>
-        public static ProcessingResult ValidateHyperlinkData(HyperlinkData hyperlink)
+        public ProcessingResult ValidateHyperlinkData(HyperlinkData hyperlink)
         {
             var warnings = new List<string>();
 
@@ -249,7 +251,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Validates backup directory creation
         /// </summary>
-        public static ProcessingResult ValidateBackupDirectory(string basePath, string backupFolderName)
+        public ProcessingResult ValidateBackupDirectory(string basePath, string backupFolderName)
         {
             try
             {
@@ -295,7 +297,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Sanitizes file path for safe operations
         /// </summary>
-        public static string SanitizeFilePath(string filePath)
+        public string SanitizeFilePath(string filePath)
         {
             if (string.IsNullOrWhiteSpace(filePath))
                 return string.Empty;
@@ -316,7 +318,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Checks if a path is safe (prevents path traversal attacks)
         /// </summary>
-        public static bool IsSafePath(string basePath, string targetPath)
+        public bool IsSafePath(string basePath, string targetPath)
         {
             try
             {

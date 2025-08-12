@@ -12,7 +12,6 @@ namespace Bulk_Editor.Models
         public string TextToDisplay { get; set; } = string.Empty;
         public int PageNumber { get; set; }
         public int LineNumber { get; set; }
-        public string OriginalText { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
         public string ContentID { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
@@ -30,7 +29,6 @@ namespace Bulk_Editor.Models
                 TextToDisplay = TextToDisplay,
                 PageNumber = PageNumber,
                 LineNumber = LineNumber,
-                OriginalText = OriginalText,
                 Title = Title,
                 ContentID = ContentID,
                 Status = Status,
@@ -41,7 +39,7 @@ namespace Bulk_Editor.Models
         /// <summary>
         /// Determines whether this instance equals another HyperlinkData instance
         /// </summary>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             if (obj is not HyperlinkData other)
                 return false;
@@ -51,7 +49,6 @@ namespace Bulk_Editor.Models
                    TextToDisplay == other.TextToDisplay &&
                    PageNumber == other.PageNumber &&
                    LineNumber == other.LineNumber &&
-                   OriginalText == other.OriginalText &&
                    Title == other.Title &&
                    ContentID == other.ContentID &&
                    Status == other.Status &&
@@ -64,9 +61,8 @@ namespace Bulk_Editor.Models
         public override int GetHashCode()
         {
             return HashCode.Combine(
-                HashCode.Combine(Address, SubAddress, TextToDisplay, PageNumber),
-                HashCode.Combine(LineNumber, OriginalText, Title, ContentID),
-                HashCode.Combine(Status, ElementId)
+                HashCode.Combine(Address, SubAddress, TextToDisplay, PageNumber, LineNumber),
+                HashCode.Combine(Title, ContentID, Status, ElementId)
             );
         }
     }

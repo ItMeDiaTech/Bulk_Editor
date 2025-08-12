@@ -13,7 +13,8 @@ using System.Windows.Forms;
 using Bulk_Editor.Configuration;
 using Bulk_Editor.Models;
 using Bulk_Editor.Services;
-
+using Bulk_Editor.Services.Abstractions;
+using Microsoft.Extensions.Configuration;
 namespace Bulk_Editor
 {
     public partial class MainForm : Form
@@ -24,26 +25,48 @@ namespace Bulk_Editor
         [GeneratedRegex(@"[ ]{2,}")]
         private static partial Regex MultipleSpacesPatternRegex();
 
-        private HyperlinkReplacementRules _hyperlinkReplacementRules;
-        private WordDocumentProcessor _processor;
-        private AppSettings _appSettings;
-        private ChangelogManager _changelogManager;
+        private readonly ILoggingService _loggingService;
+        private readonly ISettingsService _settingsService;
+        private readonly IThemeService _themeService;
+        private readonly IProcessingService _processingService;
+        private readonly ILogViewerService _logViewerService;
+        private readonly ChangelogManager _changelogManager;
+        private readonly IValidationService _validationService;
+        private readonly WindowStateService _windowStateService;
 
-        // Services
-        private LoggingService _loggingService;
-        private ThemeService _themeService;
-        private WindowStateService _windowStateService;
+        private HyperlinkReplacementRules? _hyperlinkReplacementRules;
+        private WordDocumentProcessor? _processor;
+        private AppSettings _appSettings;
 
         // Progress reporting and cancellation
-        private CancellationTokenSource _cancellationTokenSource;
-        private IProgress<ProgressReport> _progressReporter;
+        private CancellationTokenSource? _cancellationTokenSource;
+        private IProgress<ProgressReport> _progressReporter = default!;
 
         // Button state management
-        private string _originalButtonText;
+        private string _originalButtonText = default!;
         private Color _originalButtonColor;
 
-        public MainForm()
+        public MainForm(
+            ILoggingService loggingService,
+            ISettingsService settingsService,
+            IThemeService themeService,
+            IProcessingService processingService,
+            ILogViewerService logViewerService,
+            ChangelogManager changelogManager,
+            IValidationService validationService,
+            WindowStateService windowStateService)
         {
+            _loggingService = loggingService;
+            _settingsService = settingsService;
+            _themeService = themeService;
+            _processingService = processingService;
+            _logViewerService = logViewerService;
+            _changelogManager = changelogManager;
+            _validationService = validationService;
+            _windowStateService = windowStateService;
+
+            _appSettings = _settingsService.Settings;
+
             InitializeComponent();
             LoadEmbeddedResources();
             SetupProgressReporting();
@@ -90,43 +113,32 @@ namespace Bulk_Editor
 
         private async void LoadConfigurationAsync()
         {
-            _appSettings = await AppSettings.LoadAsync();
             _hyperlinkReplacementRules = await HyperlinkReplacementRules.LoadAsync();
+            
+            // Initialize services
+            InitializeServices();
 
             // Initialize processor with settings
             _processor = new WordDocumentProcessor(_appSettings.ApiSettings, _appSettings.RetrySettings);
 
             // Initialize changelog manager
-            _changelogManager = new ChangelogManager(_appSettings.ChangelogSettings);
             await _changelogManager.InitializeStorageAsync();
 
             // Perform cleanup if needed
             await _changelogManager.CleanupOldChangelogsAsync();
-
-            // Initialize services
-            InitializeServices();
         }
 
         private void InitializeServices()
         {
-            // Initialize logging service using singleton pattern
-            LoggingService.Initialize(_appSettings.Logging);
-            _loggingService = LoggingService.Instance;
-
-            // Initialize theme service and apply current theme
-            _themeService = new ThemeService(_appSettings.UI);
             _themeService.ApplyTheme(this);
-
-            // Initialize window state service and restore window state
-            _windowStateService = new WindowStateService(_appSettings.ApplicationSettings, _appSettings.UI);
             _windowStateService.RestoreWindowState(this);
 
             // Setup window state saving events
             SetupWindowStateEvents();
 
             // Log application startup
-            _loggingService?.LogUserAction("Application Started", $"Version: {Application.ProductVersion}");
-            _loggingService?.LogInformation("Services initialized successfully");
+            _loggingService.LogUserAction("Application Started", $"Version: {Application.ProductVersion}");
+            _loggingService.LogInformation("Services initialized successfully");
 
             // Mark initialization as complete - form can now be shown with correct theme/icons
             _isInitialized = true;
@@ -171,14 +183,14 @@ namespace Bulk_Editor
                 }
 
                 _windowStateService?.SaveWindowState(this);
-                _loggingService?.LogUserAction("Application Closing");
+                _loggingService.LogUserAction("Application Closing", "User closed the application");
             };
         }
 
         private void SetupFileListHandlers()
         {
-            lstFiles.SelectedIndexChanged += LstFiles_SelectedIndexChanged;
-            lstFiles.DoubleClick += LstFiles_DoubleClick;
+            lstFiles.SelectedIndexChanged += LstFiles_SelectedIndexChanged!;
+            lstFiles.DoubleClick += LstFiles_DoubleClick!;
         }
 
 
@@ -187,7 +199,7 @@ namespace Bulk_Editor
         private void SetupCheckboxDependencies()
         {
             UpdateSubCheckboxStates();
-            chkFixSourceHyperlinks.CheckedChanged += ChkFixSourceHyperlinks_CheckedChanged;
+            chkFixSourceHyperlinks.CheckedChanged += ChkFixSourceHyperlinks_CheckedChanged!;
         }
 
 

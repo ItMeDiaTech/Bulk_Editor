@@ -5,12 +5,14 @@ using System.Text.Json;
 using System.Windows.Forms;
 using Bulk_Editor.Configuration;
 
+using Bulk_Editor.Services.Abstractions;
+
 namespace Bulk_Editor.Services
 {
     /// <summary>
     /// Service for managing window state (position, size)
     /// </summary>
-    public class WindowStateService
+    public class WindowStateService : IWindowStateService
     {
         private readonly ApplicationSettings _applicationSettings;
         private readonly UiSettings _uiSettings;
@@ -136,7 +138,7 @@ namespace Bulk_Editor.Services
             if (size.Width < 300 || size.Height < 200)
                 return false;
 
-            var primaryScreen = Screen.PrimaryScreen.WorkingArea;
+            var primaryScreen = Screen.PrimaryScreen?.WorkingArea ?? new Rectangle(0, 0, 1920, 1080);
             if (size.Width > primaryScreen.Width || size.Height > primaryScreen.Height)
                 return false;
 

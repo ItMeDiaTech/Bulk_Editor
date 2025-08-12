@@ -26,7 +26,9 @@ namespace Bulk_Editor.Services
             {
                 using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(filePath, true))
                 {
-                    var body = wordDoc.MainDocumentPart.Document.Body;
+                    var body = wordDoc.MainDocumentPart?.Document.Body;
+                    if (body == null)
+                        return fixedCount;
 
                     // Process all text elements in the document
                     var textElements = body.Descendants<Text>().ToList();
@@ -90,7 +92,7 @@ namespace Bulk_Editor.Services
                     // Save the document if any changes were made
                     if (fixedCount > 0)
                     {
-                        wordDoc.MainDocumentPart.Document.Save();
+                        wordDoc.MainDocumentPart?.Document.Save();
                     }
                 }
             }
@@ -115,7 +117,9 @@ namespace Bulk_Editor.Services
             {
                 using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(filePath, false))
                 {
-                    var body = wordDoc.MainDocumentPart.Document.Body;
+                    var body = wordDoc.MainDocumentPart?.Document.Body;
+                    if (body == null)
+                        return count;
                     var textElements = body.Descendants<Text>();
 
                     foreach (var textElement in textElements)
