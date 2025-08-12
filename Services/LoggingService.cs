@@ -1,80 +1,106 @@
 using System;
 using System.IO;
+using Bulk_Editor.Configuration;
 using Serilog;
 using Serilog.Core;
-using Bulk_Editor.Configuration;
 
 namespace Bulk_Editor.Services
 {
     /// <summary>
-    /// Logging service that integrates with LoggingSettings
+    /// Logging service that integrates with LoggingSettings and uses the global Serilog logger
     /// </summary>
     public class LoggingService : IDisposable
     {
-        private Logger _logger;
         private readonly LoggingSettings _settings;
         private bool _disposed = false;
+        private static LoggingService _instance;
+        private static readonly object _lock = new object();
 
-        public LoggingService(LoggingSettings settings)
+        // Use singleton pattern to ensure consistent logging
+        public static LoggingService Instance
         {
-            _settings = settings ?? throw new ArgumentNullException(nameof(settings));
-            InitializeLogger();
+            get
+            {
+                if (_instance == null)
+                {
+                    lock (_lock)
+                    {
+                        if (_instance == null)
+                        {
+                            // Create with default settings if none provided
+                            _instance = new LoggingService(new LoggingSettings());
+                        }
+                    }
+                }
+                return _instance;
+            }
         }
 
-        private void InitializeLogger()
+        public static void Initialize(LoggingSettings settings)
         {
-            var loggerConfig = new LoggerConfiguration();
-
-            // Set log level
-            var logLevel = _settings.LogLevel.ToLowerInvariant() switch
+            lock (_lock)
             {
-                "verbose" => Serilog.Events.LogEventLevel.Verbose,
-                "debug" => Serilog.Events.LogEventLevel.Debug,
-                "information" => Serilog.Events.LogEventLevel.Information,
-                "warning" => Serilog.Events.LogEventLevel.Warning,
-                "error" => Serilog.Events.LogEventLevel.Error,
-                "fatal" => Serilog.Events.LogEventLevel.Fatal,
-                _ => Serilog.Events.LogEventLevel.Information
-            };
-
-            loggerConfig.MinimumLevel.Is(logLevel);
-
-            // Configure console logging
-            if (_settings.EnableConsoleLogging)
-            {
-                loggerConfig.WriteTo.Console();
+                _instance?.Dispose();
+                _instance = new LoggingService(settings);
             }
+        }
 
-            // Configure file logging
+        private LoggingService(LoggingSettings settings)
+        {
+            _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+            ConfigureFileLogging();
+        }
+
+        private void ConfigureFileLogging()
+        {
+            // Only configure file logging if enabled and not already configured
             if (_settings.EnableFileLogging)
             {
                 var logPath = GetLogFilePath();
                 EnsureLogDirectoryExists(logPath);
 
-                var outputTemplate = _settings.LogFormat.ToLowerInvariant() switch
+                // Use the global logger but ensure our file sink is configured
+                var additionalConfig = new LoggerConfiguration()
+                    .WriteTo.Logger(Log.Logger) // Chain to existing logger
+                    .WriteTo.File(
+                        path: logPath,
+                        outputTemplate: GetOutputTemplate(),
+                        rollingInterval: RollingInterval.Day,
+                        retainedFileCountLimit: _settings.MaxLogFiles,
+                        fileSizeLimitBytes: _settings.MaxLogFileSizeMB * 1024 * 1024,
+                        rollOnFileSizeLimit: true,
+                        shared: true);
+
+                // Only replace if we're not already using a properly configured logger
+                if (!IsLoggerConfiguredForFiles())
                 {
-                    "json" => "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}",
-                    _ => "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}"
-                };
-
-                loggerConfig.WriteTo.File(
-                    path: logPath,
-                    outputTemplate: outputTemplate,
-                    rollingInterval: RollingInterval.Day,
-                    retainedFileCountLimit: _settings.MaxLogFiles,
-                    fileSizeLimitBytes: _settings.MaxLogFileSizeMB * 1024 * 1024,
-                    rollOnFileSizeLimit: true,
-                    shared: true);
+                    Log.Logger = additionalConfig.CreateLogger();
+                }
             }
+        }
 
-            // Add enrichers for better context
-            loggerConfig.Enrich.FromLogContext()
-                     .Enrich.WithEnvironmentName()
-                     .Enrich.WithProcessId()
-                     .Enrich.WithThreadId();
+        private bool IsLoggerConfiguredForFiles()
+        {
+            // Simple check - if log directory exists and has recent files, assume it's configured
+            try
+            {
+                var logPath = GetLogFilePath();
+                var logDir = Path.GetDirectoryName(logPath);
+                return Directory.Exists(logDir) && Directory.GetFiles(logDir, "*.log").Length > 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
 
-            _logger = loggerConfig.CreateLogger();
-            Log.Logger = _logger; // Set global logger
+        private string GetOutputTemplate()
+        {
+            return _settings.LogFormat.ToLowerInvariant() switch
+            {
+                "json" => "{\"@t\":\"{Timestamp:yyyy-MM-ddTHH:mm:ss.fffZ}\",\"@l\":\"{Level:u3}\",\"@m\":\"{Message:j}\"{NewLine}",
+                _ => "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}"
+            };
         }
 
         private string GetLogFilePath()
@@ -88,7 +114,7 @@ namespace Bulk_Editor.Services
             return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, _settings.LogFilePath);
         }
 
-        private void EnsureLogDirectoryExists(string logPath)
+        private static void EnsureLogDirectoryExists(string logPath)
         {
             var directory = Path.GetDirectoryName(logPath);
             if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
@@ -99,29 +125,29 @@ namespace Bulk_Editor.Services
 
         public void LogInformation(string message, params object[] args)
         {
-            _logger?.Information(message, args);
+            Log.Information(message, args);
         }
 
         public void LogWarning(string message, params object[] args)
         {
-            _logger?.Warning(message, args);
+            Log.Warning(message, args);
         }
 
         public void LogError(string message, params object[] args)
         {
-            _logger?.Error(message, args);
+            Log.Error(message, args);
         }
 
         public void LogError(Exception exception, string message, params object[] args)
         {
-            _logger?.Error(exception, message, args);
+            Log.Error(exception, message, args);
         }
 
         public void LogDebug(string message, params object[] args)
         {
             if (_settings.EnableDebugMode)
             {
-                _logger?.Debug(message, args);
+                Log.Debug(message, args);
             }
         }
 
@@ -129,7 +155,7 @@ namespace Bulk_Editor.Services
         {
             if (_settings.LogUserActions)
             {
-                _logger?.Information("User Action: {Action} {Details}", action, details);
+                Log.Information("User Action: {Action} {Details}", action, details);
             }
         }
 
@@ -137,15 +163,31 @@ namespace Bulk_Editor.Services
         {
             if (_settings.LogPerformanceMetrics)
             {
-                _logger?.Information("Performance: {Metric} = {Value} {Unit}", metric, value, unit);
+                Log.Information("Performance: {Metric} = {Value} {Unit}", metric, value, unit);
             }
+        }
+
+        public void LogProcessingStep(string step, string details = "")
+        {
+            Log.Information("Processing: {Step} - {Details}", step, details);
+        }
+
+        public void LogFileOperation(string operation, string filePath, string result = "")
+        {
+            Log.Information("File {Operation}: {FilePath} - {Result}", operation, filePath, result);
+        }
+
+        public void LogApiCall(string endpoint, string method, TimeSpan duration, string result = "")
+        {
+            Log.Information("API {Method} {Endpoint} completed in {Duration}ms - {Result}",
+                method, endpoint, duration.TotalMilliseconds, result);
         }
 
         public void Dispose()
         {
             if (!_disposed)
             {
-                _logger?.Dispose();
+                // Don't dispose the global logger, just mark as disposed
                 _disposed = true;
             }
         }

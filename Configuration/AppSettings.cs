@@ -78,7 +78,7 @@ namespace Bulk_Editor.Configuration
         /// <summary>
         /// Load configuration from embedded resource
         /// </summary>
-        private static async Task<AppSettings?> LoadFromEmbeddedResourceAsync()
+        private static async Task<AppSettings> LoadFromEmbeddedResourceAsync()
         {
             try
             {
@@ -326,7 +326,6 @@ namespace Bulk_Editor.Configuration
         public bool ConfirmOnExit { get; set; } = false;
         public bool MinimizeToTray { get; set; } = false;
         public bool ShowStatusBar { get; set; } = true;
-        public string Language { get; set; } = "en-US";
         public int AutoSaveIntervalSeconds { get; set; } = 300;
     }
 

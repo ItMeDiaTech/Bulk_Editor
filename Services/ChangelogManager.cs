@@ -167,7 +167,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Find changelogs in legacy document folder locations
         /// </summary>
-        private List<string> FindLegacyChangelogs(string documentFolderPath)
+        private static List<string> FindLegacyChangelogs(string documentFolderPath)
         {
             var changelogs = new List<string>();
 

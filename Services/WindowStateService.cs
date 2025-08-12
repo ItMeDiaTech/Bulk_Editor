@@ -105,7 +105,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Check if the saved location is still valid (within screen bounds)
         /// </summary>
-        private bool IsLocationValid(Point location)
+        private static bool IsLocationValid(Point location)
         {
             foreach (Screen screen in Screen.AllScreens)
             {
@@ -120,7 +120,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Check if the saved size is valid
         /// </summary>
-        private bool IsSizeValid(Size size, Form form)
+        private static bool IsSizeValid(Size size, Form form)
         {
             // Check against form's minimum and maximum size constraints
             if (size.Width < form.MinimumSize.Width || size.Height < form.MinimumSize.Height)

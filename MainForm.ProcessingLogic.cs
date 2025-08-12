@@ -173,54 +173,90 @@ namespace Bulk_Editor
                 }
 
                 // Validate and filter files before processing
+                _progressReporter.Report(ProgressReport.CreatePhaseProgress("Validation", "Validating selected files...", 5));
+                _loggingService?.LogProcessingStep("File Validation", $"Validating {filesToProcess.Count} files");
+
                 var validFiles = await ValidateFilesForProcessing(filesToProcess);
+
+                _loggingService?.LogInformation("File validation completed. Valid files: {ValidCount}, Invalid files: {InvalidCount}",
+                    validFiles.Count, filesToProcess.Count - validFiles.Count);
 
                 // Respect batch size limits
                 if (validFiles.Count > _appSettings.ApplicationSettings.MaxFileBatchSize)
                 {
+                    int originalCount = validFiles.Count;
                     validFiles = validFiles.Take(_appSettings.ApplicationSettings.MaxFileBatchSize).ToList();
+                    _loggingService?.LogWarning("Batch size limit applied. Processing {LimitedCount} of {OriginalCount} files",
+                        validFiles.Count, originalCount);
                 }
 
-                using (var writer = new StreamWriter(changelogPath, append: false))
-                {
-                    writer.WriteLine($"Bulk Editor: Changelog - {DateTime.Now}");
-                    writer.WriteLine($"Version: 2.1");
+                _progressReporter.Report(ProgressReport.CreatePhaseProgress("Initialization", "Setting up processing environment...", 10));
 
-                    // Check for updates
-                    if (_processor.NeedsUpdate)
+                // Check if changelog file already exists to determine append mode
+                bool appendMode = File.Exists(changelogPath);
+                using (var writer = new StreamWriter(changelogPath, append: appendMode))
+                {
+                    // Only write header information if this is a new file (not appending)
+                    if (!appendMode)
                     {
-                        writer.WriteLine("***New Update Available***");
-                        writer.WriteLine("Please download and update as time allows.");
+                        writer.WriteLine($"Bulk Editor: Changelog - {DateTime.Now}");
+                        writer.WriteLine($"Version: 2.1");
+
+                        // Check for updates
+                        if (_processor.NeedsUpdate)
+                        {
+                            writer.WriteLine("***New Update Available***");
+                            writer.WriteLine("Please download and update as time allows.");
+                        }
+                        else
+                        {
+                            writer.WriteLine("Up to Date");
+                        }
+
+                        writer.WriteLine();
+                        writer.WriteLine($"Path: {path}");
+
+                        // Write file count summary now that we have the correct count
+                        if (validFiles.Count > 1)
+                        {
+                            writer.WriteLine($"Processed {validFiles.Count} files.");
+                        }
+
+                        // Write batch size limit note if applicable
+                        if (filesToProcess.Count > _appSettings.ApplicationSettings.MaxFileBatchSize)
+                        {
+                            writer.WriteLine($"Note: Processing limited to {_appSettings.ApplicationSettings.MaxFileBatchSize} files due to batch size limits.");
+                        }
+
+                        writer.WriteLine();
                     }
                     else
                     {
-                        writer.WriteLine("Up to Date");
+                        // Add a separator for appended content
+                        writer.WriteLine();
+                        writer.WriteLine($"=== Additional Processing Session - {DateTime.Now} ===");
+                        writer.WriteLine($"Path: {path}");
+                        if (validFiles.Count > 1)
+                        {
+                            writer.WriteLine($"Processed {validFiles.Count} files.");
+                        }
+                        writer.WriteLine();
                     }
-
-                    writer.WriteLine();
-                    writer.WriteLine($"Path: {path}");
-
-                    // Write file count summary now that we have the correct count
-                    if (validFiles.Count > 1)
-                    {
-                        writer.WriteLine($"Processed {validFiles.Count} files.");
-                    }
-
-                    // Write batch size limit note if applicable
-                    if (filesToProcess.Count > _appSettings.ApplicationSettings.MaxFileBatchSize)
-                    {
-                        writer.WriteLine($"Note: Processing limited to {_appSettings.ApplicationSettings.MaxFileBatchSize} files due to batch size limits.");
-                    }
-
-                    writer.WriteLine();
 
                     // Process files with concurrency control
+                    _progressReporter.Report(ProgressReport.CreatePhaseProgress("Processing", "Starting file processing...", 15));
+                    _loggingService?.LogProcessingStep("File Processing Start",
+                        $"Processing {validFiles.Count} files. Concurrent processing: {_appSettings.Processing.MaxConcurrentFiles > 1 && validFiles.Count > 1}");
+
                     if (_appSettings.Processing.MaxConcurrentFiles > 1 && validFiles.Count > 1)
                     {
+                        _loggingService?.LogInformation("Using concurrent processing with max {MaxConcurrent} files",
+                            _appSettings.Processing.MaxConcurrentFiles);
                         await ProcessFilesConcurrently(validFiles, writer, _cancellationTokenSource.Token);
                     }
                     else
                     {
+                        _loggingService?.LogInformation("Using sequential processing for {FileCount} files", validFiles.Count);
                         // Sequential processing
                         for (int i = 0; i < validFiles.Count; i++)
                         {
@@ -228,10 +264,14 @@ namespace Bulk_Editor
 
                             var fileName = Path.GetFileName(validFiles[i]);
                             _progressReporter.Report(ProgressReport.CreateFileProgress(i + 1, validFiles.Count, fileName));
+                            _loggingService?.LogFileOperation("Processing", validFiles[i], $"File {i + 1} of {validFiles.Count}");
 
                             await ProcessFileWithProgress(validFiles[i], writer, backupPath, i, validFiles.Count, _cancellationTokenSource.Token);
                         }
                     }
+
+                    _progressReporter.Report(ProgressReport.CreatePhaseProgress("Finalizing", "Completing processing...", 95));
+                    _loggingService?.LogProcessingStep("File Processing Complete", $"Successfully processed {validFiles.Count} files");
                 }
 
                 _progressReporter.Report(ProgressReport.CreateStatus("Processing complete!", 100));
@@ -314,18 +354,22 @@ namespace Bulk_Editor
 
         private async Task ProcessFileWithProgress(string filePath, StreamWriter logWriter, string backupBasePath, int fileIndex, int totalFiles, CancellationToken cancellationToken)
         {
+            var fileName = Path.GetFileName(filePath);
+            var startTime = DateTime.UtcNow;
+
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Starting processing file: {filePath}");
-
-                // Log file processing start
-                _loggingService?.LogUserAction("File Processing Started", $"File: {Path.GetFileName(filePath)}");
+                _loggingService?.LogFileOperation("Processing Started", filePath, $"File {fileIndex + 1} of {totalFiles}");
+                _progressReporter.Report(ProgressReport.CreateStepProgress(fileIndex + 1, totalFiles, fileName, 1, 7, "Initializing"));
 
                 // Create backup if enabled
                 if (_appSettings.Processing.CreateBackups && !string.IsNullOrEmpty(backupBasePath))
                 {
+                    _progressReporter.Report(ProgressReport.CreateStepProgress(fileIndex + 1, totalFiles, fileName, 2, 7, "Creating backup"));
+
                     string backupPath = Path.Combine(backupBasePath, Path.GetFileName(filePath));
                     File.Copy(filePath, backupPath, true);
+                    _loggingService?.LogFileOperation("Backup Created", backupPath, "Backup successful");
 
                     // Preserve file attributes if configured
                     if (_appSettings.Processing.PreserveFileAttributes)
@@ -333,8 +377,11 @@ namespace Bulk_Editor
                         File.SetAttributes(backupPath, File.GetAttributes(filePath));
                         File.SetCreationTime(backupPath, File.GetCreationTime(filePath));
                         File.SetLastWriteTime(backupPath, File.GetLastWriteTime(filePath));
+                        _loggingService?.LogDebug("File attributes preserved for backup: {BackupPath}", backupPath);
                     }
                 }
+
+                _progressReporter.Report(ProgressReport.CreateStepProgress(fileIndex + 1, totalFiles, fileName, 3, 7, "Extracting hyperlinks"));
 
                 List<string> changes = new();
 
@@ -348,6 +395,7 @@ namespace Bulk_Editor
                 // Extract hyperlinks from the Word document properly
                 var hyperlinks = WordDocumentProcessor.ExtractHyperlinks(filePath);
                 var originalHyperlinks = hyperlinks.Select(h => h.Clone()).ToList();
+                _loggingService?.LogProcessingStep("Hyperlink Extraction", $"Extracted {hyperlinks.Count} hyperlinks from {fileName}");
 
                 var updatedLinks = new Collection<string>();
                 var notFoundLinks = new Collection<string>();
@@ -361,6 +409,8 @@ namespace Bulk_Editor
 
                 if (chkFixSourceHyperlinks.Checked || chkFixTitles.Checked)
                 {
+                    _progressReporter.Report(ProgressReport.CreateStepProgress(fileIndex + 1, totalFiles, fileName, 4, 7, "Calling API for hyperlink data"));
+
                     // Extract unique lookup IDs for API call
                     var uniqueIds = new HashSet<string>();
                     foreach (var hyperlink in hyperlinks)
@@ -374,9 +424,15 @@ namespace Bulk_Editor
 
                     if (uniqueIds.Count > 0)
                     {
+                        _loggingService?.LogProcessingStep("API Call", $"Sending {uniqueIds.Count} lookup IDs to API for {fileName}");
+                        var apiStartTime = DateTime.UtcNow;
+
                         // Call API to get results
                         string apiResponse = await _processor.SendToPowerAutomateFlow(uniqueIds.ToList());
                         var response = _processor.ParseApiResponse(apiResponse);
+
+                        var apiDuration = DateTime.UtcNow - apiStartTime;
+                        _loggingService?.LogApiCall("PowerAutomate", "POST", apiDuration, $"Received {response.Results.Count} results");
 
                         // Build dictionary for lookups
                         apiResults = new Dictionary<string, ApiResult>();
@@ -388,29 +444,49 @@ namespace Bulk_Editor
                                 apiResults.Add(result.Content_ID, result);
                         }
                     }
+                    else
+                    {
+                        _loggingService?.LogInformation("No lookup IDs found for API call in {FileName}", fileName);
+                    }
                 }
+
+                _progressReporter.Report(ProgressReport.CreateStepProgress(fileIndex + 1, totalFiles, fileName, 5, 7, "Processing hyperlinks"));
 
                 if (chkFixSourceHyperlinks.Checked)
                 {
+                    _loggingService?.LogProcessingStep("Fix Source Hyperlinks", $"Processing {hyperlinks.Count} hyperlinks for {fileName}");
                     var retryService = new RetryPolicyService(_appSettings.RetrySettings, _progressReporter);
                     // Process hyperlinks - this now modifies the hyperlinks list instead of file content
                     await ProcessingService.FixSourceHyperlinksWithProgress(
                         null, hyperlinks, _processor, changes, updatedLinks, notFoundLinks,
                         expiredLinks, errorLinks, updatedUrls, retryService, _progressReporter, cancellationToken);
+                    _loggingService?.LogProcessingStep("Fix Source Hyperlinks Complete",
+                        $"Updated: {updatedLinks.Count}, NotFound: {notFoundLinks.Count}, Expired: {expiredLinks.Count}");
                 }
 
                 if (chkAppendContentID.Checked)
                 {
-                    string result = ProcessingService.AppendContentIDToHyperlinks(hyperlinks);
+                    _loggingService?.LogProcessingStep("Append Content ID", $"Appending content IDs to hyperlinks in {fileName}");
+                    string result = ProcessingService.AppendContentIDToHyperlinks(hyperlinks, updatedLinks);
                     if (!string.IsNullOrEmpty(result))
                     {
                         changes.Add(result);
+                        _loggingService?.LogProcessingStep("Append Content ID Complete", $"Modified {result} hyperlinks");
                     }
                 }
 
                 if (chkFixInternalHyperlink.Checked)
                 {
-                    ProcessingService.FixInternalHyperlink(null, hyperlinks, changes);
+                    _loggingService?.LogProcessingStep("Fix Internal Hyperlinks", $"Processing internal hyperlinks for {fileName}");
+                    var internalLinks = new Collection<string>();
+                    ProcessingService.FixInternalHyperlink(null, hyperlinks, changes, internalLinks);
+
+                    // Add internal link changes to the changelog
+                    foreach (var link in internalLinks)
+                    {
+                        updatedUrls.Add(link);
+                    }
+                    _loggingService?.LogProcessingStep("Fix Internal Hyperlinks Complete", $"Fixed {internalLinks.Count} internal links");
                 }
 
                 // Check for possible title changes (logs only, no modifications)
@@ -418,6 +494,7 @@ namespace Bulk_Editor
                 {
                     if (apiResults != null)
                     {
+                        _loggingService?.LogProcessingStep("Check Title Changes", $"Checking for title changes in {fileName}");
                         var titleChanges = new Collection<string>();
                         ProcessingService.DetectTitleChanges(null, hyperlinks, apiResults, changes, titleChanges);
 
@@ -426,6 +503,7 @@ namespace Bulk_Editor
                         {
                             updatedUrls.Add(change);
                         }
+                        _loggingService?.LogProcessingStep("Check Title Changes Complete", $"Found {titleChanges.Count} potential title changes");
                     }
                 }
 
@@ -434,19 +512,27 @@ namespace Bulk_Editor
                 {
                     if (apiResults != null)
                     {
-                        ProcessingService.UpdateTitles(null, hyperlinks, apiResults, changes);
+                        _loggingService?.LogProcessingStep("Fix Titles", $"Updating incorrect titles in {fileName}");
+                        var urlUpdatedTracker = new Dictionary<string, bool>();
+                        ProcessingService.UpdateTitles(null, hyperlinks, apiResults, changes, updatedLinks, urlUpdatedTracker);
+                        _loggingService?.LogProcessingStep("Fix Titles Complete", $"Updated titles based on API data");
                     }
                     else
                     {
                         // If no API results, at least skip already-processed links
                         ProcessingService.SkipProcessedHyperlinks(null, hyperlinks, changes);
+                        _loggingService?.LogInformation("No API results available for title fixing in {FileName}", fileName);
                     }
                 }
 
                 if (chkReplaceHyperlink.Checked)
                 {
+                    _loggingService?.LogProcessingStep("Replace Hyperlinks", $"Applying replacement rules to {fileName}");
                     ProcessingService.ReplaceHyperlinks(null, hyperlinks, _hyperlinkReplacementRules, changes, replacedHyperlinks);
+                    _loggingService?.LogProcessingStep("Replace Hyperlinks Complete", $"Replaced {replacedHyperlinks.Count} hyperlinks");
                 }
+
+                _progressReporter.Report(ProgressReport.CreateStepProgress(fileIndex + 1, totalFiles, fileName, 6, 7, "Saving changes"));
 
                 // Check if any hyperlinks were modified
                 bool hyperlinksModified = false;
@@ -462,6 +548,7 @@ namespace Bulk_Editor
                 // Update the Word document with modified hyperlinks
                 if (changes.Count > 0 && hyperlinksModified)
                 {
+                    _loggingService?.LogProcessingStep("Document Update", $"Saving {changes.Count} changes to {fileName}");
                     WordDocumentProcessor.UpdateHyperlinksInDocument(filePath, hyperlinks);
 
                     logWriter.WriteLine($"  Changes made:");
@@ -470,10 +557,15 @@ namespace Bulk_Editor
                         logWriter.WriteLine($"    - {change}");
                     }
                 }
+                else
+                {
+                    _loggingService?.LogInformation("No changes required for {FileName}", fileName);
+                }
 
                 // Handle double spaces separately as it affects document text content
                 if (chkFixDoubleSpaces.Checked)
                 {
+                    _loggingService?.LogProcessingStep("Fix Double Spaces", $"Checking for multiple spaces in {fileName}");
                     try
                     {
                         // Use the OpenXML implementation to fix double spaces in Word documents
@@ -483,32 +575,41 @@ namespace Bulk_Editor
                         {
                             changes.Add($"Fixed {doubleSpaceCount} instances of multiple spaces");
                             logWriter.WriteLine($"  Fixed {doubleSpaceCount} instances of multiple spaces in document text");
+                            _loggingService?.LogProcessingStep("Fix Double Spaces Complete", $"Fixed {doubleSpaceCount} instances in {fileName}");
                         }
                         else
                         {
                             logWriter.WriteLine($"  No multiple spaces found in document");
+                            _loggingService?.LogDebug("No multiple spaces found in {FileName}", fileName);
                         }
                     }
                     catch (Exception ex)
                     {
                         changes.Add($"Error fixing double spaces: {ex.Message}");
                         logWriter.WriteLine($"  Error fixing double spaces: {ex.Message}");
+                        _loggingService?.LogError(ex, "Error fixing double spaces in {FileName}", fileName);
                     }
                 }
+
+                _progressReporter.Report(ProgressReport.CreateStepProgress(fileIndex + 1, totalFiles, fileName, 7, 7, "Completing"));
 
                 WriteDetailedChangelog(logWriter, updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, replacedHyperlinks, _processor);
                 WriteDetailedChangelogToDownloads(updatedLinks, notFoundLinks, expiredLinks, errorLinks, updatedUrls, replacedHyperlinks, _processor);
 
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Finished processing file: {filePath}");
+                var duration = DateTime.UtcNow - startTime;
+                _loggingService?.LogFileOperation("Processing Complete", filePath, $"Completed in {duration.TotalSeconds:F2} seconds");
+                _loggingService?.LogPerformanceMetric("FileProcessingTime", duration.TotalMilliseconds, "ms");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Error processing file: {filePath} - {ex.Message}");
+                var duration = DateTime.UtcNow - startTime;
+                _loggingService?.LogError(ex, "Error processing file {FilePath} after {Duration}ms", filePath, duration.TotalMilliseconds);
                 logWriter.WriteLine($"  Error processing file: {ex.Message}");
+                throw; // Re-throw to allow higher-level error handling
             }
         }
 
-        private void WriteDetailedChangelog(StreamWriter writer, Collection<string> updatedLinks, Collection<string> notFoundLinks,
+        private static void WriteDetailedChangelog(StreamWriter writer, Collection<string> updatedLinks, Collection<string> notFoundLinks,
             Collection<string> expiredLinks, Collection<string> errorLinks, Collection<string> updatedUrls,
             Collection<string> replacedHyperlinks, WordDocumentProcessor processor)
         {
@@ -573,7 +674,7 @@ namespace Bulk_Editor
             }
         }
 
-        private void WriteDetailedChangelogToDownloads(Collection<string> updatedLinks, Collection<string> notFoundLinks,
+        private static void WriteDetailedChangelogToDownloads(Collection<string> updatedLinks, Collection<string> notFoundLinks,
             Collection<string> expiredLinks, Collection<string> errorLinks, Collection<string> updatedUrls,
             Collection<string> replacedHyperlinks, WordDocumentProcessor processor)
         {

@@ -9,6 +9,7 @@ namespace Bulk_Editor
         private System.Windows.Forms.TabControl tabControl;
         private System.Windows.Forms.TabPage tabChangelog;
         private System.Windows.Forms.TabPage tabApplication;
+        private System.Windows.Forms.TabPage tabLogging;
         private System.Windows.Forms.TabPage tabProcessing;
         private System.Windows.Forms.TabPage tabInterface;
 
@@ -54,8 +55,20 @@ namespace Bulk_Editor
         private System.Windows.Forms.CheckBox chkShowStatusBar;
         private System.Windows.Forms.Label lblTheme;
         private System.Windows.Forms.ComboBox cmbTheme;
-        private System.Windows.Forms.Label lblLanguage;
-        private System.Windows.Forms.ComboBox cmbLanguage;
+        
+        // Logging tab controls
+        private System.Windows.Forms.GroupBox grpLogSettings;
+        private System.Windows.Forms.Label lblLogLevel;
+        private System.Windows.Forms.ComboBox cmbLogLevel;
+        private System.Windows.Forms.CheckBox chkEnableFileLogging;
+        private System.Windows.Forms.CheckBox chkLogUserActions;
+        private System.Windows.Forms.CheckBox chkLogPerformance;
+        private System.Windows.Forms.GroupBox grpLogViewer;
+        private System.Windows.Forms.ListBox lstLogEntries;
+        private System.Windows.Forms.Button btnRefreshLogs;
+        private System.Windows.Forms.Button btnExportLogs;
+        private System.Windows.Forms.Button btnClearOldLogs;
+        private System.Windows.Forms.Label lblLogInfo;
 
 
         private System.Windows.Forms.Panel pnlButtons;
@@ -91,6 +104,7 @@ namespace Bulk_Editor
         {
             this.tabControl = new System.Windows.Forms.TabControl();
             this.tabChangelog = new System.Windows.Forms.TabPage();
+            this.tabLogging = new System.Windows.Forms.TabPage();
             this.grpChangelogSettings = new System.Windows.Forms.GroupBox();
             this.lblBaseStoragePath = new System.Windows.Forms.Label();
             this.txtBaseStoragePath = new System.Windows.Forms.TextBox();
@@ -133,8 +147,20 @@ namespace Bulk_Editor
             this.chkShowStatusBar = new System.Windows.Forms.CheckBox();
             this.lblTheme = new System.Windows.Forms.Label();
             this.cmbTheme = new System.Windows.Forms.ComboBox();
-            this.lblLanguage = new System.Windows.Forms.Label();
-            this.cmbLanguage = new System.Windows.Forms.ComboBox();
+            
+            // Logging tab controls
+            this.grpLogSettings = new System.Windows.Forms.GroupBox();
+            this.lblLogLevel = new System.Windows.Forms.Label();
+            this.cmbLogLevel = new System.Windows.Forms.ComboBox();
+            this.chkEnableFileLogging = new System.Windows.Forms.CheckBox();
+            this.chkLogUserActions = new System.Windows.Forms.CheckBox();
+            this.chkLogPerformance = new System.Windows.Forms.CheckBox();
+            this.grpLogViewer = new System.Windows.Forms.GroupBox();
+            this.lstLogEntries = new System.Windows.Forms.ListBox();
+            this.btnRefreshLogs = new System.Windows.Forms.Button();
+            this.btnExportLogs = new System.Windows.Forms.Button();
+            this.btnClearOldLogs = new System.Windows.Forms.Button();
+            this.lblLogInfo = new System.Windows.Forms.Label();
             this.pnlButtons = new System.Windows.Forms.Panel();
             this.btnSave = new System.Windows.Forms.Button();
             this.btnCancel = new System.Windows.Forms.Button();
@@ -147,6 +173,7 @@ namespace Bulk_Editor
 
             this.tabControl.SuspendLayout();
             this.tabChangelog.SuspendLayout();
+            this.tabLogging.SuspendLayout();
             this.grpChangelogSettings.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numAutoCleanupDays)).BeginInit();
             this.tabApplication.SuspendLayout();
@@ -171,6 +198,7 @@ namespace Bulk_Editor
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tabControl.Controls.Add(this.tabChangelog);
             this.tabControl.Controls.Add(this.tabApplication);
+            this.tabControl.Controls.Add(this.tabLogging);
             this.tabControl.Controls.Add(this.tabProcessing);
             this.tabControl.Controls.Add(this.tabInterface);
             this.tabControl.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
@@ -674,9 +702,197 @@ namespace Bulk_Editor
             | System.Windows.Forms.AnchorStyles.Left)
             | System.Windows.Forms.AnchorStyles.Right)));
             this.grpInterfaceSettings.BackColor = System.Drawing.Color.Transparent;
-            this.grpInterfaceSettings.Controls.Add(this.cmbLanguage);
-            this.grpInterfaceSettings.Controls.Add(this.lblLanguage);
             this.grpInterfaceSettings.Controls.Add(this.cmbTheme);
+            
+            //
+            // tabLogging
+            //
+            this.tabLogging.Controls.Add(this.grpLogViewer);
+            this.tabLogging.Controls.Add(this.grpLogSettings);
+            this.tabLogging.Location = new System.Drawing.Point(4, 24);
+            this.tabLogging.Name = "tabLogging";
+            this.tabLogging.Padding = new System.Windows.Forms.Padding(15);
+            this.tabLogging.Size = new System.Drawing.Size(752, 392);
+            this.tabLogging.TabIndex = 2;
+            this.tabLogging.Text = "📋 Logging";
+            this.tabLogging.UseVisualStyleBackColor = true;
+
+            //
+            // grpLogSettings
+            //
+            this.grpLogSettings.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.grpLogSettings.BackColor = System.Drawing.Color.Transparent;
+            this.grpLogSettings.Controls.Add(this.chkLogPerformance);
+            this.grpLogSettings.Controls.Add(this.chkLogUserActions);
+            this.grpLogSettings.Controls.Add(this.chkEnableFileLogging);
+            this.grpLogSettings.Controls.Add(this.cmbLogLevel);
+            this.grpLogSettings.Controls.Add(this.lblLogLevel);
+            this.grpLogSettings.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.grpLogSettings.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(73)))), ((int)(((byte)(80)))), ((int)(((byte)(87)))));
+            this.grpLogSettings.Location = new System.Drawing.Point(15, 15);
+            this.grpLogSettings.Name = "grpLogSettings";
+            this.grpLogSettings.Padding = new System.Windows.Forms.Padding(20);
+            this.grpLogSettings.Size = new System.Drawing.Size(722, 120);
+            this.grpLogSettings.TabIndex = 0;
+            this.grpLogSettings.TabStop = false;
+            this.grpLogSettings.Text = "Logging Configuration";
+
+            //
+            // lblLogLevel
+            //
+            this.lblLogLevel.AutoSize = true;
+            this.lblLogLevel.BackColor = System.Drawing.Color.Transparent;
+            this.lblLogLevel.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.lblLogLevel.Location = new System.Drawing.Point(20, 30);
+            this.lblLogLevel.Name = "lblLogLevel";
+            this.lblLogLevel.Size = new System.Drawing.Size(63, 15);
+            this.lblLogLevel.TabIndex = 0;
+            this.lblLogLevel.Text = "Log Level:";
+
+            //
+            // cmbLogLevel
+            //
+            this.cmbLogLevel.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbLogLevel.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.cmbLogLevel.FormattingEnabled = true;
+            this.cmbLogLevel.Items.AddRange(new object[] { "Verbose", "Debug", "Information", "Warning", "Error", "Fatal" });
+            this.cmbLogLevel.Location = new System.Drawing.Point(90, 27);
+            this.cmbLogLevel.Name = "cmbLogLevel";
+            this.cmbLogLevel.Size = new System.Drawing.Size(120, 23);
+            this.cmbLogLevel.TabIndex = 1;
+
+            //
+            // chkEnableFileLogging
+            //
+            this.chkEnableFileLogging.AutoSize = true;
+            this.chkEnableFileLogging.BackColor = System.Drawing.Color.Transparent;
+            this.chkEnableFileLogging.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.chkEnableFileLogging.Location = new System.Drawing.Point(20, 60);
+            this.chkEnableFileLogging.Name = "chkEnableFileLogging";
+            this.chkEnableFileLogging.Size = new System.Drawing.Size(135, 19);
+            this.chkEnableFileLogging.TabIndex = 2;
+            this.chkEnableFileLogging.Text = "Enable File Logging";
+            this.chkEnableFileLogging.UseVisualStyleBackColor = false;
+
+            //
+            // chkLogUserActions
+            //
+            this.chkLogUserActions.AutoSize = true;
+            this.chkLogUserActions.BackColor = System.Drawing.Color.Transparent;
+            this.chkLogUserActions.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.chkLogUserActions.Location = new System.Drawing.Point(180, 60);
+            this.chkLogUserActions.Name = "chkLogUserActions";
+            this.chkLogUserActions.Size = new System.Drawing.Size(124, 19);
+            this.chkLogUserActions.TabIndex = 3;
+            this.chkLogUserActions.Text = "Log User Actions";
+            this.chkLogUserActions.UseVisualStyleBackColor = false;
+
+            //
+            // chkLogPerformance
+            //
+            this.chkLogPerformance.AutoSize = true;
+            this.chkLogPerformance.BackColor = System.Drawing.Color.Transparent;
+            this.chkLogPerformance.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.chkLogPerformance.Location = new System.Drawing.Point(320, 60);
+            this.chkLogPerformance.Name = "chkLogPerformance";
+            this.chkLogPerformance.Size = new System.Drawing.Size(153, 19);
+            this.chkLogPerformance.TabIndex = 4;
+            this.chkLogPerformance.Text = "Log Performance Metrics";
+            this.chkLogPerformance.UseVisualStyleBackColor = false;
+
+            //
+            // grpLogViewer
+            //
+            this.grpLogViewer.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.grpLogViewer.BackColor = System.Drawing.Color.Transparent;
+            this.grpLogViewer.Controls.Add(this.lblLogInfo);
+            this.grpLogViewer.Controls.Add(this.btnClearOldLogs);
+            this.grpLogViewer.Controls.Add(this.btnExportLogs);
+            this.grpLogViewer.Controls.Add(this.btnRefreshLogs);
+            this.grpLogViewer.Controls.Add(this.lstLogEntries);
+            this.grpLogViewer.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.grpLogViewer.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(73)))), ((int)(((byte)(80)))), ((int)(((byte)(87)))));
+            this.grpLogViewer.Location = new System.Drawing.Point(15, 145);
+            this.grpLogViewer.Name = "grpLogViewer";
+            this.grpLogViewer.Padding = new System.Windows.Forms.Padding(20);
+            this.grpLogViewer.Size = new System.Drawing.Size(722, 232);
+            this.grpLogViewer.TabIndex = 1;
+            this.grpLogViewer.TabStop = false;
+            this.grpLogViewer.Text = "Log Viewer (Recent Entries)";
+
+            //
+            // lstLogEntries
+            //
+            this.lstLogEntries.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.lstLogEntries.Font = new System.Drawing.Font("Consolas", 8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.lstLogEntries.HorizontalScrollbar = true;
+            this.lstLogEntries.ItemHeight = 13;
+            this.lstLogEntries.Location = new System.Drawing.Point(20, 50);
+            this.lstLogEntries.Name = "lstLogEntries";
+            this.lstLogEntries.Size = new System.Drawing.Size(682, 143);
+            this.lstLogEntries.TabIndex = 0;
+
+            //
+            // btnRefreshLogs
+            //
+            this.btnRefreshLogs.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(123)))), ((int)(((byte)(255)))));
+            this.btnRefreshLogs.FlatAppearance.BorderSize = 0;
+            this.btnRefreshLogs.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnRefreshLogs.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.btnRefreshLogs.ForeColor = System.Drawing.Color.White;
+            this.btnRefreshLogs.Location = new System.Drawing.Point(20, 200);
+            this.btnRefreshLogs.Name = "btnRefreshLogs";
+            this.btnRefreshLogs.Size = new System.Drawing.Size(100, 25);
+            this.btnRefreshLogs.TabIndex = 1;
+            this.btnRefreshLogs.Text = "🔄 Refresh";
+            this.btnRefreshLogs.UseVisualStyleBackColor = true;
+
+            //
+            // btnExportLogs
+            //
+            this.btnExportLogs.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(167)))), ((int)(((byte)(69)))));
+            this.btnExportLogs.FlatAppearance.BorderSize = 0;
+            this.btnExportLogs.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnExportLogs.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.btnExportLogs.ForeColor = System.Drawing.Color.White;
+            this.btnExportLogs.Location = new System.Drawing.Point(130, 200);
+            this.btnExportLogs.Name = "btnExportLogs";
+            this.btnExportLogs.Size = new System.Drawing.Size(100, 25);
+            this.btnExportLogs.TabIndex = 2;
+            this.btnExportLogs.Text = "📤 Export";
+            this.btnExportLogs.UseVisualStyleBackColor = true;
+
+            //
+            // btnClearOldLogs
+            //
+            this.btnClearOldLogs.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(53)))), ((int)(((byte)(69)))));
+            this.btnClearOldLogs.FlatAppearance.BorderSize = 0;
+            this.btnClearOldLogs.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnClearOldLogs.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point);
+            this.btnClearOldLogs.ForeColor = System.Drawing.Color.White;
+            this.btnClearOldLogs.Location = new System.Drawing.Point(240, 200);
+            this.btnClearOldLogs.Name = "btnClearOldLogs";
+            this.btnClearOldLogs.Size = new System.Drawing.Size(100, 25);
+            this.btnClearOldLogs.TabIndex = 3;
+            this.btnClearOldLogs.Text = "🗑️ Clear Old";
+            this.btnClearOldLogs.UseVisualStyleBackColor = true;
+
+            //
+            // lblLogInfo
+            //
+            this.lblLogInfo.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.lblLogInfo.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.lblLogInfo.Location = new System.Drawing.Point(500, 25);
+            this.lblLogInfo.Name = "lblLogInfo";
+            this.lblLogInfo.Size = new System.Drawing.Size(202, 20);
+            this.lblLogInfo.TabIndex = 4;
+            this.lblLogInfo.Text = "Last refreshed: Never";
+            this.lblLogInfo.TextAlign = System.Drawing.ContentAlignment.TopRight;
             this.grpInterfaceSettings.Controls.Add(this.lblTheme);
             this.grpInterfaceSettings.Controls.Add(this.chkShowStatusBar);
             this.grpInterfaceSettings.Controls.Add(this.chkConfirmOnExit);
@@ -809,29 +1025,6 @@ namespace Bulk_Editor
             this.cmbTheme.Size = new System.Drawing.Size(120, 23);
             this.cmbTheme.TabIndex = 9;
 
-            //
-            // lblLanguage
-            //
-            this.lblLanguage.AutoSize = true;
-            this.lblLanguage.BackColor = System.Drawing.Color.Transparent;
-            this.lblLanguage.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.lblLanguage.Location = new System.Drawing.Point(220, 255);
-            this.lblLanguage.Name = "lblLanguage";
-            this.lblLanguage.Size = new System.Drawing.Size(62, 15);
-            this.lblLanguage.TabIndex = 10;
-            this.lblLanguage.Text = "Language:";
-
-            //
-            // cmbLanguage
-            //
-            this.cmbLanguage.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.cmbLanguage.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.cmbLanguage.FormattingEnabled = true;
-            this.cmbLanguage.Items.AddRange(new object[] { "English", "Spanish", "French", "German" });
-            this.cmbLanguage.Location = new System.Drawing.Point(290, 252);
-            this.cmbLanguage.Name = "cmbLanguage";
-            this.cmbLanguage.Size = new System.Drawing.Size(120, 23);
-            this.cmbLanguage.TabIndex = 11;
 
 
             //
@@ -995,6 +1188,7 @@ namespace Bulk_Editor
 
             this.tabControl.ResumeLayout(false);
             this.tabChangelog.ResumeLayout(false);
+            this.tabLogging.ResumeLayout(false);
             this.grpChangelogSettings.ResumeLayout(false);
             this.grpChangelogSettings.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numAutoCleanupDays)).EndInit();

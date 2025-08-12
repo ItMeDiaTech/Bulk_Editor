@@ -110,7 +110,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Get specific message for web exceptions
         /// </summary>
-        private string GetWebExceptionMessage(WebException webEx)
+        private static string GetWebExceptionMessage(WebException webEx)
         {
             return webEx.Status switch
             {
@@ -185,7 +185,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Check if HTTP status code is retryable
         /// </summary>
-        private bool IsRetryableStatusCode(HttpStatusCode statusCode)
+        private static bool IsRetryableStatusCode(HttpStatusCode statusCode)
         {
             return statusCode switch
             {

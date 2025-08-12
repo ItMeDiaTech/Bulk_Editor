@@ -192,7 +192,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Apply theme-appropriate icons to controls
         /// </summary>
-        private void ApplyThemeIcons(Form form, ThemeConfiguration theme)
+        private static void ApplyThemeIcons(Form form, ThemeConfiguration theme)
         {
             try
             {
@@ -440,7 +440,7 @@ namespace Bulk_Editor.Services
             }
         }
 
-        private bool ShouldSkipControl(Control control)
+        private static bool ShouldSkipControl(Control control)
         {
             // Skip disposed controls
             if (control.IsDisposed)
@@ -474,7 +474,7 @@ namespace Bulk_Editor.Services
                    color == Color.FromArgb(240, 240, 240); // Default light theme button
         }
 
-        private Color GetBackgroundColor(Control control, ThemeConfiguration theme)
+        private static Color GetBackgroundColor(Control control, ThemeConfiguration theme)
         {
             // Keep surfaces for inputs and containers, but make text-only chrome transparent
             return control switch
@@ -500,7 +500,7 @@ namespace Bulk_Editor.Services
                 _ => theme.ControlBackground
             };
         }
-        private Color GetForegroundColor(Control control, ThemeConfiguration theme)
+        private static Color GetForegroundColor(Control control, ThemeConfiguration theme)
         {
             return control switch
             {
@@ -527,7 +527,7 @@ namespace Bulk_Editor.Services
         }
 
         // AUTHORITATIVE checkbox theming
-        private void ApplyCheckBoxTheme(CheckBox checkBox, ThemeConfiguration theme)
+        private static void ApplyCheckBoxTheme(CheckBox checkBox, ThemeConfiguration theme)
         {
             // Transparent surface, no OS background override
             checkBox.UseVisualStyleBackColor = false;
@@ -579,7 +579,7 @@ namespace Bulk_Editor.Services
             return form?.Controls.Find("chkFixSourceHyperlinks", true).FirstOrDefault() as CheckBox;
         }
 
-        private void WireSubCheckboxColors(Form form, ThemeConfiguration theme)
+        private static void WireSubCheckboxColors(Form form, ThemeConfiguration theme)
         {
             if (form == null || form.IsDisposed) return;
 

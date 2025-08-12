@@ -70,6 +70,12 @@ namespace Bulk_Editor
             chkShowStatusBar.Checked = _settings.UI.ShowStatusBar;
             cmbTheme.Text = _settings.UI.Theme;
 
+            // Logging Settings
+            cmbLogLevel.Text = _settings.Logging.LogLevel;
+            chkEnableFileLogging.Checked = _settings.Logging.EnableFileLogging;
+            chkLogUserActions.Checked = _settings.Logging.LogUserActions;
+            chkLogPerformance.Checked = _settings.Logging.LogPerformanceMetrics;
+
             // Update dependent controls
             UpdateDependentControls();
         }

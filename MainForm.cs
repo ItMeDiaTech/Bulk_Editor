@@ -109,8 +109,9 @@ namespace Bulk_Editor
 
         private void InitializeServices()
         {
-            // Initialize logging service
-            _loggingService = new LoggingService(_appSettings.Logging);
+            // Initialize logging service using singleton pattern
+            LoggingService.Initialize(_appSettings.Logging);
+            _loggingService = LoggingService.Instance;
 
             // Initialize theme service and apply current theme
             _themeService = new ThemeService(_appSettings.UI);
@@ -125,6 +126,7 @@ namespace Bulk_Editor
 
             // Log application startup
             _loggingService?.LogUserAction("Application Started", $"Version: {Application.ProductVersion}");
+            _loggingService?.LogInformation("Services initialized successfully");
 
             // Mark initialization as complete - form can now be shown with correct theme/icons
             _isInitialized = true;
