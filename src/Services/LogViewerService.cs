@@ -12,20 +12,11 @@ using Bulk_Editor.Services.Abstractions;
 
 namespace Bulk_Editor.Services
 {
-    public class LogViewerService : ILogViewerService
+    public class LogViewerService(ILoggingService loggingService, LoggingSettings logSettings)
     {
-        private readonly ILoggingService _loggingService;
-        private readonly LoggingSettings _logSettings;
-
         private static readonly Regex LogLineRx = new(
-            @"^\[(?<ts>[^\]]+)\]\s*\[(?<lvl>[^\]]+)\]\s*(?<msg>.*)$",
-            RegexOptions.Compiled);
-
-        public LogViewerService(ILoggingService loggingService, LoggingSettings logSettings)
-        {
-            _loggingService = loggingService;
-            _logSettings = logSettings;
-        }
+             @"^\[(?<ts>[^\]]+)\]\s*\[(?<lvl>[^\]]+)\]\s*(?<msg>.*)$",
+             RegexOptions.Compiled);
 
         public async Task<List<LogEntry>> GetRecentLogsAsync(int lineCount)
         {
@@ -91,13 +82,13 @@ namespace Bulk_Editor.Services
                 }
                 catch (IOException ex) when (attempt < maxRetries)
                 {
-                    _loggingService.LogWarning(ex, "Attempt {Attempt}: Log file locked, retrying in {Delay}ms. Path: {Path}", attempt, retryDelay, logPath);
+                    loggingService.LogWarning(ex, "Attempt {Attempt}: Log file locked, retrying in {Delay}ms. Path: {Path}", attempt, retryDelay, logPath);
                     await Task.Delay(retryDelay);
                     retryDelay *= 2;
                 }
                 catch (Exception ex)
                 {
-                    _loggingService.LogError(ex, "Unexpected error reading log file: {Path}", logPath);
+                    loggingService.LogError(ex, "Unexpected error reading log file: {Path}", logPath);
                     break;
                 }
             }
@@ -134,7 +125,7 @@ namespace Bulk_Editor.Services
             }
             catch (Exception ex)
             {
-                _loggingService.LogError(ex, "Failed to export log file to {ExportPath}", exportPath);
+                loggingService.LogError(ex, "Failed to export log file to {ExportPath}", exportPath);
                 return false;
             }
         }
@@ -162,7 +153,7 @@ namespace Bulk_Editor.Services
                 }
                 catch (Exception ex)
                 {
-                    _loggingService.LogWarning(ex, "Failed to search for log files with pattern {Pattern}", pattern);
+                    loggingService.LogWarning(ex, "Failed to search for log files with pattern {Pattern}", pattern);
                 }
             }
 
@@ -172,11 +163,11 @@ namespace Bulk_Editor.Services
                 {
                     await Task.Run(() => File.Delete(file));
                     deletedCount++;
-                    _loggingService.LogInformation("Deleted old log file: {FileName}", Path.GetFileName(file));
+                    loggingService.LogInformation("Deleted old log file: {FileName}", Path.GetFileName(file));
                 }
                 catch (Exception ex)
                 {
-                    _loggingService.LogError(ex, "Failed to delete old log file: {FilePath}", file);
+                    loggingService.LogError(ex, "Failed to delete old log file: {FilePath}", file);
                 }
             }
 
@@ -185,10 +176,10 @@ namespace Bulk_Editor.Services
 
         private string GetLogFilePath()
         {
-            if (_logSettings?.LogFilePath == null)
+            if (logSettings?.LogFilePath == null)
                 return string.Empty;
 
-            var p = Environment.ExpandEnvironmentVariables(_logSettings.LogFilePath);
+            var p = Environment.ExpandEnvironmentVariables(logSettings.LogFilePath);
 
             // If it's a directory, choose the newest *.log inside
             if (Directory.Exists(p))
@@ -219,13 +210,13 @@ namespace Bulk_Editor.Services
                 }
                 catch (IOException ex) when (attempt < maxRetries)
                 {
-                    _loggingService.LogWarning(ex, "Attempt {Attempt}: File was locked, retrying in {RetryDelay}ms. Path: {ChangelogPath}", attempt, retryDelay, changelogPath);
+                    loggingService.LogWarning(ex, "Attempt {Attempt}: File was locked, retrying in {RetryDelay}ms. Path: {ChangelogPath}", attempt, retryDelay, changelogPath);
                     await Task.Delay(retryDelay);
                     retryDelay *= 2;
                 }
                 catch (Exception ex)
                 {
-                    _loggingService.LogError(ex, "An unexpected error occurred while reading the changelog for {FileName} from {Path}", fileName, changelogPath);
+                    loggingService.LogError(ex, "An unexpected error occurred while reading the changelog for {FileName} from {Path}", fileName, changelogPath);
                     // Re-throw to be caught by the UI layer, which will show a message box
                     throw;
                 }
@@ -233,7 +224,7 @@ namespace Bulk_Editor.Services
 
             // This part is reached only if all retries fail with an IOException
             var finalException = new IOException($"Could not read the changelog file '{changelogPath}' after {maxRetries} attempts as it remained locked.");
-            _loggingService.LogError(finalException, "All retries failed to read changelog file.");
+            loggingService.LogError(finalException, "All retries failed to read changelog file.");
             throw finalException;
         }
 

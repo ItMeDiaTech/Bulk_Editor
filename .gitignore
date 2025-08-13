@@ -1,5 +1,4 @@
 # .NET Core
-project.assets.json
 project.packages.json
 *.csproj.nuget.*
 *.nuget.targets
@@ -33,7 +32,6 @@ compose.yaml
 Dockerfile
 .env
 # Build outputs
-**/bin/
 **/obj/
 TestResults/
 *.trx
@@ -70,3 +68,4 @@ tools/agent/obj/
 *.secrets.*
 mcp.json
 build/*
+BULK_EDITOR_COMPREHENSIVE_ANALYSIS.md

@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Bulk_Editor.Configuration;
 using Bulk_Editor.Models;
+using Bulk_Editor.Services.Logic;
+using Bulk_Editor.Services;
 
 namespace Bulk_Editor.Services.Abstractions
 {

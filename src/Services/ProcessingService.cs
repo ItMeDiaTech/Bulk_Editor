@@ -7,24 +7,21 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 using Bulk_Editor.Configuration;
 using Bulk_Editor.Models;
 using Bulk_Editor.Services.Abstractions;
+using Bulk_Editor.Services;
+using Bulk_Editor.Services.Logic;
 
 namespace Bulk_Editor.Services
 {
     /// <summary>
     /// Service class for processing document content with unified changelog formatting
     /// </summary>
-    public partial class ProcessingService : IProcessingService
+    public partial class ProcessingService(ILoggingService loggingService)
     {
-        private readonly ILoggingService _loggingService;
+        private readonly ILoggingService _loggingService = loggingService;
 
-        public ProcessingService(ILoggingService loggingService)
-        {
-            _loggingService = loggingService;
-        }
 
         #region Constants & Regex Patterns
         [GeneratedRegex(@"\s*\((\d{5,6})\)\s*$")]
@@ -215,10 +212,9 @@ namespace Bulk_Editor.Services
 
         private HashSet<string> ExtractUniqueLookupIds(List<HyperlinkData> hyperlinks)
         {
-            return hyperlinks
+            return [.. hyperlinks
                 .Select(h => WordDocumentProcessor.ExtractLookupID(h.Address, h.SubAddress))
-                .Where(id => !string.IsNullOrEmpty(id))
-                .ToHashSet();
+                .Where(id => !string.IsNullOrEmpty(id))];
         }
         #endregion
 
@@ -349,7 +345,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Appends Content ID to hyperlinks and tracks changes for changelog
         /// </summary>
-        public int AppendContentIDToHyperlinks(List<HyperlinkData> hyperlinks, Collection<string> updatedLinks, Dictionary<string, bool>? urlUpdatedTracker = null)
+        public Task<int> AppendContentIDToHyperlinks(List<HyperlinkData> hyperlinks, Collection<string> updatedLinks, Dictionary<string, bool>? urlUpdatedTracker = null)
         {
             int modifiedCount = 0;
             foreach (var hyperlink in hyperlinks)
@@ -370,7 +366,7 @@ namespace Bulk_Editor.Services
                     modifiedCount++;
                 }
             }
-            return modifiedCount;
+            return Task.FromResult(modifiedCount);
         }
 
         /// <summary>
@@ -435,10 +431,11 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Fixes internal hyperlinks by ensuring they point to valid anchors
         /// </summary>
-        public void FixInternalHyperlink(string? content, List<HyperlinkData> hyperlinks, List<string> changes, Collection<string> internalLinks)
+        public Task FixInternalHyperlink(string? content, List<HyperlinkData> hyperlinks, List<string> changes, Collection<string> internalLinks)
         {
             var validAnchors = CollectValidAnchors(hyperlinks);
             ProcessInternalHyperlinks(hyperlinks, validAnchors, internalLinks);
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -537,11 +534,10 @@ namespace Bulk_Editor.Services
             if (anchor.StartsWith('!')) anchor = anchor[1..];
             return anchor;
         }
-
         /// <summary>
         /// Skips processing of already-processed hyperlinks (those with status markers)
         /// </summary>
-        public void SkipProcessedHyperlinks(string? content, List<HyperlinkData> hyperlinks, List<string> changes)
+        public Task SkipProcessedHyperlinks(string? content, List<HyperlinkData> hyperlinks, List<string> changes)
         {
             foreach (var hyperlink in hyperlinks)
             {
@@ -558,15 +554,15 @@ namespace Bulk_Editor.Services
                 }
             }
 
+            return Task.CompletedTask;
         }
-
         /// <summary>
         /// Detects possible title changes by comparing current titles with API results
         /// </summary>
-        public void DetectTitleChanges(string? content, List<HyperlinkData> hyperlinks,
+        public Task DetectTitleChanges(string? content, List<HyperlinkData> hyperlinks,
             Dictionary<string, ApiResult> apiResults, List<string> changes, Collection<string> titleChangesList)
         {
-            if (apiResults == null) return;
+            if (apiResults == null) return Task.CompletedTask;
 
             int possibleChangesCount = 0;
 
@@ -595,15 +591,15 @@ namespace Bulk_Editor.Services
                 changes.Add($"Detected {possibleChangesCount} possible title changes");
             }
 
+            return Task.CompletedTask;
         }
-
         /// <summary>
         /// Updates titles based on API results (actually changes them)
         /// </summary>
-        public void UpdateTitles(string? content, List<HyperlinkData> hyperlinks,
+        public Task UpdateTitles(string? content, List<HyperlinkData> hyperlinks,
             Dictionary<string, ApiResult> apiResults, List<string> changes, Collection<string> updatedLinks, Dictionary<string, bool> urlUpdatedTracker)
         {
-            if (apiResults == null) return;
+            if (apiResults == null) return Task.CompletedTask;
 
             foreach (var hyperlink in hyperlinks)
             {
@@ -622,6 +618,7 @@ namespace Bulk_Editor.Services
                 }
             }
 
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -685,7 +682,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Replaces hyperlinks based on replacement rules
         /// </summary>
-        public void ReplaceHyperlinks(string? content, List<HyperlinkData> hyperlinks,
+        public Task ReplaceHyperlinks(string? content, List<HyperlinkData> hyperlinks,
             Logic.HyperlinkReplacementRules rules, List<string> changes, Collection<string> replacedHyperlinks)
         {
             int replacedCount = 0;
@@ -699,6 +696,8 @@ namespace Bulk_Editor.Services
             {
                 changes.Add($"Replaced {replacedCount} hyperlinks");
             }
+
+            return Task.CompletedTask;
         }
 
         /// <summary>

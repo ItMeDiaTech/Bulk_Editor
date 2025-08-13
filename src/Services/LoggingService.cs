@@ -3,7 +3,6 @@ using System;
 using System.IO;
 using Bulk_Editor.Configuration;
 using Serilog;
-using Serilog.Core;
 
 using Bulk_Editor.Services.Abstractions;
 

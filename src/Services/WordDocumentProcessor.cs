@@ -6,7 +6,6 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 using Bulk_Editor.Configuration;
 using Bulk_Editor.Models;
 using DocumentFormat.OpenXml;
@@ -20,6 +19,7 @@ namespace Bulk_Editor.Services
     /// </summary>
     public partial class WordDocumentProcessor
     {
+        // Regex pattern to match internal document IDs (e.g., TSRC-XXXX-XXXXXX or CMS-XXXX-XXXXXX)
         [GeneratedRegex(@"(TSRC-[^-]+-[0-9]{6}|CMS-[^-]+-[0-9]{6})", RegexOptions.IgnoreCase)]
         private static partial Regex IdPatternRegex();
 
@@ -51,7 +51,7 @@ namespace Bulk_Editor.Services
 
             try
             {
-                using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(filePath, false))
+                using WordprocessingDocument wordDoc = WordprocessingDocument.Open(filePath, false);
                 {
                     var body = wordDoc.MainDocumentPart?.Document?.Body;
                     if (body == null) return hyperlinks;
@@ -83,11 +83,11 @@ namespace Bulk_Editor.Services
                         {
                             hyperlink.SubAddress = hyperlinkElement.Anchor.Value ?? string.Empty;
                         }
-                
+
                         // Get the display text
                         var textElements = hyperlinkElement.Descendants<Text>();
                         hyperlink.TextToDisplay = string.Join("", textElements.Select(t => t.Text ?? string.Empty));
-                
+
                         // Extract sub-address if present in the address
                         if (!string.IsNullOrEmpty(hyperlink.Address) && hyperlink.Address.Contains('#'))
                         {
@@ -98,11 +98,11 @@ namespace Bulk_Editor.Services
                                 hyperlink.SubAddress = parts.Length > 1 ? parts[1] : string.Empty;
                             }
                         }
-                
+
                         // Set position information (approximation)
                         hyperlink.PageNumber = pageNumber;
                         hyperlink.LineNumber = lineNumber++;
-                
+
                         // Store the hyperlink element reference for later updates
                         hyperlink.ElementId = hyperlinkElement.Id?.Value ?? string.Empty;
 
@@ -112,7 +112,7 @@ namespace Bulk_Editor.Services
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error processing document: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Console.WriteLine($"Error processing document: {ex.Message}");
             }
 
             return hyperlinks;
