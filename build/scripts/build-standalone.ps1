@@ -23,6 +23,25 @@ if ($Clean) {
 }
 
 # Restore packages
+# Check for .NET SDK existence
+function Test-DotNetSdkExistence {
+    Write-Host "Checking for .NET SDK..." -ForegroundColor Yellow
+    try {
+        $dotnetPath = (Get-Command dotnet).Source
+        Write-Host ".NET SDK found at: $dotnetPath" -ForegroundColor Green
+        return $true
+    }
+    catch {
+        Write-Error ".NET SDK not found. Please install a compatible version."
+        Write-Error "Download from: https://dotnet.microsoft.com/download"
+        return $false
+    }
+}
+
+if (-not (Test-DotNetSdkExistence)) {
+    exit 1
+}
+
 Write-Host "Restoring NuGet packages..." -ForegroundColor Yellow
 dotnet restore
 

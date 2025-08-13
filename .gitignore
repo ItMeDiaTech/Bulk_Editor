@@ -61,9 +61,6 @@ tools/agent/obj/
 TestResults/
 *.trx
 coverage/
-sbom.spdx.json
-trivy-results.json
-gitleaks*.json
 tools/agent/bin/
 tools/agent/obj/
 .vs/
@@ -71,3 +68,5 @@ tools/agent/obj/
 *.suo
 .env
 *.secrets.*
+mcp.json
+build/*
