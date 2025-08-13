@@ -36,7 +36,7 @@ namespace Bulk_Editor.Services
         public string FlowVersion { get; private set; } = string.Empty;
         public string UpdateNotes { get; private set; } = string.Empty;
 
-        public WordDocumentProcessor(ApiSettings? apiSettings = null, RetrySettings? retrySettings = null)
+        public WordDocumentProcessor(ApiSettings apiSettings = null, RetrySettings retrySettings = null)
         {
             _apiSettings = apiSettings ?? new ApiSettings();
             _retrySettings = retrySettings ?? new RetrySettings();
@@ -242,7 +242,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Sends lookup IDs to Power Automate Flow for processing
         /// </summary>
-        public async Task<string> SendToPowerAutomateFlow(List<string> lookupIds, string? flowUrl = null)
+        public async Task<string> SendToPowerAutomateFlow(List<string> lookupIds, string flowUrl = null)
         {
             // Use configured flow URL if not provided
             string targetUrl = flowUrl ?? _apiSettings.PowerAutomateFlowUrl;

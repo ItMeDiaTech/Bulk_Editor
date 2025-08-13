@@ -83,9 +83,10 @@ namespace Bulk_Editor
                 }
             }
 
-            string? basePath = isFolder ? path : Path.GetDirectoryName(path);
+            string basePath = isFolder ? path : Path.GetDirectoryName(path);
             // Implement basePath fallback for single files
-            basePath ??= Path.GetDirectoryName(Application.ExecutablePath);
+            if (basePath == null)
+                basePath = Path.GetDirectoryName(Application.ExecutablePath) ?? string.Empty;
 
             // Store the originally selected index to preserve user's selection
             int originalSelectedIndex = lstFiles.SelectedIndex;
@@ -104,10 +105,11 @@ namespace Bulk_Editor
                 // Transform button for cancellation
                 TransformButtonForProcessing();
 
-                _hyperlinkReplacementRules?.TrimRules();
+                if (_hyperlinkReplacementRules != null)
+                    _hyperlinkReplacementRules.TrimRules();
 
                 // Create backup directory if backup is enabled
-                string? backupPath = GetBackupPath(basePath);
+                string backupPath = GetBackupPath(basePath);
 
                 string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
                 string changelogPath = string.Empty;
@@ -127,7 +129,7 @@ namespace Bulk_Editor
                                 // Fallback to legacy behavior
                                 string docName = Path.GetFileNameWithoutExtension(path);
                                 string dateFormat = DateTime.Now.ToString("MMddyyyy");
-                                changelogPath = Path.Combine(basePath ?? string.Empty, $"{docName}_Changelog_{dateFormat}.txt");
+                                changelogPath = Path.Combine(basePath, $"{docName}_Changelog_{dateFormat}.txt");
                             }
                         }
                         else
@@ -137,7 +139,7 @@ namespace Bulk_Editor
                             if (string.IsNullOrEmpty(changelogPath))
                             {
                                 // Fallback to legacy behavior
-                                changelogPath = Path.Combine(basePath ?? string.Empty, $"BulkEditor_Changelog_{timestamp}.txt");
+                                changelogPath = Path.Combine(basePath, $"BulkEditor_Changelog_{timestamp}.txt");
                             }
                         }
                     }
@@ -148,11 +150,11 @@ namespace Bulk_Editor
                         {
                             string docName = Path.GetFileNameWithoutExtension(path);
                             string dateFormat = DateTime.Now.ToString("MMddyyyy");
-                            changelogPath = Path.Combine(basePath ?? string.Empty, $"{docName}_Changelog_{dateFormat}.txt");
+                            changelogPath = Path.Combine(basePath, $"{docName}_Changelog_{dateFormat}.txt");
                         }
                         else
                         {
-                            changelogPath = Path.Combine(basePath ?? string.Empty, $"BulkEditor_Changelog_{timestamp}.txt");
+                            changelogPath = Path.Combine(basePath, $"BulkEditor_Changelog_{timestamp}.txt");
                         }
                     }
                 }
@@ -181,7 +183,7 @@ namespace Bulk_Editor
 
                 // Create appropriate writer based on whether changelog generation is enabled
                 TextWriter safeWriter;
-                StreamWriter? fileWriter = null;
+                StreamWriter fileWriter = null;
                 
                 if (chkOpenChangelogAfterUpdates.Checked && !string.IsNullOrEmpty(changelogPath))
                 {
@@ -197,7 +199,7 @@ namespace Bulk_Editor
                         safeWriter.WriteLine($"Version: 2.1");
 
                         // Check for updates
-                        if (_processor?.NeedsUpdate == true)
+                        if (_processor != null && _processor.NeedsUpdate == true)
                         {
                             safeWriter.WriteLine("***New Update Available***");
                             safeWriter.WriteLine("Please download and update as time allows.");
@@ -279,7 +281,8 @@ namespace Bulk_Editor
                 finally
                 {
                     // Dispose of the file writer if we created one
-                    fileWriter?.Dispose();
+                    if (fileWriter != null)
+                        fileWriter.Dispose();
                 }
 
                 _progressReporter.Report(ProgressReport.CreateStatus("Processing complete!", 100));
@@ -307,7 +310,8 @@ namespace Bulk_Editor
                     if (lstFiles.Items.Count == 1)
                     {
                         // Single document: show individual changelog in the UI panel
-                        string fileName = lstFiles.Items[0].ToString()?.Split('(')[0].Trim() ?? string.Empty;
+                        string itemText = lstFiles.Items[0].ToString();
+                        string fileName = itemText != null ? itemText.Split('(')[0].Trim() : string.Empty;
                         await DisplayChangelogForFileAsync(changelogPath, fileName);
                     }
                     else if (lstFiles.Items.Count > 1)
@@ -355,12 +359,13 @@ namespace Bulk_Editor
                 ShowProgress(false);
 
                 // Clean up cancellation token
-                _cancellationTokenSource?.Dispose();
+                if (_cancellationTokenSource != null)
+                    _cancellationTokenSource.Dispose();
                 _cancellationTokenSource = null;
             }
         }
 
-        private async Task ProcessFileWithProgressAsync(string filePath, TextWriter logWriter, string? backupBasePath, int fileIndex, int totalFiles, CancellationToken cancellationToken)
+        private async Task ProcessFileWithProgressAsync(string filePath, TextWriter logWriter, string backupBasePath, int fileIndex, int totalFiles, CancellationToken cancellationToken)
         {
             var fileName = Path.GetFileName(filePath);
             var startTime = DateTime.UtcNow;
@@ -422,7 +427,7 @@ namespace Bulk_Editor
                 var replacedHyperlinks = new Collection<string>();
 
                 // First, get API results if needed for various operations
-                Dictionary<string, ApiResult>? apiResults = null;
+                Dictionary<string, ApiResult> apiResults = null;
 
                 if (chkFixSourceHyperlinks.Checked || chkFixTitles.Checked)
                 {
@@ -735,7 +740,18 @@ namespace Bulk_Editor
                 content.AppendLine();
             }
 
-            // 8. Amount of Double Spaces Removed (at bottom with no indent)
+            // 8. Replaced Hyperlinks section
+            if (replacedHyperlinks.Count > 0)
+            {
+                content.AppendLine($"Replaced Hyperlinks ({replacedHyperlinks.Count}):");
+                foreach (var replacement in replacedHyperlinks)
+                {
+                    content.AppendLine($"    {replacement}");
+                }
+                content.AppendLine();
+            }
+
+            // 9. Amount of Double Spaces Removed (at bottom with no indent)
             if (doubleSpaceCount > 0)
             {
                 content.AppendLine($"Amount of Double Spaces Removed: {doubleSpaceCount}");
@@ -840,7 +856,7 @@ namespace Bulk_Editor
         }
 
         // Field to track the current retry notification timer
-        private System.Windows.Forms.Timer? _retryNotificationTimer;
+        private System.Windows.Forms.Timer _retryNotificationTimer;
 
         private void UpdateProgressUI(ProgressReport report)
         {
@@ -1018,7 +1034,7 @@ namespace Bulk_Editor
                 _progressReporter.Report(ProgressReport.CreateFileProgress(fileIndex + 1, totalFiles, fileName));
 
                 // Determine backup path
-                string? backupBasePath = GetBackupPath(Path.GetDirectoryName(filePath));
+                string backupBasePath = GetBackupPath(Path.GetDirectoryName(filePath) ?? string.Empty);
 
                 await ProcessFileWithProgressAsync(filePath, logWriter, backupBasePath, fileIndex, totalFiles, cancellationToken);
             }
@@ -1031,21 +1047,21 @@ namespace Bulk_Editor
         /// <summary>
         /// Gets the backup path based on settings and creates the directory if needed
         /// </summary>
-        private string? GetBackupPath(string? basePath)
+        private string GetBackupPath(string basePath)
         {
             if (!_appSettings.Processing.CreateBackups)
                 return null;
 
-            string? backupPath;
+            string backupPath;
             if (_appSettings.ChangelogSettings.CentralizeBackups && _appSettings.ChangelogSettings.UseCentralizedStorage)
             {
                 // Use centralized backup location
-                backupPath = _changelogManager.GetBackupsPath();
+                backupPath = _changelogManager != null ? _changelogManager.GetBackupsPath() : string.Empty;
             }
             else
             {
                 // Use local backup folder
-                backupPath = Path.Combine(basePath ?? string.Empty, _appSettings.Processing.BackupFolderName);
+                backupPath = Path.Combine(basePath, _appSettings.Processing.BackupFolderName);
             }
 
             if (!string.IsNullOrEmpty(backupPath) && !Directory.Exists(backupPath))

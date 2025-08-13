@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -122,20 +123,20 @@ namespace Bulk_Editor
             chkConfirmOnExit.CheckedChanged += (s, e) => _hasChanges = true;
             chkShowStatusBar.CheckedChanged += (s, e) => _hasChanges = true;
             cmbTheme.SelectedIndexChanged += (s, e) => _hasChanges = true;
-            
+
             // Logging button event handlers
             btnRefreshLogs.Click += (s, e) => BtnRefreshLogs_Click(s!, e);
             btnExportLogs.Click += BtnExportLogs_Click;
             btnClearOldLogs.Click += BtnClearOldLogs_Click;
-            
+
             // Auto-refresh logs when the logging tab is selected
             if (this.Controls.Find("tabControl", true).FirstOrDefault() is TabControl tabControl)
             {
                 tabControl.SelectedIndexChanged += TabControl_SelectedIndexChanged;
             }
         }
-        
-        private async void TabControl_SelectedIndexChanged(object? sender, EventArgs e)
+
+        private async void TabControl_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (sender is TabControl tabControl && tabControl.SelectedTab?.Name == "tabLogging")
             {
@@ -158,7 +159,7 @@ namespace Bulk_Editor
                         }
                     }
                 }
-                
+
                 // Add a longer delay to ensure logging services are stable
                 await Task.Delay(500);
                 BtnRefreshLogs_Click(this, EventArgs.Empty);
@@ -590,7 +591,7 @@ namespace Bulk_Editor
                 }
             });
         }
-        
+
         /// <summary>
         /// Refreshes the logging settings display after import
         /// </summary>
@@ -627,7 +628,7 @@ namespace Bulk_Editor
                 // Use the singleton LoggingService instance
                 _loggingService.LogInformation("Settings dialog opened at {Timestamp}", DateTime.Now);
                 _loggingService.LogInformation("Log viewer refresh requested");
-                
+
                 // Only log user action if this is a user-initiated refresh
                 if (sender != null)
                 {
@@ -638,7 +639,7 @@ namespace Bulk_Editor
                 var logViewerService = new LogViewerService(_loggingService, _settingsService.Settings.Logging);
                 string logPath = GetLogFilePath();
                 string? logDir = Path.GetDirectoryName(logPath);
-                
+
                 // Ensure log directory exists
                 if (!string.IsNullOrEmpty(logDir) && !Directory.Exists(logDir))
                 {
@@ -652,12 +653,12 @@ namespace Bulk_Editor
                         _loggingService.LogError(dirEx, "Failed to create log directory: {LogDirectory}", logDir);
                     }
                 }
-                
+
                 // Give logging system more time to write the entries and release file handles
                 await Task.Delay(1000);
-                
+
                 var logEntries = await logViewerService.GetRecentLogsAsync(200);
-                
+
                 // Add diagnostic information
                 var diagnosticInfo = new List<string>();
                 diagnosticInfo.Add($"[{DateTime.Now:HH:mm:ss}] === Log Viewer Diagnostic Info ===");
@@ -669,7 +670,7 @@ namespace Bulk_Editor
                 diagnosticInfo.Add($"Log Level: {_settingsService.Settings.Logging.LogLevel}");
                 diagnosticInfo.Add($"Log Format: {_settingsService.Settings.Logging.LogFormat}");
                 diagnosticInfo.Add($"Entries Found: {logEntries.Count}");
-                
+
                 if (File.Exists(logPath))
                 {
                     try
@@ -680,7 +681,7 @@ namespace Bulk_Editor
                     }
                     catch { }
                 }
-                
+
                 diagnosticInfo.Add("=== End Diagnostic Info ===");
                 diagnosticInfo.Add("");
 
@@ -710,7 +711,7 @@ namespace Bulk_Editor
             catch (Exception ex)
             {
                 _loggingService.LogError(ex, "Error refreshing log viewer");
-                
+
                 if (InvokeRequired)
                 {
                     Invoke(new Action(() =>
@@ -742,17 +743,17 @@ namespace Bulk_Editor
                 }
             }
         }
-        
+
         private void UpdateLogDisplay(List<LogEntry> logEntries, List<string> diagnosticInfo)
         {
             lstLogEntries.Items.Clear();
-            
+
             // Add diagnostic info first
             foreach (var info in diagnosticInfo)
             {
                 lstLogEntries.Items.Add(info);
             }
-            
+
             if (logEntries.Count == 0)
             {
                 lstLogEntries.Items.Add("No log entries found in the log file.");
@@ -769,14 +770,14 @@ namespace Bulk_Editor
                     lstLogEntries.Items.Add(entry.ToString());
                 }
             }
-            
+
             // Auto-scroll to show latest entries
             if (lstLogEntries.Items.Count > 0)
             {
                 lstLogEntries.TopIndex = Math.Max(0, lstLogEntries.Items.Count - 1);
             }
         }
-        
+
         private string GetLogFilePath()
         {
             if (Path.IsPathRooted(_settingsService.Settings.Logging.LogFilePath))
@@ -785,14 +786,14 @@ namespace Bulk_Editor
             }
             return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, _settingsService.Settings.Logging.LogFilePath);
         }
-        
+
         /// <summary>
         /// Get the path where exported logs should be saved
         /// </summary>
         private string GetLogExportPath()
         {
             string baseStoragePath;
-            
+
             // Use centralized storage path if configured, otherwise use application directory
             if (_settingsService.Settings.ChangelogSettings.UseCentralizedStorage && !string.IsNullOrWhiteSpace(_settingsService.Settings.ChangelogSettings.BaseStoragePath))
             {
@@ -802,20 +803,20 @@ namespace Bulk_Editor
             {
                 baseStoragePath = AppDomain.CurrentDomain.BaseDirectory;
             }
-            
+
             // Create logs subfolder within the storage path
             string logsFolder = Path.Combine(baseStoragePath, "Logs");
-            
+
             // Generate filename with timestamp
             string filename = $"BulkEditor_Logs_{DateTime.Now:yyyy-MM-dd_HHmmss}.txt";
-            
+
             return Path.Combine(logsFolder, filename);
         }
-        
+
         /// <summary>
         /// Exports current logs to a file
         /// </summary>
-        private async void BtnExportLogs_Click(object? sender, EventArgs e)
+        private async void BtnExportLogs_Click(object sender, EventArgs e)
         {
             try
             {
@@ -824,7 +825,7 @@ namespace Bulk_Editor
 
                 var logViewerService = new LogViewerService(_loggingService, _settingsService.Settings.Logging);
                 string exportPath = GetLogExportPath();
-                
+
                 // Ensure the logs directory exists
                 string? logDir = Path.GetDirectoryName(exportPath);
                 if (!Directory.Exists(logDir))
@@ -846,7 +847,7 @@ namespace Bulk_Editor
                             Arguments = $"\"{exportPath}\"",
                             UseShellExecute = true
                         });
-                        
+
                         // Log the successful export
                         _loggingService.LogUserAction("Log Export", $"Exported to: {exportPath}");
                     }

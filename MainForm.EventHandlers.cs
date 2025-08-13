@@ -13,7 +13,7 @@ namespace Bulk_Editor
         private void BtnSelectFolder_Click(object sender, EventArgs e)
         {
             _loggingService.LogUserAction("Select Folder", "User opened folder selection dialog");
-            
+
             using var folderDialog = new FolderBrowserDialog();
             folderDialog.Description = "Select a folder containing .docx files to process";
             folderDialog.ShowNewFolderButton = false;
@@ -34,7 +34,7 @@ namespace Bulk_Editor
         private void BtnSelectFile_Click(object sender, EventArgs e)
         {
             _loggingService.LogUserAction("Select File", "User opened file selection dialog");
-            
+
             using var fileDialog = new OpenFileDialog();
             fileDialog.Title = "Select a .docx file to process";
             fileDialog.Filter = "Word documents (*.docx)|*.docx";
@@ -62,12 +62,12 @@ namespace Bulk_Editor
 
                 // For individual files, try to find changelog based on the actual file location
                 string changelogPath = string.Empty;
-                
+
                 try
                 {
                     // First try the current folder/file path
                     changelogPath = _changelogManager?.FindLatestChangelog(txtFolderPath.Text) ?? string.Empty;
-                    
+
                     // If not found and we have individual files, try finding based on file location
                     if (string.IsNullOrEmpty(changelogPath) || !File.Exists(changelogPath))
                     {
@@ -76,7 +76,7 @@ namespace Bulk_Editor
                         {
                             string fileDirectory = Path.GetDirectoryName(filePath) ?? string.Empty;
                             changelogPath = _changelogManager?.FindLatestChangelog(fileDirectory) ?? string.Empty;
-                            
+
                             // If still not found, try individual changelog for this specific file
                             if (string.IsNullOrEmpty(changelogPath) || !File.Exists(changelogPath))
                             {
@@ -133,11 +133,11 @@ namespace Bulk_Editor
         private async void BtnSettings_Click(object sender, EventArgs e)
         {
             _loggingService.LogUserAction("Open Settings", "User opened settings dialog");
-            
+
             try
             {
                 using var settingsForm = new SettingsForm(_settingsService, _loggingService);
-                
+
                 // Apply theme to settings form safely
                 try
                 {
@@ -154,20 +154,20 @@ namespace Bulk_Editor
                     {
                         await _settingsService.LoadSettingsAsync();
                         _appSettings = _settingsService.Settings;
-                        
+
                         // Safely reinitialize services and reapply theme
                         try
                         {
                             // Reapply theme with updated settings
                             _themeService?.ApplyTheme(this);
-                            
+
                             // Update any other settings-dependent components
                             _windowStateService?.RestoreWindowState(this);
-                            
+
                             // Force a complete repaint to ensure theme changes are visible
                             this.Invalidate(true);
                             this.Update();
-                            
+
                             lblStatus.Text = "Settings updated successfully";
                             _loggingService.LogInformation("Settings reloaded and theme reapplied successfully");
                         }
@@ -175,7 +175,7 @@ namespace Bulk_Editor
                         {
                             _loggingService.LogError(serviceEx, "Error reinitializing services after settings update");
                             lblStatus.Text = "Settings updated (with minor display issues)";
-                            
+
                             // Try a simple refresh as fallback
                             try
                             {
@@ -209,7 +209,7 @@ namespace Bulk_Editor
         private void BtnAddFile_Click(object sender, EventArgs e)
         {
             _loggingService.LogUserAction("Add Files", "User opened add files dialog");
-            
+
             using var fileDialog = new OpenFileDialog();
             fileDialog.Title = "Select .docx files to add";
             fileDialog.Filter = "Word documents (*.docx)|*.docx";
@@ -218,7 +218,7 @@ namespace Bulk_Editor
             if (fileDialog.ShowDialog() == DialogResult.OK)
             {
                 _loggingService.LogUserAction("Files Added", $"User selected {fileDialog.FileNames.Length} files to add");
-                
+
                 var filePathMap = lstFiles.Tag as Dictionary<int, string> ?? new Dictionary<int, string>();
                 int addedCount = 0;
                 int duplicateCount = 0;
@@ -250,10 +250,10 @@ namespace Bulk_Editor
 
                 lstFiles.Tag = filePathMap;
                 lblStatus.Text = $"Added files. Total: {lstFiles.Items.Count} files";
-                
+
                 _loggingService.LogFileOperation("Add Files", "",
                     $"Added {addedCount} new files, {duplicateCount} duplicates skipped. Total files: {lstFiles.Items.Count}");
-                
+
                 UpdatePanelVisibility();
             }
             else
@@ -316,7 +316,7 @@ namespace Bulk_Editor
             try
             {
                 _loggingService.LogUserAction("Open File Location", "User requested to open file location");
-                
+
                 string filePath = GetSelectedFilePath();
                 if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
                 {
@@ -325,20 +325,20 @@ namespace Bulk_Editor
                     return;
                 }
 
-                string? folderToOpen = Path.GetDirectoryName(filePath);
+                string folderToOpen = Path.GetDirectoryName(filePath);
                 if (string.IsNullOrEmpty(folderToOpen) || !Directory.Exists(folderToOpen))
                 {
                     _loggingService.LogError(new DirectoryNotFoundException($"Directory for file '{filePath}' not found."), "Error opening file location");
                     MessageBox.Show($"The directory for the selected file could not be found.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
-                
+
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                 {
                     FileName = folderToOpen,
                     UseShellExecute = true
                 });
-                
+
                 _loggingService.LogUserAction("File Location Opened", $"Opened folder: {folderToOpen}");
                 lblStatus.Text = $"Opened folder: {Path.GetFileName(folderToOpen)}";
             }
@@ -375,7 +375,7 @@ namespace Bulk_Editor
                 if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
                 {
                     _loggingService.LogUserAction("Process Single File", $"User initiated processing of: {Path.GetFileName(filePath)}");
-                    
+
                     // Process the single file directly without changing UI state
                     ProcessSingleFile();
                 }
@@ -495,7 +495,7 @@ namespace Bulk_Editor
             try
             {
                 _loggingService.LogUserAction("Open Changelog Folder", "User requested to open the main changelogs folder");
-                
+
                 string folderPath = _changelogManager.GetMainChangelogsFolder();
                 Directory.CreateDirectory(folderPath);
 
@@ -504,7 +504,7 @@ namespace Bulk_Editor
                     FileName = folderPath,
                     UseShellExecute = true
                 });
-                
+
                 _loggingService.LogDebug("Opened changelog folder at {Path}", folderPath);
             }
             catch (Exception ex)
@@ -521,7 +521,7 @@ namespace Bulk_Editor
             {
                 using var configForm = new ReplaceHyperlinkConfigForm(_hyperlinkReplacementRules!);
                 _themeService.ApplyTheme(configForm);
-                
+
                 if (configForm.ShowDialog() == DialogResult.OK)
                 {
                     await _hyperlinkReplacementRules!.SaveAsync();

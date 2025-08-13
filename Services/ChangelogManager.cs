@@ -132,7 +132,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Find the most recent changelog file (centralized or legacy)
         /// </summary>
-        public string FindLatestChangelog(string? documentFolderPath = null)
+        public string FindLatestChangelog(string documentFolderPath = null)
         {
             var allChangelogFiles = new List<string>();
 
@@ -195,7 +195,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Find changelogs in legacy document folder locations
         /// </summary>
-        private static List<string> FindLegacyChangelogs(string? documentFolderPath)
+        private static List<string> FindLegacyChangelogs(string documentFolderPath)
         {
             var changelogs = new List<string>();
 

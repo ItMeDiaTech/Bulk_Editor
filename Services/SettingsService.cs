@@ -1,3 +1,4 @@
+#nullable enable
 using Bulk_Editor.Configuration;
 using System;
 using System.IO;
@@ -16,7 +17,7 @@ namespace Bulk_Editor.Services
         public AppSettings Settings { get; private set; } = default!;
 
         // Event to notify when settings are reloaded
-        public event EventHandler? SettingsReloaded;
+        public event EventHandler SettingsReloaded;
 
         public SettingsService()
         {

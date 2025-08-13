@@ -1,4 +1,7 @@
+#nullable enable
+using System;
 using System.Linq;
+using System.Drawing;
 using System.Windows.Forms;
 using Bulk_Editor.Configuration;
 using Bulk_Editor.Models;
@@ -50,11 +53,13 @@ namespace Bulk_Editor.Services
             finally
             {
                 // Always resume layout
-                try {
+                try
+                {
                     if (!form.IsDisposed)
                         form.ResumeLayout(true);
                 }
-                catch (Exception ex) {
+                catch (Exception ex)
+                {
                     System.Diagnostics.Debug.WriteLine($"Error resuming layout: {ex.Message}");
                 }
             }
@@ -96,7 +101,7 @@ namespace Bulk_Editor.Services
                 else
                 {
                     // HandleCreated fires once when the native handle is ready.
-                    EventHandler? handler = null;
+                    EventHandler handler = null;
                     handler = (s, e) =>
                     {
                         try
@@ -164,10 +169,10 @@ namespace Bulk_Editor.Services
                         // Safely dispose old image to prevent memory leaks
                         var oldImage = b.Image;
                         var newImage = System.Drawing.Image.FromStream(stream);
-                        
+
                         // Set new image first
                         b.Image = newImage;
-                        
+
                         // Then safely dispose old image if different and not null
                         if (oldImage != null && oldImage != newImage && !ReferenceEquals(oldImage, newImage))
                         {
@@ -221,7 +226,7 @@ namespace Bulk_Editor.Services
                     };
 
                     // Release (mouse/key/leave) -> reset
-                    void ResetButtonState(object? s, EventArgs e)
+                    void ResetButtonState(object s, EventArgs e)
                     {
                         try
                         {
@@ -303,10 +308,10 @@ namespace Bulk_Editor.Services
                     // Safely dispose old image to prevent memory leaks
                     var oldImage = settingsButton.Image;
                     var newImage = System.Drawing.Image.FromStream(stream);
-                    
+
                     // Set new image first
                     settingsButton.Image = newImage;
-                    
+
                     // Then safely dispose old image if different and not null
                     if (oldImage != null && oldImage != newImage && !ReferenceEquals(oldImage, newImage))
                     {
@@ -353,7 +358,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Recursively find a control by name
         /// </summary>
-        private static Control? FindControlByName(Control parent, string name)
+        private static Control FindControlByName(Control parent, string name)
         {
             if (parent.Name == name)
                 return parent;
@@ -448,8 +453,8 @@ namespace Bulk_Editor.Services
 
         private void ApplyControlTheme(Control control, ThemeConfiguration theme)
         {
-            ListBox? listBoxToEndUpdate = null;
-            ComboBox? comboBoxToEndUpdate = null;
+            ListBox listBoxToEndUpdate = null;
+            ComboBox comboBoxToEndUpdate = null;
 
             try
             {
@@ -686,7 +691,7 @@ namespace Bulk_Editor.Services
                    checkBox.Name == "chkFixTitles";
         }
 
-        private static CheckBox? GetParentCheckBox(CheckBox subCheckBox)
+        private static CheckBox GetParentCheckBox(CheckBox subCheckBox)
         {
             // Find the parent form and locate the Fix Source Hyperlinks checkbox
             var form = subCheckBox.FindForm();
@@ -858,7 +863,6 @@ namespace Bulk_Editor.Services
                 StatusBarBackground = Color.FromArgb(248, 249, 250),
                 StatusForeground = Color.FromArgb(98, 117, 125),
                 TitleForeground = Color.FromArgb(33, 37, 41),
-                GroupBoxBackground = Color.Transparent,
                 CheckBoxForeground = Color.FromArgb(73, 80, 87),
                 PrimaryCheckBoxForeground = Color.FromArgb(73, 80, 87),
                 SubCheckBoxForeground = Color.FromArgb(73, 80, 87),    // stays the same

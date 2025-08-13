@@ -18,7 +18,7 @@ namespace Bulk_Editor.Models
         /// <summary>
         /// Creates a successful result
         /// </summary>
-        public static ProcessingResult<T> CreateSuccess(T data, List<string>? warnings = null)
+        public static ProcessingResult<T> CreateSuccess(T data, List<string> warnings = null)
         {
             return new ProcessingResult<T>
             {
@@ -31,7 +31,7 @@ namespace Bulk_Editor.Models
         /// <summary>
         /// Creates a failed result
         /// </summary>
-        public static ProcessingResult<T> CreateFailure(string errorMessage, Exception? exception = null)
+        public static ProcessingResult<T> CreateFailure(string errorMessage, Exception exception = null)
         {
             return new ProcessingResult<T>
             {
@@ -63,7 +63,7 @@ namespace Bulk_Editor.Models
         /// <summary>
         /// Creates a successful result without data
         /// </summary>
-        public static ProcessingResult CreateSuccess(List<string>? warnings = null)
+        public static ProcessingResult CreateSuccess(List<string> warnings = null)
         {
             return new ProcessingResult
             {
@@ -75,7 +75,7 @@ namespace Bulk_Editor.Models
         /// <summary>
         /// Creates a failed result
         /// </summary>
-        public static new ProcessingResult CreateFailure(string errorMessage, Exception? exception = null)
+        public static new ProcessingResult CreateFailure(string errorMessage, Exception exception = null)
         {
             return new ProcessingResult
             {
