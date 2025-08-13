@@ -1,13 +1,13 @@
 ﻿{
-  "$schema": "https://example.local/agent.schema.json",
   "allowWriteGlobs": ["src/**", "tests/**", "**/*.csproj", "**/*.sln"],
+  "$schema": "./agent.schema.json",
   "denyWriteGlobs": ["**/bin/**", "**/obj/**", "**/coverage/**"],
   "maxPatchLines": 800,
   "commands": {
     "build": "dotnet build Bulk_Editor.sln -warnaserror",
-    "test":  "dotnet test Bulk_Editor.sln --logger trx --collect:\"XPlat Code Coverage\"",
-    "lint":  "dotnet build Bulk_Editor.sln -warnaserror",
-    "format":"dotnet format"
+    "test": "dotnet test Bulk_Editor.sln --logger trx --collect:\"XPlat Code Coverage\"",
+    "lint": "dotnet build Bulk_Editor.sln -warnaserror",
+    "format": "dotnet format"
   },
   "pr": { "base": "main", "titlePrefix": "[agent]" }
 }

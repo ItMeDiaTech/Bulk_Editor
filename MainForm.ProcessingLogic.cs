@@ -184,14 +184,14 @@ namespace Bulk_Editor
                 // Create appropriate writer based on whether changelog generation is enabled
                 TextWriter safeWriter;
                 StreamWriter fileWriter = null;
-                
+
                 if (chkOpenChangelogAfterUpdates.Checked && !string.IsNullOrEmpty(changelogPath))
                 {
                     // Check if changelog file already exists to determine append mode
                     bool appendMode = File.Exists(changelogPath);
                     fileWriter = new StreamWriter(changelogPath, append: appendMode);
                     safeWriter = TextWriter.Synchronized(fileWriter);
-                    
+
                     // Only write header information if this is a new file (not appending)
                     if (!appendMode)
                     {
@@ -769,7 +769,7 @@ namespace Bulk_Editor
         }
 
         private static readonly object _downloadsLogLock = new();
-        
+
         private static void WriteDetailedChangelogToDownloads(Collection<string> updatedLinks, Collection<string> notFoundLinks,
             Collection<string> expiredLinks, Collection<string> errorLinks, Collection<string> updatedUrls,
             Collection<string> replacedHyperlinks, int doubleSpaceCount, WordDocumentProcessor processor)
@@ -844,7 +844,7 @@ namespace Bulk_Editor
             {
                 _originalButtonColor = btnRunTools.BackColor;
             }
-            
+
             btnRunTools.Text = "❌ Cancel Processing";
             btnRunTools.BackColor = Color.FromArgb(220, 53, 69); // Bootstrap danger red
         }

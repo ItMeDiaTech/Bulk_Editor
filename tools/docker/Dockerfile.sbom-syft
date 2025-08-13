@@ -1,0 +1,2 @@
+FROM anchore/syft@sha256:bd5357d2cd087f03af748dac24df48bfbc1723080d78f75f69aca1f2d429060e
+ENTRYPOINT ["syft"]

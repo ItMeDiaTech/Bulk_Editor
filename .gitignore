@@ -1,6 +1,6 @@
 # .NET Core
 project.assets.json
-project.packagespec.json
+project.packages.json
 *.csproj.nuget.*
 *.nuget.targets
 *.nuget.props
@@ -32,3 +32,42 @@ compose.debug.yaml
 compose.yaml
 Dockerfile
 .env
+# Build outputs
+**/bin/
+**/obj/
+TestResults/
+*.trx
+
+# Coverage & reports (recreate any time)
+coverage/
+sbom.spdx.json
+trivy-results.json
+gitleaks*.json
+
+# Agent runner outputs
+tools/agent/bin/
+tools/agent/obj/
+
+# VS / IDE noise
+.vs/
+*.user
+*.suo
+
+# Optional: local env or secrets files if you use them
+.env
+*.secrets.*
+**/bin/
+**/obj/
+TestResults/
+*.trx
+coverage/
+sbom.spdx.json
+trivy-results.json
+gitleaks*.json
+tools/agent/bin/
+tools/agent/obj/
+.vs/
+*.user
+*.suo
+.env
+*.secrets.*
