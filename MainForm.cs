@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -40,7 +41,7 @@ namespace Bulk_Editor
 
         // Progress reporting and cancellation
         private CancellationTokenSource? _cancellationTokenSource;
-        private IProgress<ProgressReport> _progressReporter = default!;
+        private IProgress<ProgressReport>? _progressReporter;
 
         // Button state management
         private string _originalButtonText = default!;
@@ -80,7 +81,25 @@ namespace Bulk_Editor
         protected override void SetVisibleCore(bool value)
         {
             // Don't show the form until initialization is complete
-            base.SetVisibleCore(_isInitialized && value);
+            if (OperatingSystem.IsWindowsVersionAtLeast(6, 1))
+            {
+                base.SetVisibleCore(_isInitialized && value);
+            }
+            else
+            {
+                // For other platforms, if the form is already initialized,
+                // we can set its visibility directly to the desired value.
+                // If not initialized, we keep it hidden.
+                if (_isInitialized)
+                {
+                    base.SetVisibleCore(value);
+                }
+                else
+                {
+                    // Ensure the form remains hidden until initialized
+                    base.SetVisibleCore(false);
+                }
+            }
         }
 
         private void LoadEmbeddedResources()
@@ -92,7 +111,10 @@ namespace Bulk_Editor
             try
             {
                 btnSettings.Text = "⚙️";
-                btnSettings.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+                if (OperatingSystem.IsWindowsVersionAtLeast(6, 1))
+                {
+                    btnSettings.Font = new Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+                }
                 btnSettings.ForeColor = System.Drawing.Color.Black; // Will be overridden by theme
             }
             catch (Exception ex)
@@ -114,7 +136,7 @@ namespace Bulk_Editor
         private async void LoadConfigurationAsync()
         {
             _hyperlinkReplacementRules = await HyperlinkReplacementRules.LoadAsync();
-            
+
             // Initialize services
             InitializeServices();
 
@@ -201,7 +223,7 @@ namespace Bulk_Editor
             // Load saved checkbox states
             LoadCheckboxStates();
             UpdateSubCheckboxStates();
-            
+
             // Setup event handlers for state persistence
             chkFixSourceHyperlinks.CheckedChanged += (s, e) => { UpdateSubCheckboxStates(); SaveCheckboxStates(); };
             chkAppendContentID.CheckedChanged += (s, e) => SaveCheckboxStates();
@@ -217,15 +239,18 @@ namespace Bulk_Editor
         {
             try
             {
-                chkFixSourceHyperlinks.Checked = _appSettings.UI.FixSourceHyperlinks;
-                chkAppendContentID.Checked = _appSettings.UI.AppendContentID;
-                chkCheckTitleChanges.Checked = _appSettings.UI.CheckTitleChanges;
-                chkFixTitles.Checked = _appSettings.UI.FixTitles;
-                chkFixInternalHyperlink.Checked = _appSettings.UI.FixInternalHyperlink;
-                chkFixDoubleSpaces.Checked = _appSettings.UI.FixDoubleSpaces;
-                chkReplaceHyperlink.Checked = _appSettings.UI.ReplaceHyperlink;
-                chkOpenChangelogAfterUpdates.Checked = _appSettings.UI.OpenChangelogAfterUpdates;
-                
+                if (OperatingSystem.IsWindowsVersionAtLeast(6, 1))
+                {
+                    chkFixSourceHyperlinks.Checked = _appSettings.UI.FixSourceHyperlinks;
+                    chkAppendContentID.Checked = _appSettings.UI.AppendContentID;
+                    chkCheckTitleChanges.Checked = _appSettings.UI.CheckTitleChanges;
+                    chkFixTitles.Checked = _appSettings.UI.FixTitles;
+                    chkFixInternalHyperlink.Checked = _appSettings.UI.FixInternalHyperlink;
+                    chkFixDoubleSpaces.Checked = _appSettings.UI.FixDoubleSpaces;
+                    chkReplaceHyperlink.Checked = _appSettings.UI.ReplaceHyperlink;
+                    chkOpenChangelogAfterUpdates.Checked = _appSettings.UI.OpenChangelogAfterUpdates;
+                }
+
                 _loggingService.LogDebug("Checkbox states loaded from settings");
             }
             catch (Exception ex)
@@ -238,15 +263,18 @@ namespace Bulk_Editor
         {
             try
             {
-                _appSettings.UI.FixSourceHyperlinks = chkFixSourceHyperlinks.Checked;
-                _appSettings.UI.AppendContentID = chkAppendContentID.Checked;
-                _appSettings.UI.CheckTitleChanges = chkCheckTitleChanges.Checked;
-                _appSettings.UI.FixTitles = chkFixTitles.Checked;
-                _appSettings.UI.FixInternalHyperlink = chkFixInternalHyperlink.Checked;
-                _appSettings.UI.FixDoubleSpaces = chkFixDoubleSpaces.Checked;
-                _appSettings.UI.ReplaceHyperlink = chkReplaceHyperlink.Checked;
-                _appSettings.UI.OpenChangelogAfterUpdates = chkOpenChangelogAfterUpdates.Checked;
-                
+                if (OperatingSystem.IsWindowsVersionAtLeast(6, 1))
+                {
+                    _appSettings.UI.FixSourceHyperlinks = chkFixSourceHyperlinks.Checked;
+                    _appSettings.UI.AppendContentID = chkAppendContentID.Checked;
+                    _appSettings.UI.CheckTitleChanges = chkCheckTitleChanges.Checked;
+                    _appSettings.UI.FixTitles = chkFixTitles.Checked;
+                    _appSettings.UI.FixInternalHyperlink = chkFixInternalHyperlink.Checked;
+                    _appSettings.UI.FixDoubleSpaces = chkFixDoubleSpaces.Checked;
+                    _appSettings.UI.ReplaceHyperlink = chkReplaceHyperlink.Checked;
+                    _appSettings.UI.OpenChangelogAfterUpdates = chkOpenChangelogAfterUpdates.Checked;
+                }
+
                 await _settingsService.SaveSettingsAsync();
                 _loggingService.LogDebug("Checkbox states saved to settings");
             }
@@ -255,15 +283,16 @@ namespace Bulk_Editor
                 _loggingService.LogError(ex, "Error saving checkbox states");
             }
         }
-
-
-
-
-
-
-
-
-
     }
+
+
+
+
+
+
+
+
+
+}
 }
 

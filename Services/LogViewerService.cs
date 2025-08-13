@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -15,7 +16,7 @@ namespace Bulk_Editor.Services
     {
         private readonly ILoggingService _loggingService;
         private readonly LoggingSettings _logSettings;
-        
+
         private static readonly Regex LogLineRx = new(
             @"^\[(?<ts>[^\]]+)\]\s*\[(?<lvl>[^\]]+)\]\s*(?<msg>.*)$",
             RegexOptions.Compiled);
@@ -30,7 +31,7 @@ namespace Bulk_Editor.Services
         {
             var result = new List<LogEntry>();
             var logPath = GetLogFilePath();
-            
+
             if (string.IsNullOrWhiteSpace(logPath) || !File.Exists(logPath))
                 return result;
 
@@ -178,7 +179,7 @@ namespace Bulk_Editor.Services
                     _loggingService.LogError(ex, "Failed to delete old log file: {FilePath}", file);
                 }
             }
-            
+
             return deletedCount;
         }
 
@@ -266,7 +267,7 @@ namespace Bulk_Editor.Services
                     fileChangelog.AppendLine(line);
                 }
             }
-            
+
             return fileChangelog.Length > 0
                 ? fileChangelog.ToString().TrimEnd()
                 : $"No changelog entries found for {fileName}.";
@@ -279,7 +280,7 @@ namespace Bulk_Editor.Services
             return (trimmedLine.StartsWith("Processed ") && trimmedLine.EndsWith(" files.")) ||
                    trimmedLine == "__________";
         }
-        
+
         // Removed ParseLogEntry - logic moved to GetRecentLogsAsync for better performance
     }
 }

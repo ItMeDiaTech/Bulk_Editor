@@ -6,6 +6,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <Version>2.1.0</Version>
     <AssemblyTitle>Bulk Editor</AssemblyTitle>
     <AssemblyDescription>Document Hyperlink Processor</AssemblyDescription>

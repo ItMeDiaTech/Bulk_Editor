@@ -58,7 +58,7 @@ namespace Bulk_Editor.Services
         public string BuildChangelogContent(Collection<string> updatedLinks, Collection<string> notFoundLinks, Collection<string> expiredLinks, Collection<string> errorLinks, Collection<string> updatedUrls, Collection<string> replacedHyperlinks)
         {
             var sb = new StringBuilder();
-            
+
             // Updated Links section
             sb.AppendLine($"Updated Links ({updatedLinks.Count}):");
             if (updatedLinks.Count > 0)
@@ -235,7 +235,7 @@ namespace Bulk_Editor.Services
             WordDocumentProcessor processor, List<string> changes,
             Collection<string> updatedLinks, Collection<string> notFoundLinks,
             Collection<string> expiredLinks, Collection<string> errorLinks,
-            Collection<string> updatedUrls, Configuration.ApiSettings? apiSettings = null)
+            Collection<string> updatedUrls, ApiSettings? apiSettings = null)
         {
             await ProcessHyperlinks(content, hyperlinks, processor, changes, updatedLinks, notFoundLinks,
                 expiredLinks, errorLinks, updatedUrls, apiSettings);
@@ -262,13 +262,13 @@ namespace Bulk_Editor.Services
             WordDocumentProcessor processor, List<string> changes,
             Collection<string> updatedLinks, Collection<string> notFoundLinks,
             Collection<string> expiredLinks, Collection<string> errorLinks,
-            Collection<string> updatedUrls, Configuration.ApiSettings? apiSettings = null,
+            Collection<string> updatedUrls, ApiSettings? apiSettings = null,
             RetryPolicyService? retryService = null, IProgress<ProgressReport>? progress = null,
             CancellationToken cancellationToken = default)
         {
             var methodName = retryService != null ? "FixSourceHyperlinks with progress" : "FixSourceHyperlinks";
             var startTime = DateTime.UtcNow;
-            
+
             _loggingService.LogProcessingStep("Hyperlink Processing Start", $"{methodName} - Processing {hyperlinks.Count} hyperlinks");
 
             // Remove invisible external hyperlinks
@@ -303,11 +303,11 @@ namespace Bulk_Editor.Services
 
                 // Use the new centralized method to update hyperlinks
                 progress?.Report(ProgressReport.CreateItemProgress(1, 1, "", "Updating hyperlinks from API", 0, hyperlinks.Count));
-                
+
                 // This service no longer modifies the document directly.
                 // It now returns the updated hyperlink data to the caller.
                 var updatedHyperlinks = new List<HyperlinkData>(); // This should be populated by a corrected method.
-                
+
                 _loggingService.LogProcessingStep("Hyperlink Updates", $"Updated hyperlinks based on API response");
 
                 // Copy the updated hyperlinks back to the original list
@@ -323,7 +323,7 @@ namespace Bulk_Editor.Services
             _loggingService.LogProcessingStep("Hyperlink Processing Complete",
                 $"{methodName} completed in {totalDuration.TotalSeconds:F2} seconds");
             _loggingService.LogPerformanceMetric("HyperlinkProcessingTime", totalDuration.TotalMilliseconds, "ms");
-            
+
         }
 
         /// <summary>
@@ -672,7 +672,7 @@ namespace Bulk_Editor.Services
         {
             var regex = MultipleSpacesPatternRegex();
             var matches = regex.Matches(content);
-            
+
             if (matches.Count > 0)
             {
                 changes.Add($"Removed {matches.Count} instances of Extra Spaces");
@@ -739,7 +739,7 @@ namespace Bulk_Editor.Services
         private string SanitizeHyperlinkText(string? text)
         {
             if (string.IsNullOrEmpty(text)) return string.Empty;
-            
+
             string sanitized = text.Trim();
             var match = ContentIdPatternRegex().Match(sanitized);
 
@@ -758,7 +758,7 @@ namespace Bulk_Editor.Services
             // Update hyperlink properties
             hyperlink.TextToDisplay = newHyperlinkText;
 
-            var settings = new Configuration.ApiSettings();
+            var settings = new ApiSettings();
             hyperlink.Address = settings.HyperlinkBaseUrl;
             hyperlink.SubAddress = $"{settings.HyperlinkViewPath}{fullContentId}";
 

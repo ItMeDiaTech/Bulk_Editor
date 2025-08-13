@@ -191,7 +191,7 @@ namespace Bulk_Editor.Services
                         // Clear image and fallback to emoji if resource not found
                         b.Image = null;
                         b.Text = "⚙️";
-                        b.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+                        b.Font = new Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
                         b.ForeColor = dark ? System.Drawing.Color.White : System.Drawing.Color.Black;
                     }
                 }
@@ -201,7 +201,7 @@ namespace Bulk_Editor.Services
                     // Clear image and fallback to emoji
                     b.Image = null;
                     b.Text = "⚙️";
-                    b.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+                    b.Font = new Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
                     b.ForeColor = dark ? System.Drawing.Color.White : System.Drawing.Color.Black;
                 }
 
@@ -330,7 +330,7 @@ namespace Bulk_Editor.Services
                     // Clear image and fallback to emoji if resource not found
                     settingsButton.Image = null;
                     settingsButton.Text = "⚙️";
-                    settingsButton.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+                    settingsButton.Font = new Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
                     settingsButton.ForeColor = IsLightTheme(theme) ? System.Drawing.Color.Black : System.Drawing.Color.White;
                 }
             }
@@ -344,7 +344,7 @@ namespace Bulk_Editor.Services
                         // Clear image and fallback to emoji
                         settingsButton.Image = null;
                         settingsButton.Text = "⚙️";
-                        settingsButton.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+                        settingsButton.Font = new Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
                         settingsButton.ForeColor = IsLightTheme(theme) ? System.Drawing.Color.Black : System.Drawing.Color.White;
                     }
                 }
