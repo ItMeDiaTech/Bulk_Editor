@@ -35,7 +35,7 @@ namespace Bulk_Editor
         private readonly IValidationService _validationService;
         private readonly WindowStateService _windowStateService;
 
-        private HyperlinkReplacementRules? _hyperlinkReplacementRules;
+        private Logic.HyperlinkReplacementRules? _hyperlinkReplacementRules;
         private WordDocumentProcessor? _processor;
         private AppSettings _appSettings;
 
@@ -117,7 +117,7 @@ namespace Bulk_Editor
 
         private async void LoadConfigurationAsync()
         {
-            _hyperlinkReplacementRules = await HyperlinkReplacementRules.LoadAsync();
+            _hyperlinkReplacementRules = await Logic.HyperlinkReplacementRules.LoadAsync();
 
             // Initialize services
             InitializeServices();

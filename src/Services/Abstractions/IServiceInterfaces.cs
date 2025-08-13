@@ -33,7 +33,7 @@ namespace Bulk_Editor.Services.Abstractions
         void DetectTitleChanges(string? content, List<HyperlinkData> hyperlinks, Dictionary<string, ApiResult> apiResults, List<string> changes, Collection<string> titleChangesList);
         void UpdateTitles(string? content, List<HyperlinkData> hyperlinks, Dictionary<string, ApiResult> apiResults, List<string> changes, Collection<string> updatedLinks, Dictionary<string, bool> urlUpdatedTracker);
         void SkipProcessedHyperlinks(string? content, List<HyperlinkData> hyperlinks, List<string> changes);
-        void ReplaceHyperlinks(string? content, List<HyperlinkData> hyperlinks, HyperlinkReplacementRules rules, List<string> changes, Collection<string> replacedHyperlinks);
+        void ReplaceHyperlinks(string? content, List<HyperlinkData> hyperlinks, Logic.HyperlinkReplacementRules rules, List<string> changes, Collection<string> replacedHyperlinks);
     }
     
     public interface ISettingsService
@@ -56,7 +56,7 @@ namespace Bulk_Editor.Services.Abstractions
         ProcessingResult ValidateDirectoryPath(string directoryPath);
         ProcessingResult ValidateUrl(string url);
         ProcessingResult ValidateContentId(string contentId);
-        ProcessingResult ValidateHyperlinkReplacementRule(HyperlinkReplacementRule rule);
+        ProcessingResult ValidateHyperlinkReplacementRule(Logic.HyperlinkReplacementRule rule);
         ProcessingResult ValidateHyperlinkData(HyperlinkData hyperlink);
         ProcessingResult ValidateBackupDirectory(string basePath, string backupFolderName);
         string SanitizeFilePath(string filePath);

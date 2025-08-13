@@ -167,7 +167,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Validates hyperlink replacement rule
         /// </summary>
-        public ProcessingResult ValidateHyperlinkReplacementRule(HyperlinkReplacementRule rule)
+        public ProcessingResult ValidateHyperlinkReplacementRule(Logic.HyperlinkReplacementRule rule)
         {
             var errors = new List<string>();
 

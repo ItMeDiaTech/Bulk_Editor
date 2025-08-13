@@ -12,12 +12,12 @@ namespace Bulk_Editor
 {
     public partial class ReplaceHyperlinkConfigForm : Form
     {
-        private readonly HyperlinkReplacementRules _rules;
+        private readonly Logic.HyperlinkReplacementRules _rules;
 
         // Copy of the original rules for cancel functionality
-        private readonly List<HyperlinkReplacementRule> _originalRules;
+        private readonly List<Logic.HyperlinkReplacementRule> _originalRules;
 
-        public ReplaceHyperlinkConfigForm(HyperlinkReplacementRules rules)
+        public ReplaceHyperlinkConfigForm(Logic.HyperlinkReplacementRules rules)
         {
             InitializeComponent();
             _rules = rules;
@@ -26,7 +26,7 @@ namespace Bulk_Editor
             _originalRules = new List<HyperlinkReplacementRule>();
             foreach (var rule in _rules.Rules)
             {
-                _originalRules.Add(new HyperlinkReplacementRule
+                _originalRules.Add(new Logic.HyperlinkReplacementRule
                 {
                     OldTitle = rule.OldTitle,
                     NewTitle = rule.NewTitle,
@@ -91,7 +91,7 @@ namespace Bulk_Editor
         /// </summary>
         /// <param name="rule">The rule to check</param>
         /// <returns>True if the rule is empty, false otherwise</returns>
-        private static bool IsRuleEmpty(HyperlinkReplacementRule rule)
+        private static bool IsRuleEmpty(Logic.HyperlinkReplacementRule rule)
         {
             return string.IsNullOrWhiteSpace(rule.OldTitle) &&
                    string.IsNullOrWhiteSpace(rule.NewTitle) &&
@@ -102,7 +102,7 @@ namespace Bulk_Editor
         /// Trims whitespace from all properties of a rule
         /// </summary>
         /// <param name="rule">The rule to trim</param>
-        private static void TrimRule(HyperlinkReplacementRule rule)
+        private static void TrimRule(Logic.HyperlinkReplacementRule rule)
         {
             if (rule.OldTitle != null)
                 rule.OldTitle = rule.OldTitle.Trim();
@@ -119,7 +119,7 @@ namespace Bulk_Editor
         {
             for (int i = _bindingSource.Count - 1; i >= 0; i--)
             {
-                var rule = (HyperlinkReplacementRule)_bindingSource[i];
+                var rule = (Logic.HyperlinkReplacementRule)_bindingSource[i];
 
                 // Trim whitespace from all properties
                 TrimRule(rule);
@@ -135,7 +135,7 @@ namespace Bulk_Editor
         private void BtnAddRow_Click(object sender, EventArgs e)
         {
             // Add a new rule to the data source using the BindingSource
-            var newRule = new HyperlinkReplacementRule();
+            var newRule = new Logic.HyperlinkReplacementRule();
             _bindingSource.Add(newRule);
 
             // Position the cursor on the new row for immediate editing
@@ -184,7 +184,7 @@ namespace Bulk_Editor
             _rules.Rules.Clear();
             foreach (var rule in _originalRules)
             {
-                _rules.Rules.Add(new HyperlinkReplacementRule
+                _rules.Rules.Add(new Logic.HyperlinkReplacementRule
                 {
                     OldTitle = rule.OldTitle,
                     NewTitle = rule.NewTitle,

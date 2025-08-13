@@ -686,7 +686,7 @@ namespace Bulk_Editor.Services
         /// Replaces hyperlinks based on replacement rules
         /// </summary>
         public void ReplaceHyperlinks(string? content, List<HyperlinkData> hyperlinks,
-            HyperlinkReplacementRules rules, List<string> changes, Collection<string> replacedHyperlinks)
+            Logic.HyperlinkReplacementRules rules, List<string> changes, Collection<string> replacedHyperlinks)
         {
             int replacedCount = 0;
 
@@ -704,7 +704,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Validates a replacement rule
         /// </summary>
-        private bool IsValidRule(HyperlinkReplacementRule rule) =>
+        private bool IsValidRule(Logic.HyperlinkReplacementRule rule) =>
             !string.IsNullOrWhiteSpace(rule.OldTitle) &&
             !string.IsNullOrWhiteSpace(rule.NewTitle) &&
             !string.IsNullOrWhiteSpace(rule.NewFullContentID);
@@ -712,7 +712,7 @@ namespace Bulk_Editor.Services
         /// <summary>
         /// Processes a single replacement rule against all hyperlinks
         /// </summary>
-        private int ProcessReplacementRule(List<HyperlinkData> hyperlinks, HyperlinkReplacementRule rule, Collection<string> replacedHyperlinks)
+        private int ProcessReplacementRule(List<HyperlinkData> hyperlinks, Logic.HyperlinkReplacementRule rule, Collection<string> replacedHyperlinks)
         {
             int count = 0;
             string oldTitle = rule.OldTitle.Trim();
