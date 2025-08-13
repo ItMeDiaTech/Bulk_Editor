@@ -49,7 +49,7 @@ namespace Bulk_Editor.Configuration
         public bool EnableDetailedLogging { get; set; } = true;
         public bool AutoBackupEnabled { get; set; } = true;
         public bool RememberWindowPosition { get; set; } = true;
-        public bool ConfirmBeforeProcessing { get; set; } = true;
+        public bool ConfirmBeforeProcessing { get; set; } = false;
         public string DefaultFileFilter { get; set; } = "*.docx";
         public bool RemoveDocumentFilesOnExit { get; set; } = true;
         public int RecentFilesCount { get; set; } = 10;
@@ -88,6 +88,16 @@ namespace Bulk_Editor.Configuration
         public bool MinimizeToTray { get; set; } = false;
         public bool ShowStatusBar { get; set; } = true;
         public int AutoSaveIntervalSeconds { get; set; } = 300;
+        
+        // Checkbox state persistence
+        public bool FixSourceHyperlinks { get; set; } = true;
+        public bool AppendContentID { get; set; } = false;
+        public bool CheckTitleChanges { get; set; } = false;
+        public bool FixTitles { get; set; } = false;
+        public bool FixInternalHyperlink { get; set; } = true;
+        public bool FixDoubleSpaces { get; set; } = true;
+        public bool ReplaceHyperlink { get; set; } = false;
+        public bool OpenChangelogAfterUpdates { get; set; } = false;
     }
 
     /// <summary>

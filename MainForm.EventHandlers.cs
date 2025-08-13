@@ -60,9 +60,37 @@ namespace Bulk_Editor
                 string selectedItem = lstFiles.SelectedItem?.ToString() ?? string.Empty;
                 string fileName = selectedItem.Split('(')[0].Trim();
 
-                string changelogPath = _changelogManager?.FindLatestChangelog(txtFolderPath.Text) ?? string.Empty;
+                // For individual files, try to find changelog based on the actual file location
+                string changelogPath = string.Empty;
+                
+                try
+                {
+                    // First try the current folder/file path
+                    changelogPath = _changelogManager?.FindLatestChangelog(txtFolderPath.Text) ?? string.Empty;
+                    
+                    // If not found and we have individual files, try finding based on file location
+                    if (string.IsNullOrEmpty(changelogPath) || !File.Exists(changelogPath))
+                    {
+                        string filePath = GetSelectedFilePath();
+                        if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
+                        {
+                            string fileDirectory = Path.GetDirectoryName(filePath) ?? string.Empty;
+                            changelogPath = _changelogManager?.FindLatestChangelog(fileDirectory) ?? string.Empty;
+                            
+                            // If still not found, try individual changelog for this specific file
+                            if (string.IsNullOrEmpty(changelogPath) || !File.Exists(changelogPath))
+                            {
+                                changelogPath = _changelogManager?.GetIndividualChangelogPath(fileName) ?? string.Empty;
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _loggingService.LogError(ex, "Error finding changelog for file: {FileName}", fileName);
+                }
 
-                if (File.Exists(changelogPath))
+                if (!string.IsNullOrEmpty(changelogPath) && File.Exists(changelogPath))
                 {
                     await DisplayChangelogForFileAsync(changelogPath, fileName);
                 }
@@ -560,5 +588,6 @@ namespace Bulk_Editor
                 }
             }
         }
+
     }
 }

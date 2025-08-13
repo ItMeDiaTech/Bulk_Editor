@@ -498,20 +498,22 @@ namespace Bulk_Editor
             this.tlpTools.Controls.Add(this.chkCheckTitleChanges, 0, 2);
             this.tlpTools.Controls.Add(this.chkFixTitles, 0, 3);
             this.tlpTools.Controls.Add(this.chkFixInternalHyperlink, 1, 0);
-            this.tlpTools.Controls.Add(this.chkFixDoubleSpaces, 1, 1);
             this.tlpTools.Controls.Add(this.chkOpenChangelogAfterUpdates, 2, 0);
             this.tlpTools.Controls.Add(this.chkReplaceHyperlink, 2, 1);
             this.tlpTools.Controls.Add(this.btnConfigureReplaceHyperlink, 2, 3);
+            this.tlpTools.Controls.Add(this.chkFixDoubleSpaces, 0, 5);
             this.tlpTools.Dock = System.Windows.Forms.DockStyle.Top;
             this.tlpTools.Location = new System.Drawing.Point(16, 38);
             this.tlpTools.Name = "tlpTools";
-            this.tlpTools.RowCount = 4;
+            this.tlpTools.RowCount = 6;
             this.tlpTools.RowStyles.Clear();
             this.tlpTools.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
             this.tlpTools.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
             this.tlpTools.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
             this.tlpTools.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
-            this.tlpTools.Size = new System.Drawing.Size(858, 114);
+            this.tlpTools.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 15F));
+            this.tlpTools.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tlpTools.Size = new System.Drawing.Size(858, 139);
             this.tlpTools.TabIndex = 0;
 
             //
@@ -588,7 +590,7 @@ namespace Bulk_Editor
             this.chkFixDoubleSpaces.AutoSize = true;
             this.chkFixDoubleSpaces.BackColor = System.Drawing.Color.Transparent;
             this.chkFixDoubleSpaces.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.chkFixDoubleSpaces.Location = new System.Drawing.Point(289, 31);
+            this.chkFixDoubleSpaces.Location = new System.Drawing.Point(3, 118);
             this.chkFixDoubleSpaces.Name = "chkFixDoubleSpaces";
             this.chkFixDoubleSpaces.Size = new System.Drawing.Size(122, 19);
             this.chkFixDoubleSpaces.TabIndex = 5;

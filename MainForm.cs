@@ -198,8 +198,62 @@ namespace Bulk_Editor
 
         private void SetupCheckboxDependencies()
         {
+            // Load saved checkbox states
+            LoadCheckboxStates();
             UpdateSubCheckboxStates();
-            chkFixSourceHyperlinks.CheckedChanged += ChkFixSourceHyperlinks_CheckedChanged!;
+            
+            // Setup event handlers for state persistence
+            chkFixSourceHyperlinks.CheckedChanged += (s, e) => { UpdateSubCheckboxStates(); SaveCheckboxStates(); };
+            chkAppendContentID.CheckedChanged += (s, e) => SaveCheckboxStates();
+            chkCheckTitleChanges.CheckedChanged += (s, e) => SaveCheckboxStates();
+            chkFixTitles.CheckedChanged += (s, e) => SaveCheckboxStates();
+            chkFixInternalHyperlink.CheckedChanged += (s, e) => SaveCheckboxStates();
+            chkFixDoubleSpaces.CheckedChanged += (s, e) => SaveCheckboxStates();
+            chkReplaceHyperlink.CheckedChanged += (s, e) => SaveCheckboxStates();
+            chkOpenChangelogAfterUpdates.CheckedChanged += (s, e) => SaveCheckboxStates();
+        }
+
+        private void LoadCheckboxStates()
+        {
+            try
+            {
+                chkFixSourceHyperlinks.Checked = _appSettings.UI.FixSourceHyperlinks;
+                chkAppendContentID.Checked = _appSettings.UI.AppendContentID;
+                chkCheckTitleChanges.Checked = _appSettings.UI.CheckTitleChanges;
+                chkFixTitles.Checked = _appSettings.UI.FixTitles;
+                chkFixInternalHyperlink.Checked = _appSettings.UI.FixInternalHyperlink;
+                chkFixDoubleSpaces.Checked = _appSettings.UI.FixDoubleSpaces;
+                chkReplaceHyperlink.Checked = _appSettings.UI.ReplaceHyperlink;
+                chkOpenChangelogAfterUpdates.Checked = _appSettings.UI.OpenChangelogAfterUpdates;
+                
+                _loggingService.LogDebug("Checkbox states loaded from settings");
+            }
+            catch (Exception ex)
+            {
+                _loggingService.LogError(ex, "Error loading checkbox states");
+            }
+        }
+
+        private async void SaveCheckboxStates()
+        {
+            try
+            {
+                _appSettings.UI.FixSourceHyperlinks = chkFixSourceHyperlinks.Checked;
+                _appSettings.UI.AppendContentID = chkAppendContentID.Checked;
+                _appSettings.UI.CheckTitleChanges = chkCheckTitleChanges.Checked;
+                _appSettings.UI.FixTitles = chkFixTitles.Checked;
+                _appSettings.UI.FixInternalHyperlink = chkFixInternalHyperlink.Checked;
+                _appSettings.UI.FixDoubleSpaces = chkFixDoubleSpaces.Checked;
+                _appSettings.UI.ReplaceHyperlink = chkReplaceHyperlink.Checked;
+                _appSettings.UI.OpenChangelogAfterUpdates = chkOpenChangelogAfterUpdates.Checked;
+                
+                await _settingsService.SaveSettingsAsync();
+                _loggingService.LogDebug("Checkbox states saved to settings");
+            }
+            catch (Exception ex)
+            {
+                _loggingService.LogError(ex, "Error saving checkbox states");
+            }
         }
 
 

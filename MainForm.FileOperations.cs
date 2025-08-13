@@ -157,9 +157,17 @@ namespace Bulk_Editor
                     lstFiles.SelectedIndex = originalSelectedIndex;
                 }
                 
-                // Refresh changelog for the current selection after a short delay
-                await Task.Delay(1000);
-                LstFiles_SelectedIndexChanged(this, EventArgs.Empty);
+                // Force refresh changelog for the current selection after a delay to ensure file is released
+                var refreshTimer = new System.Windows.Forms.Timer();
+                refreshTimer.Interval = 1500; // Increased delay to ensure file release
+                refreshTimer.Tick += (s, timerArgs) =>
+                {
+                    refreshTimer.Stop();
+                    refreshTimer.Dispose();
+                    // Trigger changelog refresh for currently selected item
+                    LstFiles_SelectedIndexChanged(this, EventArgs.Empty);
+                };
+                refreshTimer.Start();
                 
                 _loggingService.LogDebug("Single file processing completed successfully");
             }
@@ -183,13 +191,16 @@ namespace Bulk_Editor
                 return;
             }
             
-            // Set up changelog path
+            // Set up changelog path - use the same logic as the main processing to ensure consistency
             string fileName = Path.GetFileName(filePath);
             string? baseDir = Path.GetDirectoryName(filePath);
             string changelogPath;
             
+            // Ensure we use the same changelog detection logic as the main process
+            // This prevents conflicts with other files' changelog detection
             if (_changelogManager != null && _appSettings.ChangelogSettings.UseCentralizedStorage)
             {
+                // For single file processing, always use individual changelog path to avoid conflicts
                 changelogPath = _changelogManager.GetIndividualChangelogPath(fileName);
                 if (string.IsNullOrEmpty(changelogPath))
                 {
@@ -200,10 +211,14 @@ namespace Bulk_Editor
             }
             else
             {
+                // Use legacy behavior with proper file naming to avoid conflicts
                 string docName = Path.GetFileNameWithoutExtension(filePath);
                 string dateFormat = DateTime.Now.ToString("MMddyyyy");
                 changelogPath = Path.Combine(baseDir ?? string.Empty, $"{docName}_Changelog_{dateFormat}.txt");
             }
+            
+            // Store the changelog path for consistent detection later
+            _loggingService.LogDebug("Single file processing changelog path: {ChangelogPath}", changelogPath);
             
             // Process the single file
             bool appendMode = File.Exists(changelogPath);
@@ -226,6 +241,8 @@ namespace Bulk_Editor
                 
                 await ProcessFileWithProgressAsync(filePath, writer, null, 0, 1, CancellationToken.None);
             }
+            
+            _loggingService.LogDebug("Single file processing completed for: {FileName}", fileName);
         }
     }
 }
