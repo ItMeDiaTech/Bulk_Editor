@@ -81,25 +81,7 @@ namespace Bulk_Editor
         protected override void SetVisibleCore(bool value)
         {
             // Don't show the form until initialization is complete
-            if (OperatingSystem.IsWindowsVersionAtLeast(6, 1))
-            {
-                base.SetVisibleCore(_isInitialized && value);
-            }
-            else
-            {
-                // For other platforms, if the form is already initialized,
-                // we can set its visibility directly to the desired value.
-                // If not initialized, we keep it hidden.
-                if (_isInitialized)
-                {
-                    base.SetVisibleCore(value);
-                }
-                else
-                {
-                    // Ensure the form remains hidden until initialized
-                    base.SetVisibleCore(false);
-                }
-            }
+            base.SetVisibleCore(_isInitialized && value);
         }
 
         private void LoadEmbeddedResources()
@@ -225,14 +207,17 @@ namespace Bulk_Editor
             UpdateSubCheckboxStates();
 
             // Setup event handlers for state persistence
-            chkFixSourceHyperlinks.CheckedChanged += (s, e) => { UpdateSubCheckboxStates(); SaveCheckboxStates(); };
-            chkAppendContentID.CheckedChanged += (s, e) => SaveCheckboxStates();
-            chkCheckTitleChanges.CheckedChanged += (s, e) => SaveCheckboxStates();
-            chkFixTitles.CheckedChanged += (s, e) => SaveCheckboxStates();
-            chkFixInternalHyperlink.CheckedChanged += (s, e) => SaveCheckboxStates();
-            chkFixDoubleSpaces.CheckedChanged += (s, e) => SaveCheckboxStates();
-            chkReplaceHyperlink.CheckedChanged += (s, e) => SaveCheckboxStates();
-            chkOpenChangelogAfterUpdates.CheckedChanged += (s, e) => SaveCheckboxStates();
+            if (OperatingSystem.IsWindowsVersionAtLeast(6, 1))
+            {
+                chkFixSourceHyperlinks.CheckedChanged += (s, e) => { UpdateSubCheckboxStates(); SaveCheckboxStates(); };
+                chkAppendContentID.CheckedChanged += (s, e) => SaveCheckboxStates();
+                chkCheckTitleChanges.CheckedChanged += (s, e) => SaveCheckboxStates();
+                chkFixTitles.CheckedChanged += (s, e) => SaveCheckboxStates();
+                chkFixInternalHyperlink.CheckedChanged += (s, e) => SaveCheckboxStates();
+                chkFixDoubleSpaces.CheckedChanged += (s, e) => SaveCheckboxStates();
+                chkReplaceHyperlink.CheckedChanged += (s, e) => SaveCheckboxStates();
+                chkOpenChangelogAfterUpdates.CheckedChanged += (s, e) => SaveCheckboxStates();
+            }
         }
 
         private void LoadCheckboxStates()
@@ -284,15 +269,5 @@ namespace Bulk_Editor
             }
         }
     }
-
-
-
-
-
-
-
-
-
-}
 }
 

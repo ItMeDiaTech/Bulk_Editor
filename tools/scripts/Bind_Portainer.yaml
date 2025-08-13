@@ -1,0 +1,9 @@
+portainer:
+  image: portainer/portainer-ce:2.21.1
+  ports:
+    - "127.0.0.1:9443:9443"
+    - "127.0.0.1:9000:9000"
+  volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+    - portainer_data:/data
+  restart: unless-stopped

@@ -28,7 +28,7 @@ namespace Bulk_Editor.Services
             {
                 // Ensure base path is absolute
                 string basePath = GetAbsoluteBasePath();
-                
+
                 // Create base directory
                 Directory.CreateDirectory(basePath);
                 System.Diagnostics.Debug.WriteLine($"Created base directory: {basePath}");
@@ -71,17 +71,17 @@ namespace Bulk_Editor.Services
                 throw;
             }
         }
-        
+
         private string GetAbsoluteBasePath()
         {
             // Expand environment variables first
             var basePath = Environment.ExpandEnvironmentVariables(_settings.BaseStoragePath);
-            
+
             if (Path.IsPathRooted(basePath))
             {
                 return basePath;
             }
-            
+
             // Convert relative path to absolute path relative to application directory
             return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, basePath);
         }
@@ -205,7 +205,7 @@ namespace Bulk_Editor.Services
                     return changelogs;
 
                 bool isFolder = Directory.Exists(documentFolderPath);
-                string? basePath = isFolder ? documentFolderPath : Path.GetDirectoryName(documentFolderPath);
+                string basePath = isFolder ? documentFolderPath : Path.GetDirectoryName(documentFolderPath);
 
                 if (string.IsNullOrEmpty(basePath) || !Directory.Exists(basePath))
                     return changelogs;
